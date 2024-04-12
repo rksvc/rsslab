@@ -1,0 +1,6 @@
+.vscode
+/rsshub/**/*.js
+!polyfill.js
+!got.js
+!logger.js
+!ofetch.js
