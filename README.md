@@ -1,4 +1,4 @@
-Feed reader built on [nkanaev/yarr](https://github.com/nkanaev/yarr) with integrated RSSHub service which lets you subscribe to feeds using `rsshub` protocol URLs like `rsshub:github/issue/DIYgod/RSSHub`. It fetches the source code on demand from the npm Registry and runs it locally in an embedded JavaScript runtime to generate feeds.
+Feed reader built on [nkanaev/yarr](https://github.com/nkanaev/yarr) with built-in RSSHub service which lets you subscribe to feeds using `rsshub` protocol URLs like `rsshub:github/issue/DIYgod/RSSHub`. It fetches the source code on demand from the npm Registry and runs it locally in an embedded JavaScript runtime to generate feeds.
 
 Routes that require Puppeteer, art-template, etc. are not currently supported.
 
@@ -6,13 +6,14 @@ Routes that require Puppeteer, art-template, etc. are not currently supported.
 
 Execute the binary and open http://127.0.0.1:9854 in your browser. The RSSHub integration is not ready until you see the `registered ... routes` output on the console.
 
-Additionally, you can view the generated feed in `http://127.0.0.1:9854/rsshub/{namespace}/{route}` like http://127.0.0.1:9854/rsshub/github/issue/DIYgod/RSSHub.
+Additionally, you can view the generated feed in `http://127.0.0.1:9854/rsshub/{route}` like http://127.0.0.1:9854/rsshub/github/issue/DIYgod/RSSHub.
 
 Alternatives for some command line argument values:
 
 - `-src`
   - `https://unpkg.com/rsshub` (default)
   - `https://registry.npmmirror.com/rsshub/latest/files` (recommended for users in Chinese mainland)
+  - `https://cdn.jsdelivr.net/npm/rsshub`
   - `https://raw.githubusercontent.com/DIYgod/RSSHub/master`
 - `-routes`
   - `https://raw.githubusercontent.com/DIYgod/RSSHub/gh-pages/build/routes.json` (default)
