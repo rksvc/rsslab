@@ -48,7 +48,7 @@ The following features have been temporarily removed since I don't want to maint
 
 , and has the following additional features:
 
-- uses [siyuan tokenizer](https://github.com/siyuan-note/sqlite-fts5-siyuan-tokenizer) for better CJK text search which makes English text search worse
+- uses [simple tokenizer](https://github.com/wangfenjin/simple) for better CJK text search
 - supports editing feed link
 - supports refreshing selected feeds
 - supports refreshing feeds with errors

@@ -109,7 +109,7 @@ var migrations = []func(*sql.Tx) error{
 			 title,
 			 description,
 			 content,
-			 tokenize="siyuan case_insensitive"
+			 tokenize="simple"
 			);
 
 			create trigger if not exists del_item_search after delete on items begin
