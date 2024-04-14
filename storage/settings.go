@@ -21,9 +21,8 @@ func defaultSettings() map[string]any {
 }
 
 func (s *Storage) GetSettingsValue(key string) (any, error) {
-	row := s.db.QueryRow(`select val from settings where key = ?`, key)
 	var val []byte
-	err := row.Scan(&val)
+	err := s.db.QueryRow(`select val from settings where key = ?`, key).Scan(&val)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return defaultSettings()[key], nil
@@ -71,6 +70,10 @@ func (s *Storage) GetSettings() (map[string]any, error) {
 			return nil, err
 		}
 		result[key] = valDecoded
+	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
 	}
 	return result, nil
 }

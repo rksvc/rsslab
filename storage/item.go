@@ -187,6 +187,10 @@ func (s *Storage) ListItems(filter ItemFilter, limit int, newestFirst bool) ([]I
 		}
 		result = append(result, i)
 	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -261,6 +265,10 @@ func (s *Storage) FeedStats() ([]FeedStat, error) {
 		}
 		result = append(result, stat)
 	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -284,6 +292,10 @@ func (s *Storage) SyncSearch() error {
 			return err
 		}
 		items = append(items, item)
+	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return err
 	}
 
 	for _, item := range items {
@@ -350,6 +362,10 @@ func (s *Storage) DeleteOldItems() {
 			return
 		}
 		feedLimits[feedId] = limit
+	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return
 	}
 
 	for feedId, limit := range feedLimits {

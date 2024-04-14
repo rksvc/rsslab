@@ -10,16 +10,15 @@ type Folder struct {
 
 func (s *Storage) CreateFolder(title string) (*Folder, error) {
 	expanded := true
-	row := s.db.QueryRow(`
+	var id int64
+	err := s.db.QueryRow(`
 		insert into folders (title, is_expanded) values (?, ?)
 		on conflict (title) do update set title = ?
         returning id`,
 		title, expanded,
 		// provide title again so that we can extract row id
 		title,
-	)
-	var id int64
-	err := row.Scan(&id)
+	).Scan(&id)
 	if err != nil {
 		log.Print(err)
 		return nil, err
@@ -70,6 +69,10 @@ func (s *Storage) ListFolders() ([]Folder, error) {
 			return nil, err
 		}
 		result = append(result, f)
+	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
 	}
 	return result, nil
 }

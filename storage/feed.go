@@ -25,17 +25,15 @@ func (s *Storage) CreateFeed(title, description, link, feedLink string, folderId
 	if title == "" {
 		title = feedLink
 	}
-	row := s.db.QueryRow(`
+	var id int64
+	err := s.db.QueryRow(`
 		insert into feeds (title, description, link, feed_link, folder_id) 
 		values (?, ?, ?, ?, ?)
 		on conflict (feed_link) do update set folder_id = ?
         returning id`,
 		title, description, link, feedLink, folderId,
 		folderId,
-	)
-
-	var id int64
-	err := row.Scan(&id)
+	).Scan(&id)
 	if err != nil {
 		log.Print(err)
 		return nil, err
@@ -118,6 +116,10 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 		}
 		result = append(result, f)
 	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -147,6 +149,10 @@ func (s *Storage) ListFeedsMissingIcons() []Feed {
 			return nil
 		}
 		result = append(result, f)
+	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil
 	}
 	return result
 }
@@ -202,6 +208,10 @@ func (s *Storage) GetFeeds(folderId int64) ([]Feed, error) {
 		}
 		result = append(result, f)
 	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -243,6 +253,10 @@ func (s *Storage) GetFeedErrors() (map[int64]string, error) {
 		}
 		errors[id] = error
 	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	return errors, nil
 }
 
@@ -275,6 +289,10 @@ func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
 		}
 		result = append(result, f)
 	}
+	if err = rows.Err(); err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -290,12 +308,11 @@ func (s *Storage) SetFeedSize(feedId int64, size int) error {
 }
 
 func (s *Storage) GetHTTPState(feedId int64) (*HTTPState, error) {
-	row := s.db.QueryRow(`
+	var state HTTPState
+	err := s.db.QueryRow(`
 		select last_modified, etag
 		from feeds where id = ?
-	`, feedId)
-	var state HTTPState
-	err := row.Scan(
+	`, feedId).Scan(
 		&state.LastModified,
 		&state.Etag,
 	)
