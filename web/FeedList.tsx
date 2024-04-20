@@ -26,7 +26,7 @@ import {
   Wind,
 } from 'react-feather';
 import { type Feed, type Folder, type FolderWithFeeds, Stats, Settings } from './types';
-import { cn, iconProps, menuIconProps, xfetch } from './utils';
+import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
 import classes from './styles.module.css';
 
 export default function FeedList({
@@ -223,6 +223,7 @@ export default function FeedList({
         />
         <Popover
           placement="bottom"
+          {...popoverProps}
           content={
             <Menu>
               <MenuItem

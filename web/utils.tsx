@@ -7,6 +7,7 @@ import { Confirm } from './Confirm';
 
 export const iconProps = { size: 16 };
 export const menuIconProps = { size: 14 };
+export const popoverProps = { transitionDuration: 0 };
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ');

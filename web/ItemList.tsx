@@ -40,7 +40,14 @@ import useInfiniteScroll from 'react-infinite-scroll-hook';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types';
-import { cn, confirmDeletion, iconProps, menuIconProps, xfetch } from './utils';
+import {
+  cn,
+  confirmDeletion,
+  iconProps,
+  menuIconProps,
+  popoverProps,
+  xfetch,
+} from './utils';
 
 dayjs.extend(relativeTime);
 
@@ -225,6 +232,7 @@ export default function ItemList({
         />
         <Popover
           placement="bottom"
+          {...popoverProps}
           content={
             <Menu>
               {isFeedSelected ? (
