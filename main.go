@@ -1,7 +1,9 @@
 package main
 
 import (
+	"embed"
 	"flag"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -11,7 +13,6 @@ import (
 	"rsslab/rsshub"
 	"rsslab/server"
 	"rsslab/storage"
-	"rsslab/web"
 	"sync/atomic"
 	"time"
 
@@ -76,6 +77,8 @@ func main() {
 	api = server.New(db, rsshubBaseUrl)
 
 	app := engine()
+	dist, _ := fs.Sub(dist, "dist")
+	app.Use("/", filesystem.New(filesystem.Config{Root: dist}))
 	srv.Store(app)
 
 	go func() {
@@ -92,24 +95,14 @@ func main() {
 	}
 }
 
+//go:embed dist
+var dist embed.FS
+
 func engine() *fiber.App {
-	app := fiber.New(fiber.Config{Views: &web.Engine})
+	app := fiber.New()
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	app.Use(compress.New())
-
 	api.Register(app.Group("/api"))
-	app.Use("/static", filesystem.New(filesystem.Config{Root: web.Assets}))
-	app.Get("/", func(c fiber.Ctx) error {
-		settings, err := db.GetSettings()
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).SendString(err.Error())
-		}
-		return c.Render("index", fiber.Map{
-			"settings":    settings,
-			"rsshub_path": RSSHUB_PATH,
-		})
-	})
-
 	app.All("/reload", func(c fiber.Ctx) error {
 		if reloading.Load() {
 			return c.SendStatus(http.StatusConflict)
@@ -117,7 +110,6 @@ func engine() *fiber.App {
 		go reload()
 		return c.SendStatus(http.StatusOK)
 	})
-
 	return app
 }
 
@@ -133,6 +125,8 @@ func reload() bool {
 	}
 	app := engine()
 	rsshub.Register(app.Group(RSSHUB_PATH))
+	dist, _ := fs.Sub(dist, "dist")
+	app.Use("/", filesystem.New(filesystem.Config{Root: dist}))
 
 	if err := srv.Swap(app).(*fiber.App).ShutdownWithTimeout(5 * time.Second); err != nil {
 		log.Print(err)

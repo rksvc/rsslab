@@ -449,6 +449,7 @@ func (s *Server) handleSettings(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(Err(err))
 	}
+	settings["rsshub_path"] = s.base.Path
 	return c.JSON(settings)
 }
 

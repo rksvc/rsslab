@@ -10,8 +10,6 @@ require (
 	github.com/evanw/esbuild v0.20.2
 	github.com/go-resty/resty/v2 v2.12.0
 	github.com/gofiber/fiber/v3 v3.0.0-beta.2
-	github.com/gofiber/template v1.8.3
-	github.com/gofiber/template/html/v2 v2.1.1
 	github.com/karlseguin/ccache/v3 v3.0.5
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mmcdole/gofeed v1.3.0
@@ -30,7 +28,6 @@ require (
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/dop251/base64dec v0.0.0-20231022112746-c6c9f9a96217 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
-	github.com/gofiber/utils v1.1.0 // indirect
 	github.com/gofiber/utils/v2 v2.0.0-beta.4 // indirect
 	github.com/google/pprof v0.0.0-20240409012703-83162a5b38cd // indirect
 	github.com/google/uuid v1.6.0 // indirect

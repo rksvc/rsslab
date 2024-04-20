@@ -7,10 +7,10 @@ import (
 
 type Feed struct {
 	Id          int64   `json:"id"`
-	FolderId    *int64  `json:"folder_id"`
+	FolderId    *int64  `json:"folder_id,omitempty"`
 	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Link        string  `json:"link"`
+	Description string  `json:"description,omitempty"`
+	Link        string  `json:"link,omitempty"`
 	FeedLink    string  `json:"feed_link"`
 	Icon        *[]byte `json:"icon,omitempty"`
 	HasIcon     bool    `json:"has_icon"`

@@ -1,4 +1,4 @@
-Feed reader built on [nkanaev/yarr](https://github.com/nkanaev/yarr) with built-in [RSSHub](https://github.com/DIYgod/RSSHub) service which lets you subscribe to feeds using `rsshub` protocol URLs like `rsshub:github/issue/DIYgod/RSSHub`. It fetches the source code of RSSHub on demand and runs it locally in an embedded JavaScript engine to generate feeds.
+Feed reader with built-in [RSSHub](https://github.com/DIYgod/RSSHub) service which lets you subscribe to feeds using `rsshub` protocol URLs like `rsshub:github/issue/DIYgod/RSSHub`. It fetches the source code of RSSHub on demand and runs it locally in an embedded JavaScript engine to generate feeds.
 
 Routes that require Puppeteer, art-template, etc. are not currently supported.
 
@@ -29,27 +29,11 @@ cd ./deps/rsshub
 PUPPETEER_SKIP_DOWNLOAD=1 pnpm i
 cd ../..
 go generate ./...
+pnpm i
+pnpm build
 go build -buildmode=exe -ldflags='-s -w' -tags='sqlite_foreign_keys sqlite_fts5' -trimpath
 ```
 
-## Compare with yarr
+## Credits
 
-The following features have been temporarily removed since I don't want to maintain them:
-
-- authentication
-- resizing feed list and item list
-- discovering feed
-- Fever API support
-- 'Read Here'
-
-, and it differs in the following ways:
-
-- deletes feeds when deleting folders
-
-, and has the following additional features:
-
-- uses [simple tokenizer](https://github.com/wangfenjin/simple) for better CJK text search
-- supports editing feed link
-- supports refreshing selected feeds
-- supports refreshing feeds with errors
-- shows 'Mark All Read' button when no filter applied
+[yarr](https://github.com/nkanaev/yarr/) for RSS reader.

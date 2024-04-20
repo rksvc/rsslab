@@ -1,0 +1,39 @@
+.slider {
+  width: 88%;
+}
+
+.content h1 {
+  font-size: 1.8rem;
+}
+.content h2 {
+  font-size: 1.5rem;
+}
+.content h3 {
+  font-size: 1.17rem;
+}
+.content h4,
+.content h5,
+.content h6 {
+  font-size: 1rem;
+}
+.content h1,
+.content h2,
+.content h3,
+.content h4,
+.content h5,
+.content h6 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+.content img + br + br {
+  display: none;
+}
+.content img,
+.content video {
+  max-width: 100%;
+  height: auto;
+}
+.content pre {
+  overflow-x: auto;
+  max-width: 100%;
+}

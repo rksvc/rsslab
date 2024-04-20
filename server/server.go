@@ -27,6 +27,7 @@ type Server struct {
 	db     *storage.Storage
 	client *resty.Client
 	cache  *cache.Cache
+	base   *url.URL
 
 	pending atomic.Int32
 	refresh *time.Ticker
@@ -58,6 +59,7 @@ func New(db *storage.Storage, rsshubBaseUrl *url.URL) *Server {
 				return nil
 			}),
 		cache: cache.NewCache(cache.NewLRU(), time.Hour),
+		base:  rsshubBaseUrl,
 	}
 }
 
