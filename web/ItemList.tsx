@@ -60,6 +60,7 @@ export default function ItemList({
   errors,
   selectedFeed,
   setSelectedFeed,
+  loadingFeeds,
   settings,
 
   items,
@@ -83,6 +84,7 @@ export default function ItemList({
   setSelectedFeed: Dispatch<SetStateAction<string>>;
   selectedFeed: string;
   errors?: Map<number, string>;
+  loadingFeeds: number;
   settings?: Settings;
 
   items?: (Item & Image)[];
@@ -295,6 +297,7 @@ export default function ItemList({
                   <MenuItem
                     text="Refresh"
                     icon={<RotateCw {...menuIconProps} />}
+                    disabled={loadingFeeds > 0}
                     onClick={async () => {
                       await xfetch(`./api/feeds/${id}/refresh`, { method: 'POST' });
                       await refreshStats();
@@ -361,6 +364,7 @@ export default function ItemList({
                   <MenuItem
                     text="Refresh"
                     icon={<RotateCw {...menuIconProps} />}
+                    disabled={loadingFeeds > 0}
                     onClick={async () => {
                       await xfetch(`./api/folders/${id}/refresh`, { method: 'POST' });
                       await refreshStats();

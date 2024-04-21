@@ -284,6 +284,7 @@ export default function FeedList({
                 <MenuItem
                   text={`Resolve Errors (${errors.size})`}
                   icon={<RotateCw {...menuIconProps} />}
+                  disabled={loadingFeeds > 0}
                   onClick={async () => {
                     await xfetch('./api/feeds/errors/refresh', { method: 'POST' });
                     await refreshStats();
@@ -293,6 +294,7 @@ export default function FeedList({
               <MenuItem
                 text="Refresh Feeds"
                 icon={<RotateCw {...menuIconProps} />}
+                disabled={loadingFeeds > 0}
                 onClick={async () => {
                   await xfetch('./api/feeds/refresh', { method: 'POST' });
                   await refreshStats();
