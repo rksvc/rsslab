@@ -96,7 +96,7 @@ export default function ItemList({
   contentRef: RefObject<HTMLDivElement>;
 
   refreshFeeds: () => Promise<void>;
-  refreshStats: () => Promise<void>;
+  refreshStats: (loop?: boolean) => Promise<void>;
   foldersById: Map<number, Folder>;
   feedsById: Map<number, Feed>;
 }) {
@@ -336,7 +336,7 @@ export default function ItemList({
                         confirmDeletion(title, async () => {
                           await xfetch(`./api/feeds/${id}`, { method: 'DELETE' });
                           const folderId = feedsById.get(id)?.folder_id;
-                          await refreshFeeds();
+                          await Promise.all([refreshFeeds(), refreshStats(false)]);
                           setSelectedFeed(folderId != null ? `folder:${folderId}` : '');
                         });
                     }}
@@ -379,7 +379,7 @@ export default function ItemList({
                       title != null &&
                         confirmDeletion(title, async () => {
                           await xfetch(`./api/folders/${id}`, { method: 'DELETE' });
-                          await refreshFeeds();
+                          await Promise.all([refreshFeeds(), refreshStats(false)]);
                           setSelectedFeed('');
                         });
                     }}

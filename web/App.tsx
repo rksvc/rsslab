@@ -33,18 +33,6 @@ export default function App() {
   const [selectedItemDetails, setSelectedItemDetails] = useState<Item>();
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const refreshStats = useCallback(async () => {
-    const [errors, status] = await Promise.all([
-      xfetch<Record<number, string>>('./api/feeds/errors'),
-      xfetch<Status>('./api/status'),
-    ]);
-    setErrors(
-      new Map(Object.entries(errors).map(([id, error]) => [parseInt(id), error])),
-    );
-    setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])));
-    setLoadingFeeds(status.running);
-    if (status.running) setTimeout(() => refreshStats(), 500);
-  }, []);
   const refreshFeeds = useCallback(async () => {
     const [folders, feeds, settings] = await Promise.all([
       xfetch<Folder[]>('./api/folders'),
@@ -54,11 +42,23 @@ export default function App() {
     setFolders(folders);
     setFeeds(feeds);
     setSettings(settings);
-    refreshStats();
-  }, [refreshStats]);
+  }, []);
+  const refreshStats = useCallback(async (loop: boolean = true) => {
+    const [errors, status] = await Promise.all([
+      xfetch<Record<number, string>>('./api/feeds/errors'),
+      xfetch<Status>('./api/status'),
+    ]);
+    setErrors(
+      new Map(Object.entries(errors).map(([id, error]) => [parseInt(id), error])),
+    );
+    setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])));
+    setLoadingFeeds(status.running);
+    if (loop && status.running) setTimeout(() => refreshStats(), 500);
+  }, []);
   useEffect(() => {
     refreshFeeds();
-  }, [refreshFeeds]);
+    refreshStats();
+  }, [refreshFeeds, refreshStats]);
 
   const [foldersWithFeeds, feedsWithoutFolders, foldersById, feedsById] = useMemo(() => {
     const foldersById = new Map<number, FolderWithFeeds>();

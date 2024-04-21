@@ -60,7 +60,7 @@ export default function FeedList({
   setSettings: Dispatch<SetStateAction<Settings | undefined>>;
 
   refreshFeeds: () => Promise<void>;
-  refreshStats: () => Promise<void>;
+  refreshStats: (loop?: boolean) => Promise<void>;
   foldersWithFeeds?: FolderWithFeeds[];
   feedsWithoutFolders?: Feed[];
 }) {
@@ -84,7 +84,7 @@ export default function FeedList({
           folder_id: parseInt(folderSelectRef.current.value) || null,
         },
       });
-      await refreshFeeds();
+      await Promise.all([refreshFeeds(), refreshStats(false)]);
       setSelectedFeed(`feed:${feed.id}`);
     } finally {
       setCreatingNewFeed(false);
