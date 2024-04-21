@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/dop251/goja"
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/net/html/charset"
 )
@@ -29,19 +30,45 @@ func (r *ErrorResponse) Error() string {
 }
 
 type response struct {
-	URL     string  `json:"url"`
-	Body    any     `json:"body"`
-	Data    any     `json:"data"`
-	Data2   any     `json:"_data"`
-	Headers headers `json:"headers"`
+	URL     string `json:"url"`
+	Body    any    `json:"body"`
+	Data    any    `json:"data"`
+	Data2   any    `json:"_data"`
+	Headers any    `json:"headers"`
 }
 
 type headers struct {
-	http.Header
+	h  http.Header
+	vm *goja.Runtime
 }
 
-func (h headers) GetSetCookie() []string {
-	return h.Values("Set-Cookie")
+func (h *headers) Get(key string) goja.Value {
+	if key == "getSetCookie" {
+		return h.vm.ToValue(func() []string {
+			return h.h.Values("Set-Cookie")
+		})
+	}
+	return h.vm.ToValue(h.h.Get(key))
+}
+
+func (h *headers) Set(key string, val goja.Value) bool {
+	return false
+}
+
+func (h *headers) Has(key string) bool {
+	return len(h.h.Values(key)) > 0
+}
+
+func (h *headers) Delete(key string) bool {
+	return false
+}
+
+func (h *headers) Keys() []string {
+	var keys []string
+	for key := range h.h {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
@@ -173,7 +200,7 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 
 	response.URL = resp.Request.URL
 	response.Data2 = response.Data
-	response.Headers = headers{resp.Header()}
+	response.Headers = resp.Header()
 	return response, nil
 }
 
@@ -189,8 +216,12 @@ func decode(body *[]byte, opts map[string]any) error {
 }
 
 func toString(v any) string {
-	if v == nil {
+	switch v := v.(type) {
+	case nil:
 		return ""
+	case []uint8:
+		return string(v)
+	default:
+		return fmt.Sprintf("%v", v)
 	}
-	return fmt.Sprintf("%v", v)
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"path"
 	"rsslab/utils"
 	"strings"
@@ -164,6 +165,10 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 						resp.Data = resp.Body
 						resp.Data2 = resp.Body
 					}
+					resp.Headers = vm.NewDynamicObject(&headers{
+						h:  resp.Headers.(http.Header),
+						vm: vm,
+					})
 					resolve(resp)
 				})
 			}()
