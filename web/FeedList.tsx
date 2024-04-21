@@ -64,7 +64,6 @@ export default function FeedList({
   foldersWithFeeds?: FolderWithFeeds[];
   feedsWithoutFolders?: Feed[];
 }) {
-  const [refreshRate, setRefreshRate] = useState(settings?.refresh_rate ?? 0);
   const [creatingNewFeed, setCreatingNewFeed] = useState(false);
   const [creatingNewFolder, setCreatingNewFolder] = useState(false);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -307,17 +306,18 @@ export default function FeedList({
                 max={240}
                 stepSize={30}
                 labelStepSize={30}
-                value={refreshRate}
-                onChange={setRefreshRate}
-                onRelease={async () => {
-                  await xfetch('./api/settings', {
-                    method: 'PUT',
-                    body: { refresh_rate: refreshRate },
-                  });
+                value={settings?.refresh_rate}
+                onChange={value =>
                   setSettings(
-                    settings => settings && { ...settings, refresh_rate: refreshRate },
-                  );
-                }}
+                    settings => settings && { ...settings, refresh_rate: value },
+                  )
+                }
+                onRelease={() =>
+                  xfetch('./api/settings', {
+                    method: 'PUT',
+                    body: { refresh_rate: settings?.refresh_rate },
+                  })
+                }
               />
               <MenuDivider title="Subscriptions" className="select-none" />
               <form ref={opmlFormRef}>
