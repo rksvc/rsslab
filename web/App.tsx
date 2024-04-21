@@ -52,8 +52,10 @@ export default function App() {
       new Map(Object.entries(errors).map(([id, error]) => [parseInt(id), error])),
     );
     setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])));
-    setLoadingFeeds(status.running);
-    if (loop && status.running) setTimeout(() => refreshStats(), 500);
+    if (loop) {
+      setLoadingFeeds(status.running);
+      if (status.running) setTimeout(() => refreshStats(), 500);
+    }
   }, []);
   useEffect(() => {
     refreshFeeds();
