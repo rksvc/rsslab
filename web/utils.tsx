@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { FetchOptions, ofetch } from 'ofetch';
-import { Error as E } from './types';
 import { Error as Err } from './Error';
 import { Confirm } from './Confirm';
 
@@ -25,18 +24,16 @@ export async function xfetch<T>(
   request: RequestInfo,
   options?: FetchOptions<'json'>,
 ): Promise<T | unknown> {
-  const response = await ofetch.raw<(T & E) | string>(request, {
+  const response = await ofetch.raw<T | string>(request, {
     ...options,
     ignoreResponseError: true,
   });
   const data = response._data;
-  if (!data) alert(response.statusText);
-  else if (typeof data === 'string' && !response.ok) alert(data);
-  else if (typeof data !== 'string' && data.error) alert(data.error);
+  if (typeof data === 'string' && !response.ok) alert(data.trim() || response.statusText);
   return data;
 }
 
-function alert(error: any): never {
+function alert(error: string): never {
   const container = document.body.appendChild(document.createElement('div'));
   const root = ReactDOM.createRoot(container);
   root.render(

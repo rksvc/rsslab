@@ -1,7 +1,3 @@
-export type Error = {
-  error?: string;
-};
-
 export type Stats = {
   unread: number;
   starred: number;
