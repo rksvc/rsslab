@@ -552,7 +552,7 @@ function CardItem({
               </time>
             </small>
           </div>
-          <span className="break-words">
+          <span className="mb-0.5 break-words">
             {item.title.length > 100 ? `${item.title.slice(0, 100)}...` : item.title}
           </span>
         </div>
