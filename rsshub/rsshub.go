@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"rsslab/cache"
 	"rsslab/utils"
+	"strings"
 	"time"
 
 	"github.com/evanw/esbuild/pkg/api"
@@ -100,7 +101,7 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, rawUrl, resp.Status())
 		}
 
-		code := resp.String()
+		code := strings.ReplaceAll(resp.String(), "import.meta.url", `"`+path+`"`)
 		if path == "lib/config.ts" {
 			code = dynamicImport.ReplaceAllLiteralString(code, "{}")
 		}
@@ -129,6 +130,26 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 	return data.([]byte), nil
 }
 
+func (r *RSSHub) file(path string) ([]byte, error) {
+	rawUrl, err := url.JoinPath(r.srcUrl, path)
+	if err != nil {
+		return nil, err
+	}
+	data, err := r.routeCache.TryGet(rawUrl, false, func() (any, error) {
+		resp, err := r.R().Get(rawUrl)
+		if err != nil {
+			return nil, err
+		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
+			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, rawUrl, resp.Status())
+		}
+		return resp.Body(), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return data.([]byte), nil
+}
+
 func errorf(messages ...api.Message) error {
 	var errs []error
 	for _, m := range messages {
@@ -136,7 +157,7 @@ func errorf(messages ...api.Message) error {
 		if m.Location == nil {
 			err = fmt.Errorf("%s", m.Text)
 		} else {
-			err = fmt.Errorf("%s:%d:%d %s %s",
+			err = fmt.Errorf("%s:%d:%d %s, %s",
 				m.Location.File, m.Location.Line,
 				m.Location.Column, m.Text, m.Location.LineText)
 		}

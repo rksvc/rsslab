@@ -37,6 +37,11 @@ func init() {
 			return errors.New(message.String())
 		})
 	})
+	require.RegisterCoreModule("path", func(vm *goja.Runtime, module *goja.Object) {
+		p := module.Get("exports").ToObject(vm)
+		p.Set("join", func(elem ...string) string { return path.Join(elem...) })
+		p.Set("dirname", func(p string) string { return path.Dir(p) })
+	})
 	require.RegisterNativeModule("dotenv/config", func(_ *goja.Runtime, _ *goja.Object) {})
 	require.RegisterNativeModule("ofetch", func(_ *goja.Runtime, _ *goja.Object) {})
 	require.RegisterNativeModule("@/utils/md5", func(_ *goja.Runtime, module *goja.Object) {
@@ -50,10 +55,10 @@ func init() {
 func (r *RSSHub) sourceLoader(workingDirectory string) func(string) ([]byte, error) {
 	const NODE_MODULES = "node_modules/"
 	return func(filename string) ([]byte, error) {
-		filename = strings.TrimPrefix(filename, NODE_MODULES)
+		name := strings.ReplaceAll(filename, NODE_MODULES, "")
 
-		if name, found := strings.CutPrefix(filename, "@/"); found {
-			name = strings.ReplaceAll(name, NODE_MODULES, "")
+		if i := strings.LastIndex(name, "@/"); i != -1 {
+			name := name[i+len("@/"):]
 			if name == "config" {
 				return r.route("lib/config.ts")
 			}
@@ -66,12 +71,17 @@ func (r *RSSHub) sourceLoader(workingDirectory string) func(string) ([]byte, err
 			return data, nil
 		}
 
-		data, err := third_party.ReadFile(path.Join("third_party", path.Base(filename)+".js"))
-		if err == nil {
-			return data, nil
+		if i := strings.LastIndex(filename, NODE_MODULES); i != -1 {
+			data, err := third_party.ReadFile(path.Join("third_party", filename[i+len(NODE_MODULES):]+".js"))
+			if err == nil {
+				return data, nil
+			}
 		}
 
-		return r.route(path.Join("lib/routes", workingDirectory, filename+".ts"))
+		if name == "tglib/channel" {
+			return nil, nil
+		}
+		return r.route(path.Join("lib/routes", workingDirectory, name+".ts"))
 	}
 }
 
@@ -109,6 +119,19 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 	workingDirectory := path.Dir(path.Join(namespace, location))
 	registry := require.NewRegistryWithLoader(r.sourceLoader(workingDirectory))
 	loop := eventloop.NewEventLoop(eventloop.WithRegistry(registry))
+	registry.RegisterNativeModule("@/utils/render", func(vm *goja.Runtime, module *goja.Object) {
+		module.Get("exports").ToObject(vm).Set("art", func(filename string, content goja.Value) (goja.Value, error) {
+			source, err := r.file(filename)
+			if err != nil {
+				return goja.Undefined(), err
+			}
+			render, _ := goja.AssertFunction(require.Require(vm, "art-template").ToObject(vm).Get("render"))
+			return render(goja.Undefined(), vm.ToValue(source), content, vm.ToValue(map[string]any{
+				"debug":    false,
+				"minimize": false,
+			}))
+		})
+	})
 	registry.RegisterNativeModule("@/utils/cache", func(vm *goja.Runtime, module *goja.Object) {
 		module.Get("exports").ToObject(vm).Set("tryGet", func(key string, f func() *goja.Promise, _ any, ex *bool) *goja.Promise {
 			promise, resolve, reject := vm.NewPromise()
@@ -145,6 +168,7 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 	loop.RunOnLoop(func(vm *goja.Runtime) {
 		vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
 		url.Enable(vm)
+		require.Require(vm, "url").ToObject(vm).Set("fileURLToPath", func(url string) string { return url })
 		_, err := vm.RunString(polyfill)
 		if err != nil {
 			result <- errorWithFullStack(err)
@@ -175,11 +199,7 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 			return promise
 		})
 
-		v, err := vm.RunString(fmt.Sprintf("require('./%s').route.handler", path.Base(location)))
-		if err != nil {
-			result <- errorWithFullStack(err)
-			return
-		}
+		v := require.Require(vm, "./"+path.Base(location)).ToObject(vm).Get("route").ToObject(vm).Get("handler")
 		handler, _ := goja.AssertFunction(v)
 		v, err = handler(goja.Undefined(), vm.ToValue(ctx))
 		if err != nil {

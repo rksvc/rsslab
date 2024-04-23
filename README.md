@@ -1,6 +1,6 @@
 Feed reader with built-in [RSSHub](https://github.com/DIYgod/RSSHub) service which lets you subscribe to feeds using `rsshub` protocol URLs like `rsshub:github/issue/DIYgod/RSSHub`. It fetches the source code of RSSHub on demand and runs it locally in an embedded JavaScript engine to generate feeds.
 
-Routes that require Puppeteer, art-template, etc. are not currently supported.
+Routes that require Puppeteer are not currently supported.
 
 ## Usage
 
