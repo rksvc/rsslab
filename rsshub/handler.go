@@ -147,9 +147,11 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 					}
 					return v, nil
 				})
-				var data any = v
-				if v, ok := v.([]byte); ok && json.Unmarshal(v, &data) != nil {
+				var data any
+				if b, ok := v.([]byte); !ok {
 					data = v
+				} else if json.Unmarshal(b, &data) != nil {
+					data = string(b)
 				}
 				loop.RunOnLoop(func(*goja.Runtime) {
 					if err != nil {
