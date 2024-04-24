@@ -9,16 +9,13 @@ import (
 	"net/url"
 	"rsslab/cache"
 	"rsslab/storage"
-	"rsslab/utils"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
 	"github.com/mmcdole/gofeed"
-	"github.com/nkanaev/yarr/src/content/htmlutil"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 )
@@ -230,67 +227,25 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
 	return convertItems(feed.Items, f), nil
 }
 
-var imageTypes = map[string]struct{}{
-	"image/x-icon": {},
-	"image/png":    {},
-	"image/jpeg":   {},
-	"image/gif":    {},
-}
-
 func (s *Server) findFavicon(siteUrl, feedUrl string) *[]byte {
-	favicon := func(link string) string {
-		url, err := url.Parse(link)
+	for _, rawUrl := range []string{siteUrl, feedUrl} {
+		url, err := url.Parse(rawUrl)
+		if err != nil || url.Host == "" {
+			continue
+		}
+		resp, err := s.client.R().Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
 		if err != nil {
-			return ""
-		}
-		return fmt.Sprintf("%s://%s/favicon.ico", url.Scheme, url.Host)
-	}
-
-	var icons []string
-	if siteUrl != "" {
-		if resp, err := s.client.
-			R().
-			SetHeader("User-Agent", utils.UserAgent).
-			SetHeader("Accept-Language", utils.AcceptLanguage).
-			Get(siteUrl); err == nil {
-			body := resp.RawBody()
-			doc, err := goquery.NewDocumentFromReader(body)
-			body.Close()
-			if err == nil {
-				doc.Find("link[rel=icon]").Each(func(_ int, s *goquery.Selection) {
-					if val, exists := s.Attr("href"); exists {
-						if icon := htmlutil.AbsoluteUrl(val, siteUrl); icon != "" {
-							icons = append(icons, icon)
-						}
-					}
-				})
-			}
-		}
-		if icon := favicon(siteUrl); icon != "" {
-			icons = append(icons, icon)
-		}
-	}
-	if icon := favicon(feedUrl); icon != "" {
-		icons = append(icons, icon)
-	}
-
-	for _, icon := range icons {
-		resp, err := s.client.
-			R().
-			SetHeader("User-Agent", utils.UserAgent).
-			SetHeader("Accept-Language", utils.AcceptLanguage).
-			Get(icon)
-		if err != nil {
+			continue
+		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
 			continue
 		}
 		body := resp.RawBody()
-		content, err := io.ReadAll(body)
+		icon, err := io.ReadAll(body)
 		body.Close()
 		if err != nil {
-			continue
-		} else if _, ok := imageTypes[http.DetectContentType(content)]; ok {
-			return &content
+			return nil
 		}
+		return &icon
 	}
 	return nil
 }
