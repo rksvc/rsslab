@@ -553,7 +553,9 @@ function CardItem({
             </small>
           </div>
           <span className="mb-0.5 break-words">
-            {item.title.length > 100 ? `${item.title.slice(0, 100)}...` : item.title}
+            {item.title.length > 100
+              ? `${item.title.slice(0, 100)}...`
+              : item.title || 'untitled'}
           </span>
         </div>
       </div>

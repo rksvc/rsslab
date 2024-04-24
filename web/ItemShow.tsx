@@ -99,7 +99,7 @@ export default function ItemShow({
       </div>
       <Divider className="m-0" />
       <div className="overflow-auto p-5 break-words" ref={contentRef}>
-        <H2 className="font-bold">{selectedItemDetails.title}</H2>
+        <H2 className="font-bold">{selectedItemDetails.title || 'untitled'}</H2>
         <div className="opacity-95">
           {feedsById.get(selectedItemDetails.feed_id)?.title}
         </div>
