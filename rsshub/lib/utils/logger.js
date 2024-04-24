@@ -4,4 +4,4 @@ module.exports = {
   warn() {},
   error() {},
   http() {},
-}
+};
