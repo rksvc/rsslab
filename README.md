@@ -8,6 +8,8 @@ Execute the binary and open http://127.0.0.1:9854 in your browser. The RSSHub in
 
 Additionally, you can view the generated feed in `http://127.0.0.1:9854/rsshub/{route}` like http://127.0.0.1:9854/rsshub/github/issue/DIYgod/RSSHub.
 
+Set `https_proxy` environment variable to use the proxy.
+
 Alternatives for some command line argument values:
 
 - `-src`
@@ -19,9 +21,9 @@ Alternatives for some command line argument values:
   - `https://raw.githubusercontent.com/DIYgod/RSSHub/gh-pages/build/routes.json` (default)
   - `https://rsshub.app/api/namespace`
 
-Set `https_proxy` environment variable to use the proxy.
-
 ## Build
+
+Install `libsqlite3-dev`. Run:
 
 ```bash
 git submodule update --init
@@ -36,4 +38,5 @@ go build -buildmode=exe -ldflags='-s -w' -tags='sqlite_foreign_keys sqlite_fts5'
 
 ## Credits
 
-[yarr](https://github.com/nkanaev/yarr/) for RSS reader.
+- [yarr](https://github.com/nkanaev/yarr/) for RSS reader.
+- [simple](https://github.com/wangfenjin/simple) for SQLite FTS5 tokenizer.
