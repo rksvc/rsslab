@@ -6,14 +6,14 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/Xuanwo/go-locale v1.1.0
 	github.com/dop251/goja v0.0.0-20240220182346-e401ed450204
-	github.com/dop251/goja_nodejs v0.0.0-20240221231712-27eeffc9c235
+	github.com/dop251/goja_nodejs v0.0.0-20240418154818-2aae10d4cbcf
 	github.com/evanw/esbuild v0.20.2
 	github.com/go-resty/resty/v2 v2.12.0
 	github.com/gofiber/fiber/v3 v3.0.0-beta.2
 	github.com/karlseguin/ccache/v3 v3.0.5
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mmcdole/gofeed v1.3.0
-	github.com/nkanaev/yarr v0.0.0-20240409111909-96835ebd3342
+	github.com/nkanaev/yarr v0.0.0-20240424130330-24232d72e975
 	github.com/redis/go-redis/v9 v9.5.1
 	golang.org/x/net v0.24.0
 	golang.org/x/sync v0.7.0
@@ -29,7 +29,7 @@ require (
 	github.com/dop251/base64dec v0.0.0-20231022112746-c6c9f9a96217 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/gofiber/utils/v2 v2.0.0-beta.4 // indirect
-	github.com/google/pprof v0.0.0-20240409012703-83162a5b38cd // indirect
+	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
