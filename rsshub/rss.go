@@ -7,6 +7,7 @@ import (
 	"html"
 	"net/url"
 	"regexp"
+	"rsslab/utils"
 	"slices"
 	"strconv"
 	"strings"
@@ -252,7 +253,7 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 	feed.Title = data.Title
 	feed.HomePageUrl = data.Link
 	feed.FeedUrl = data.FeedLink
-	feed.Description = firstNonEmpty(data.Description, data.Title)
+	feed.Description = utils.FirstNonEmpty(data.Description, data.Title)
 	feed.Icon = data.Image
 	if data.Author != nil {
 		feed.Authors = append(feed.Authors, author{Name: fmt.Sprintf("%v", data.Author)})
@@ -261,10 +262,10 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 	feed.Items = make([]jsonFeedItem, len(data.Item))
 	for i := range data.Item {
 		dst, src := &feed.Items[i], &data.Item[i]
-		dst.Id = firstNonEmpty(src.Guid, src.Id, src.Link)
+		dst.Id = utils.FirstNonEmpty(src.Guid, src.Id, src.Link)
 		dst.Url = src.Link
 		dst.Title = src.Title
-		dst.ContentHtml = firstNonEmpty(src.Content.Html, src.Description, src.Title)
+		dst.ContentHtml = utils.FirstNonEmpty(src.Content.Html, src.Description, src.Title)
 		dst.ContentText = src.Content.Text
 		dst.Image = src.Image
 		dst.BannerImage = src.Banner
@@ -284,15 +285,6 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 		}
 	}
 	return
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, val := range vals {
-		if val = strings.TrimSpace(val); val != "" {
-			return val
-		}
-	}
-	return ""
 }
 
 func toStringArray(v any) []string {

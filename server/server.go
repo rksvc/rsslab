@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"rsslab/cache"
 	"rsslab/storage"
-	"strings"
+	"rsslab/utils"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -257,11 +257,11 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 		links := []string{item.Link}
 		links = append(links, item.Links...)
 		result[i] = storage.Item{
-			GUID:    firstNonEmpty(item.GUID, item.Link),
+			GUID:    utils.FirstNonEmpty(item.GUID, item.Link),
 			FeedId:  feed.Id,
 			Title:   item.Title,
-			Link:    firstNonEmpty(links...),
-			Content: firstNonEmpty(item.Content, item.Description),
+			Link:    utils.FirstNonEmpty(links...),
+			Content: utils.FirstNonEmpty(item.Content, item.Description),
 			Status:  storage.UNREAD,
 		}
 		if item.PublishedParsed != nil {
@@ -287,13 +287,4 @@ func getEncoding(resp *resty.Response) encoding.Encoding {
 		}
 	}
 	return nil
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, val := range vals {
-		if val = strings.TrimSpace(val); val != "" {
-			return val
-		}
-	}
-	return ""
 }

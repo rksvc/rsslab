@@ -33,3 +33,12 @@ func init() {
 		}
 	}
 }
+
+func FirstNonEmpty(vals ...string) string {
+	for _, val := range vals {
+		if val = strings.TrimSpace(val); val != "" {
+			return val
+		}
+	}
+	return ""
+}
