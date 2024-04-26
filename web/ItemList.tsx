@@ -40,14 +40,7 @@ import useInfiniteScroll from 'react-infinite-scroll-hook';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types';
-import {
-  cn,
-  confirmDeletion,
-  iconProps,
-  menuIconProps,
-  popoverProps,
-  xfetch,
-} from './utils';
+import { cn, confirm, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
 
 dayjs.extend(relativeTime);
 
@@ -143,24 +136,6 @@ export default function ItemList({
     setFeeds(feeds =>
       feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)),
     );
-  };
-  const renameFeed = async () => {
-    const title = feedTitleRef.current?.value;
-    if (title && title !== feedsById.get(id)?.title) updateFeedAttr('title', title);
-  };
-  const editFeedLink = async () => {
-    const feedLink = feedLinkRef.current?.value;
-    if (feedLink && feedLink !== feedsById.get(id)?.feed_link)
-      updateFeedAttr('feed_link', feedLink);
-  };
-  const renameFolder = async () => {
-    const title = folderTitleRef.current?.value;
-    if (title && title !== foldersById.get(id)?.title) {
-      await xfetch(`./api/folders/${id}`, { method: 'PUT', body: { title } });
-      setFolders(folders =>
-        folders?.map(folder => (folder.id === id ? { ...folder, title } : folder)),
-      );
-    }
   };
   const query = useCallback(() => {
     const query: Record<string, any> = {};
@@ -262,36 +237,38 @@ export default function ItemList({
                   <MenuItem
                     text="Rename"
                     icon={<Edit {...menuIconProps} />}
-                    onClick={renameFeed}
-                    labelElement={
-                      <InputGroup
-                        defaultValue={feedsById.get(id)?.title}
-                        onClick={event => event.stopPropagation()}
-                        inputRef={feedTitleRef}
-                        small
-                        onKeyDown={event => {
-                          event.key === ' ' && event.stopPropagation();
-                          event.key === 'Enter' && renameFeed();
-                        }}
-                      />
+                    onClick={() =>
+                      confirm(
+                        'Rename Feed',
+                        <InputGroup
+                          defaultValue={feedsById.get(id)?.title}
+                          inputRef={feedTitleRef}
+                        />,
+                        async () => {
+                          const title = feedTitleRef.current?.value;
+                          if (title && title !== feedsById.get(id)?.title)
+                            await updateFeedAttr('title', title);
+                        },
+                      )
                     }
                   />
                   <MenuItem
-                    text="Edit Feed Link"
+                    text="Change Link"
                     icon={<Edit {...menuIconProps} />}
-                    onClick={editFeedLink}
-                    labelElement={
-                      <InputGroup
-                        defaultValue={feedsById.get(id)?.feed_link}
-                        onClick={event => event.stopPropagation()}
-                        inputRef={feedLinkRef}
-                        spellCheck={false}
-                        small
-                        onKeyDown={event => {
-                          event.key === ' ' && event.stopPropagation();
-                          event.key === 'Enter' && editFeedLink();
-                        }}
-                      />
+                    onClick={() =>
+                      confirm(
+                        'Change Feed Link',
+                        <InputGroup
+                          defaultValue={feedsById.get(id)?.feed_link}
+                          inputRef={feedLinkRef}
+                          spellCheck={false}
+                        />,
+                        async () => {
+                          const feedLink = feedLinkRef.current?.value;
+                          if (feedLink && feedLink !== feedsById.get(id)?.feed_link)
+                            await updateFeedAttr('feed_link', feedLink);
+                        },
+                      )
                     }
                   />
                   <MenuItem
@@ -330,16 +307,21 @@ export default function ItemList({
                     text="Delete"
                     icon={<Trash {...menuIconProps} />}
                     intent={Intent.DANGER}
-                    onClick={async () => {
-                      const title = feedsById.get(id)?.title;
-                      title != null &&
-                        confirmDeletion(title, async () => {
+                    onClick={async () =>
+                      confirm(
+                        'Delete Feed',
+                        `Are you sure you want to delete ${
+                          feedsById.get(id)?.title || 'untitled'
+                        }?`,
+                        async () => {
                           await xfetch(`./api/feeds/${id}`, { method: 'DELETE' });
                           const folderId = feedsById.get(id)?.folder_id;
                           await Promise.all([refreshFeeds(), refreshStats(false)]);
                           setSelectedFeed(folderId != null ? `folder:${folderId}` : '');
-                        });
-                    }}
+                        },
+                        Intent.DANGER,
+                      )
+                    }
                   />
                 </>
               ) : (
@@ -347,18 +329,28 @@ export default function ItemList({
                   <MenuItem
                     text="Rename"
                     icon={<Edit {...menuIconProps} />}
-                    onClick={renameFolder}
-                    labelElement={
-                      <InputGroup
-                        defaultValue={foldersById.get(id)?.title}
-                        onClick={event => event.stopPropagation()}
-                        inputRef={folderTitleRef}
-                        onKeyDown={event => {
-                          event.key === ' ' && event.stopPropagation();
-                          event.key === 'Enter' && renameFolder();
-                        }}
-                        small
-                      />
+                    onClick={() =>
+                      confirm(
+                        'Rename Folder',
+                        <InputGroup
+                          defaultValue={foldersById.get(id)?.title}
+                          inputRef={folderTitleRef}
+                        />,
+                        async () => {
+                          const title = folderTitleRef.current?.value;
+                          if (title && title !== foldersById.get(id)?.title) {
+                            await xfetch(`./api/folders/${id}`, {
+                              method: 'PUT',
+                              body: { title },
+                            });
+                            setFolders(folders =>
+                              folders?.map(folder =>
+                                folder.id === id ? { ...folder, title } : folder,
+                              ),
+                            );
+                          }
+                        },
+                      )
                     }
                   />
                   <MenuItem
@@ -374,15 +366,20 @@ export default function ItemList({
                     text="Delete"
                     icon={<Trash {...menuIconProps} />}
                     intent={Intent.DANGER}
-                    onClick={async () => {
-                      const title = foldersById.get(id)?.title;
-                      title != null &&
-                        confirmDeletion(title, async () => {
+                    onClick={async () =>
+                      confirm(
+                        'Delete Folder',
+                        `Are you sure you want to delete ${
+                          foldersById.get(id)?.title || 'untitled'
+                        }?`,
+                        async () => {
                           await xfetch(`./api/folders/${id}`, { method: 'DELETE' });
                           await Promise.all([refreshFeeds(), refreshStats(false)]);
                           setSelectedFeed('');
-                        });
-                    }}
+                        },
+                        Intent.DANGER,
+                      )
+                    }
                   />
                 </>
               )}

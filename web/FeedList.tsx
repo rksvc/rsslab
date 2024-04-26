@@ -13,12 +13,13 @@ import {
   MenuItem,
   HTMLSelect,
   MenuDivider,
-  Slider,
   FileInput,
+  NumericInput,
 } from '@blueprintjs/core';
 import {
   AlertCircle,
   Download,
+  Edit,
   MoreHorizontal,
   Plus,
   RotateCw,
@@ -26,8 +27,7 @@ import {
   Wind,
 } from 'react-feather';
 import { type Feed, type Folder, type FolderWithFeeds, Stats, Settings } from './types';
-import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
-import classes from './styles.module.css';
+import { confirm, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
 
 export default function FeedList({
   filter,
@@ -70,47 +70,9 @@ export default function FeedList({
   const newFeedLinkRef = useRef<HTMLInputElement>(null);
   const folderSelectRef = useRef<HTMLSelectElement>(null);
   const newFolderTitleRef = useRef<HTMLInputElement>(null);
+  const refreshRateRef = useRef<HTMLInputElement>(null);
   const opmlFormRef = useRef<HTMLFormElement>(null);
 
-  const newFeed = async () => {
-    const url = newFeedLinkRef.current?.value;
-    if (!url || !folderSelectRef.current) return;
-    setCreatingNewFeed(true);
-    try {
-      const feed = await xfetch<Feed>(`./api/feeds`, {
-        method: 'POST',
-        body: {
-          url,
-          folder_id: parseInt(folderSelectRef.current.value) || null,
-        },
-      });
-      await Promise.all([refreshFeeds(), refreshStats(false)]);
-      setSelectedFeed(`feed:${feed.id}`);
-    } finally {
-      setCreatingNewFeed(false);
-    }
-  };
-  const newFolder = async () => {
-    const title = newFolderTitleRef.current?.value;
-    if (!title) return;
-    setCreatingNewFolder(true);
-    try {
-      const folder = await xfetch<Folder>(`./api/folders`, {
-        method: 'POST',
-        body: { title },
-      });
-      setFolders(
-        folders =>
-          folders &&
-          [...folders, folder].toSorted((a, b) =>
-            a.title.toLocaleLowerCase().localeCompare(b.title.toLocaleLowerCase()),
-          ),
-      );
-      setSelectedFeed(`folder:${folder.id}`);
-    } finally {
-      setCreatingNewFolder(false);
-    }
-  };
   const secondaryLabel = (stats?: Stats, error?: boolean) =>
     filter === 'Unread' ? (
       `${stats?.unread ?? ''}`
@@ -229,53 +191,82 @@ export default function FeedList({
                 text="New Feed"
                 disabled={creatingNewFeed}
                 icon={<Plus {...menuIconProps} />}
-                spellCheck={false}
-                onClick={newFeed}
-                labelElement={
-                  <div className="flex flex-col">
-                    <InputGroup
-                      className="mb-1 ml-1"
-                      placeholder="https://example.com/feed"
-                      onClick={event => event.stopPropagation()}
-                      inputRef={newFeedLinkRef}
-                      small
-                      onKeyDown={event => {
-                        event.key === ' ' && event.stopPropagation();
-                        event.key === 'Enter' && newFeed();
-                      }}
-                    />
-                    <HTMLSelect
-                      ref={folderSelectRef}
-                      className="ml-1"
-                      onClick={event => event.stopPropagation()}
-                      iconName="caret-down"
-                      options={[
-                        { value: '', label: '--' },
-                        ...(folders ?? []).map(folder => ({
-                          value: folder.id,
-                          label: folder.title,
-                        })),
-                      ]}
-                    />
-                  </div>
+                onClick={() =>
+                  confirm(
+                    'New Feed',
+                    <div className="flex flex-row">
+                      <InputGroup
+                        placeholder="https://example.com/feed"
+                        inputRef={newFeedLinkRef}
+                        spellCheck={false}
+                        fill
+                      />
+                      <HTMLSelect
+                        className="ml-2"
+                        ref={folderSelectRef}
+                        iconName="caret-down"
+                        options={[
+                          { value: '', label: '--' },
+                          ...(folders ?? []).map(folder => ({
+                            value: folder.id,
+                            label: folder.title,
+                          })),
+                        ]}
+                      />
+                    </div>,
+                    async () => {
+                      const url = newFeedLinkRef.current?.value;
+                      if (!url || !folderSelectRef.current) return;
+                      setCreatingNewFeed(true);
+                      try {
+                        const feed = await xfetch<Feed>(`./api/feeds`, {
+                          method: 'POST',
+                          body: {
+                            url,
+                            folder_id: parseInt(folderSelectRef.current.value) || null,
+                          },
+                        });
+                        await Promise.all([refreshFeeds(), refreshStats(false)]);
+                        setSelectedFeed(`feed:${feed.id}`);
+                      } finally {
+                        setCreatingNewFeed(false);
+                      }
+                    },
+                  )
                 }
               />
               <MenuItem
                 text="New Folder"
                 disabled={creatingNewFolder}
                 icon={<Plus {...menuIconProps} />}
-                onClick={newFolder}
-                labelElement={
-                  <InputGroup
-                    className="ml-1"
-                    onClick={event => event.stopPropagation()}
-                    inputRef={newFolderTitleRef}
-                    small
-                    onKeyDown={event => {
-                      event.key === ' ' && event.stopPropagation();
-                      event.key === 'Enter' && newFolder();
-                    }}
-                  />
+                onClick={() =>
+                  confirm(
+                    'New Folder',
+                    <InputGroup className="ml-1" inputRef={newFolderTitleRef} />,
+                    async () => {
+                      const title = newFolderTitleRef.current?.value;
+                      if (!title) return;
+                      setCreatingNewFolder(true);
+                      try {
+                        const folder = await xfetch<Folder>(`./api/folders`, {
+                          method: 'POST',
+                          body: { title },
+                        });
+                        setFolders(
+                          folders =>
+                            folders &&
+                            [...folders, folder].toSorted((a, b) =>
+                              a.title
+                                .toLocaleLowerCase()
+                                .localeCompare(b.title.toLocaleLowerCase()),
+                            ),
+                        );
+                        setSelectedFeed(`folder:${folder.id}`);
+                      } finally {
+                        setCreatingNewFolder(false);
+                      }
+                    },
+                  )
                 }
               />
               <MenuDivider />
@@ -299,27 +290,38 @@ export default function FeedList({
                   await refreshStats();
                 }}
               />
-              <MenuDivider title="Auto Refresh (min)" className="select-none" />
-              <Slider
-                className={cn('mt-3', 'ml-auto', 'mr-auto', classes.slider)}
-                min={0}
-                max={240}
-                stepSize={30}
-                labelStepSize={30}
-                value={settings?.refresh_rate}
-                onChange={value =>
-                  setSettings(
-                    settings => settings && { ...settings, refresh_rate: value },
+              <MenuDivider className="select-none" />
+              <MenuItem
+                text="Change Refresh Rate"
+                icon={<Edit {...menuIconProps} />}
+                onClick={() =>
+                  confirm(
+                    'Change Auto Refresh Rate (min)',
+                    <NumericInput
+                      defaultValue={settings?.refresh_rate}
+                      inputRef={refreshRateRef}
+                      min={0}
+                      stepSize={30}
+                      minorStepSize={1}
+                      majorStepSize={60}
+                      fill
+                    />,
+                    async () => {
+                      if (!refreshRateRef.current) return;
+                      const refreshRate = parseInt(refreshRateRef.current.value);
+                      setSettings(
+                        settings =>
+                          settings && { ...settings, refresh_rate: refreshRate },
+                      );
+                      await xfetch('./api/settings', {
+                        method: 'PUT',
+                        body: { refresh_rate: refreshRate },
+                      });
+                    },
                   )
                 }
-                onRelease={() =>
-                  xfetch('./api/settings', {
-                    method: 'PUT',
-                    body: { refresh_rate: settings?.refresh_rate },
-                  })
-                }
               />
-              <MenuDivider title="Subscriptions" className="select-none" />
+              <MenuDivider className="select-none" />
               <form ref={opmlFormRef}>
                 <FileInput
                   className="hidden"

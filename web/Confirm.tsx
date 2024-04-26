@@ -1,37 +1,64 @@
 import ReactDOM from 'react-dom/client';
-import { useState } from 'react';
-import { Alert } from '@blueprintjs/core';
+import { ReactNode, useState } from 'react';
+import { Button, Dialog, DialogBody, DialogFooter, Intent } from '@blueprintjs/core';
 
 export function Confirm({
-  text,
+  title,
+  children,
+  intent,
   callback,
   root,
   container,
 }: {
-  text: string;
-  callback: () => void;
+  title: string;
+  children: ReactNode;
+  intent: Intent;
+  callback: () => Promise<void>;
   root: ReactDOM.Root;
   container: HTMLDivElement;
 }) {
   const [open, setOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const onClose = () => {
+    setOpen(false);
+    // https://blueprintjs.com/docs/#core/components/alert
+    setTimeout(() => {
+      root.unmount();
+      container.remove();
+    }, 300);
+  };
   return (
-    <Alert
+    <Dialog
+      title={title}
       isOpen={open}
-      cancelButtonText="Cancel"
-      confirmButtonText="Yes"
-      canEscapeKeyCancel
-      canOutsideClickCancel
-      onClose={confirmed => {
-        if (confirmed) callback();
-        setOpen(false);
-        // https://blueprintjs.com/docs/#core/components/alert
-        setTimeout(() => {
-          root.unmount();
-          container.remove();
-        }, 300);
-      }}
+      isCloseButtonShown={false}
+      onClose={onClose}
+      canEscapeKeyClose
+      canOutsideClickClose
     >
-      <p>{text}</p>
-    </Alert>
+      <DialogBody>{children}</DialogBody>
+      <DialogFooter
+        actions={
+          <>
+            <Button className="select-none" text="Cancel" onClick={onClose} />
+            <Button
+              className="select-none"
+              intent={intent}
+              loading={loading}
+              text="OK"
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  await callback();
+                  onClose();
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            />
+          </>
+        }
+      />
+    </Dialog>
   );
 }

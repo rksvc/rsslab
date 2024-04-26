@@ -2,30 +2,20 @@
 @tailwind utilities;
 @import '@blueprintjs/core/lib/scss/variables';
 
-.bp5-button {
+.bp5-segmented-control .bp5-button {
   user-select: none;
   border-radius: 3px;
 }
-.bp5-button.bp5-intent-primary {
+.bp5-segmented-control .bp5-button.bp5-intent-primary {
   box-shadow: none;
 }
-.bp5-button.bp5-intent-primary:hover {
+.bp5-segmented-control .bp5-button.bp5-intent-primary:hover {
   background-color: $blue3;
   box-shadow: none;
 }
-.bp5-button.bp5-minimal.bp5-intent-primary:hover {
+.bp5-segmented-control .bp5-button.bp5-minimal.bp5-intent-primary:hover {
   background-color: $light-gray4;
   color: $gray1;
-}
-
-.bp5-menu-item {
-  align-items: center;
-}
-.bp5-menu-item .bp5-submenu-icon {
-  margin-top: 0;
-}
-.bp5-html-select select {
-  font-size: smaller;
 }
 
 .bp5-tree-root {
@@ -74,4 +64,11 @@
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   user-select: none;
+}
+
+.bp5-alert-body .bp5-icon {
+  margin-right: 0;
+}
+.bp5-alert-contents {
+  width: 100%;
 }

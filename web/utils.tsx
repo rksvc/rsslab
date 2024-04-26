@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Intent } from '@blueprintjs/core';
 import { FetchOptions, ofetch } from 'ofetch';
 import { Error as Err } from './Error';
 import { Confirm } from './Confirm';
@@ -44,17 +45,25 @@ function alert(error: string): never {
   throw new Error(error);
 }
 
-export function confirmDeletion(title: string, callback: () => void) {
+export function confirm(
+  title: string,
+  body: React.ReactNode,
+  callback: () => Promise<void>,
+  intent: Intent = Intent.PRIMARY,
+) {
   const container = document.body.appendChild(document.createElement('div'));
   const root = ReactDOM.createRoot(container);
   root.render(
     <React.StrictMode>
       <Confirm
-        text={`Are you sure you want to delete ${title}?`}
+        title={title}
+        intent={intent}
         callback={callback}
         root={root}
         container={container}
-      />
+      >
+        {body}
+      </Confirm>
     </React.StrictMode>,
   );
 }
