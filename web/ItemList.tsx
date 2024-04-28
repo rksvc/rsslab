@@ -21,6 +21,8 @@ import {
   MenuDivider,
   MenuItem,
   Popover,
+  Spinner,
+  SpinnerSize,
 } from '@blueprintjs/core';
 import {
   Check,
@@ -419,8 +421,8 @@ export default function ItemList({
           />
         ))}
         {(loading || hasMore) && (
-          <div className="flex mt-4 mb-3 justify-center" ref={sentryRef}>
-            <Icon icon={<RotateCw className="animate-spin opacity-40" size={19} />} />
+          <div className="mt-4 mb-3" ref={sentryRef}>
+            <Spinner size={SpinnerSize.SMALL} />
           </div>
         )}
       </CardList>

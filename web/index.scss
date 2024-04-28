@@ -2,20 +2,12 @@
 @tailwind utilities;
 @import '@blueprintjs/core/lib/scss/variables';
 
-.bp5-segmented-control .bp5-button {
-  user-select: none;
+.bp5-button {
   border-radius: 3px;
 }
-.bp5-segmented-control .bp5-button.bp5-intent-primary {
-  box-shadow: none;
-}
-.bp5-segmented-control .bp5-button.bp5-intent-primary:hover {
+.bp5-button-group.bp5-minimal .bp5-button.bp5-intent-primary.bp5-active {
+  color: $white;
   background-color: $blue3;
-  box-shadow: none;
-}
-.bp5-segmented-control .bp5-button.bp5-minimal.bp5-intent-primary:hover {
-  background-color: $light-gray4;
-  color: $gray1;
 }
 
 .bp5-tree-root {

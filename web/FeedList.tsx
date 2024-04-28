@@ -2,7 +2,6 @@ import { Dispatch, SetStateAction, useMemo, useRef, useState } from 'react';
 import {
   type TreeNodeInfo,
   Tree,
-  SegmentedControl,
   Divider,
   Intent,
   Icon,
@@ -15,9 +14,12 @@ import {
   MenuDivider,
   FileInput,
   NumericInput,
+  ButtonGroup,
+  Spinner,
 } from '@blueprintjs/core';
 import {
   AlertCircle,
+  Circle,
   Download,
   Edit,
   MoreHorizontal,
@@ -25,6 +27,9 @@ import {
   RotateCw,
   Upload,
   Wind,
+  Menu as MenuIcon,
+  Star,
+  Rss,
 } from 'react-feather';
 import { type Feed, type Folder, type FolderWithFeeds, Stats, Settings } from './types';
 import { confirm, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
@@ -93,7 +98,7 @@ export default function FeedList({
         src={`./api/feeds/${feed.id}/icon`}
       ></img>
     ) : (
-      ('feed' as const)
+      <Rss style={{ marginRight: '6px' }} {...iconProps} />
     ),
     isSelected: selectedFeed === `feed:${feed.id}`,
     secondaryLabel: secondaryLabel(stats?.get(feed.id), !!errors?.get(feed.id)),
@@ -171,17 +176,23 @@ export default function FeedList({
     <div className="flex flex-col min-h-screen max-h-screen">
       <div className="flex flex-row justify-between items-center">
         <Wind className="ml-3 mr-3" {...iconProps} />
-        <SegmentedControl
-          className="min-h-10 max-h-10 bg-white"
-          intent={Intent.PRIMARY}
-          value={filter}
-          onValueChange={setFilter}
-          options={[
-            { label: 'Unread', value: 'Unread' },
-            { label: 'All', value: 'Feeds' },
-            { label: 'Starred', value: 'Starred' },
-          ]}
-        />
+        <ButtonGroup className="min-h-10 max-h-10" minimal>
+          {[
+            { value: 'Unread', title: 'Unread', icon: <Circle {...iconProps} /> },
+            { value: 'Feeds', title: 'All', icon: <MenuIcon {...iconProps} /> },
+            { value: 'Starred', title: 'Starred', icon: <Star {...iconProps} /> },
+          ].map(option => (
+            <Button
+              key={option.value}
+              className="my-1 mx-0.5"
+              intent={option.value === filter ? Intent.PRIMARY : undefined}
+              icon={option.icon}
+              title={option.title}
+              active={option.value === filter}
+              onClick={() => setFilter(option.value)}
+            />
+          ))}
+        </ButtonGroup>
         <Popover
           placement="bottom"
           {...popoverProps}
@@ -375,7 +386,6 @@ export default function FeedList({
             label: folder.title,
             isExpanded: folder.is_expanded,
             isSelected: selectedFeed === `folder:${folder.id}`,
-            icon: 'folder-close' as const,
             childNodes: folder.feeds.map(feed),
             secondaryLabel: secondaryLabel(folderStats.get(folder.id)),
           })),
@@ -388,7 +398,7 @@ export default function FeedList({
         <>
           <Divider className="m-0" />
           <div className="flex items-center p-1 break-words">
-            <Icon icon={<RotateCw className="animate-spin ml-3 mr-2" {...iconProps} />} />
+            <Spinner className="ml-3 mr-2" size={15} />
             {`Refreshing (${loadingFeeds} left)`}
           </div>
         </>
