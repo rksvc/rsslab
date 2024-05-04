@@ -109,11 +109,11 @@ export default function App() {
 
   return (
     <div className="flex flex-row text-base min-h-screen max-h-screen">
-      <div style={{ minWidth: '300px', maxWidth: '300px' }}>
+      <div className="min-w-[300px] max-w-[300px]">
         <FeedList {...props} />
       </div>
       <Divider className="m-0" />
-      <div style={{ minWidth: '300px', maxWidth: '300px' }}>
+      <div className="min-w-[300px] max-w-[300px]">
         <ItemList {...props} />
       </div>
       <Divider className="m-0" />

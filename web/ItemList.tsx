@@ -512,13 +512,9 @@ function CardItem({
         {item.image && (
           <div
             className={cn(
-              'flex',
-              'h-full',
-              'mr-2',
-              'my-2',
+              'flex h-full mr-2 my-2 min-w-[80px] max-w-[80px]',
               !item.loaded && 'bp5-skeleton',
             )}
-            style={{ minWidth: '80px', maxWidth: '80px' }}
           >
             <img
               ref={image => image?.complete && onLoad()}
@@ -528,14 +524,12 @@ function CardItem({
             />
           </div>
         )}
-        <div className={cn('flex', 'flex-col', 'grow', 'min-w-0')}>
+        <div className="flex flex-col grow min-w-0">
           <div className="flex flex-row items-center opacity-70">
             <Icon
               svgProps={{
                 className: cn(
-                  'flex',
-                  'items-center',
-                  'transition-all',
+                  'flex items-center transition-all',
                   item.status !== 'read' && 'mr-1',
                   item.status === 'read' && 'w-0',
                 ),

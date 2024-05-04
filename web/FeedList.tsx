@@ -92,13 +92,9 @@ export default function FeedList({
     id: `feed:${feed.id}`,
     label: feed.title,
     icon: feed.has_icon ? (
-      <img
-        className="w-4"
-        style={{ marginRight: '7px' }}
-        src={`./api/feeds/${feed.id}/icon`}
-      ></img>
+      <img className="w-4 mr-[7px]" src={`./api/feeds/${feed.id}/icon`}></img>
     ) : (
-      <Rss style={{ marginRight: '6px' }} {...iconProps} />
+      <Rss className="mr-[6px]" {...iconProps} />
     ),
     isSelected: selectedFeed === `feed:${feed.id}`,
     secondaryLabel: secondaryLabel(stats?.get(feed.id), !!errors?.get(feed.id)),
