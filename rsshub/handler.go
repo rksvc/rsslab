@@ -177,7 +177,7 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 			return
 		}
 
-		vm.Set("process", vm.ToValue(map[string]any{"env": utils.Env}))
+		vm.Set("process", map[string]any{"env": utils.Env})
 		vm.Set("$fetch", func(opts map[string]any) *goja.Promise {
 			promise, resolve, reject := vm.NewPromise()
 			go func() {

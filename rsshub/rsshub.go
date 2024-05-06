@@ -20,7 +20,7 @@ import (
 type RSSHub struct {
 	*resty.Client
 
-	routesUrl, srcUrl        string
+	srcUrl                   string
 	routeCache, contentCache *cache.Cache
 	routes                   map[string]struct {
 		Routes map[string]struct {
@@ -42,7 +42,6 @@ var retryStatusCodes = map[int]struct{}{
 
 func NewRSSHub(c cache.ICache, routesUrl, srcUrl string) (*RSSHub, error) {
 	r := &RSSHub{
-		routesUrl:    routesUrl,
 		srcUrl:       srcUrl,
 		routeCache:   cache.NewCache(c, 6*time.Hour),
 		contentCache: cache.NewCache(c, time.Hour),
@@ -67,12 +66,12 @@ func NewRSSHub(c cache.ICache, routesUrl, srcUrl string) (*RSSHub, error) {
 			}),
 	}
 
-	v, err := r.routeCache.TryGet(r.routesUrl, false, func() (any, error) {
-		resp, err := r.R().Get(r.routesUrl)
+	v, err := r.routeCache.TryGet(routesUrl, false, func() (any, error) {
+		resp, err := r.R().Get(routesUrl)
 		if err != nil {
 			return nil, err
 		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
-			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, r.routesUrl, resp.Status())
+			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, routesUrl, resp.Status())
 		}
 		return resp.Body(), nil
 	})
@@ -131,16 +130,16 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 }
 
 func (r *RSSHub) file(path string) ([]byte, error) {
-	rawUrl, err := url.JoinPath(r.srcUrl, path)
+	url, err := url.JoinPath(r.srcUrl, path)
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.routeCache.TryGet(rawUrl, false, func() (any, error) {
-		resp, err := r.R().Get(rawUrl)
+	data, err := r.routeCache.TryGet(url, false, func() (any, error) {
+		resp, err := r.R().Get(url)
 		if err != nil {
 			return nil, err
 		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
-			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, rawUrl, resp.Status())
+			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, url, resp.Status())
 		}
 		return resp.Body(), nil
 	})
