@@ -27,6 +27,15 @@ export function Confirm({
       container.remove();
     }, 300);
   };
+  const onConfirm = async () => {
+    setLoading(true);
+    try {
+      await callback();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <Dialog
       title={title}
@@ -37,7 +46,10 @@ export function Confirm({
       canOutsideClickClose
     >
       <DialogBody>
-        <div ref={body => body?.getElementsByTagName('input')[0]?.focus()}>
+        <div
+          ref={body => body?.getElementsByTagName('input')[0]?.focus()}
+          onKeyDown={evt => evt.key === 'Enter' && onConfirm()}
+        >
           {children}
         </div>
       </DialogBody>
@@ -50,15 +62,7 @@ export function Confirm({
               intent={intent}
               loading={loading}
               text="OK"
-              onClick={async () => {
-                setLoading(true);
-                try {
-                  await callback();
-                  onClose();
-                } finally {
-                  setLoading(false);
-                }
-              }}
+              onClick={onConfirm}
             />
           </>
         }
