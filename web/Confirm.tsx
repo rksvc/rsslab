@@ -36,7 +36,11 @@ export function Confirm({
       canEscapeKeyClose
       canOutsideClickClose
     >
-      <DialogBody>{children}</DialogBody>
+      <DialogBody>
+        <div ref={body => body?.getElementsByTagName('input')[0]?.focus()}>
+          {children}
+        </div>
+      </DialogBody>
       <DialogFooter
         actions={
           <>
