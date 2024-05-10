@@ -460,7 +460,6 @@ function CardItem({
   feedsById: Map<number, Feed>;
 }) {
   const previousStatus = usePrevious(item.status);
-  const icon = (status?: string) => (status === 'unread' ? 'record' : 'star');
   const onLoad = () => {
     if (loaded.current && !loaded.current[i]) {
       loaded.current[i] = true;
@@ -530,11 +529,14 @@ function CardItem({
               svgProps={{
                 className: cn(
                   'flex items-center transition-all',
-                  item.status !== 'read' && 'mr-1',
-                  item.status === 'read' && 'w-0',
+                  item.status === 'read' ? 'w-0' : 'mr-1',
                 ),
               }}
-              icon={item.status === 'read' ? icon(previousStatus) : icon(item.status)}
+              icon={
+                (item.status === 'read' ? previousStatus : item.status) === 'unread'
+                  ? 'record'
+                  : 'star'
+              }
               size={10}
               intent={selected ? Intent.NONE : Intent.PRIMARY}
             />

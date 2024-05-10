@@ -4,7 +4,6 @@ import {
   Tree,
   Divider,
   Intent,
-  Icon,
   Button,
   Menu,
   Popover,
@@ -84,7 +83,7 @@ export default function FeedList({
     ) : filter === 'Starred' ? (
       `${stats?.starred ?? ''}`
     ) : error ? (
-      <Icon icon={<AlertCircle {...iconProps} />} />
+      <AlertCircle {...iconProps} />
     ) : (
       ''
     );

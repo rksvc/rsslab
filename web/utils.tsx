@@ -5,9 +5,9 @@ import { FetchOptions, ofetch } from 'ofetch';
 import { Error as Err } from './Error';
 import { Confirm } from './Confirm';
 
-export const iconProps = { size: 16 };
-export const menuIconProps = { size: 14 };
-export const popoverProps = { transitionDuration: 0 };
+export const iconProps = { size: 16 } as const;
+export const menuIconProps = { size: 14 } as const;
+export const popoverProps = { transitionDuration: 0 } as const;
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ');
