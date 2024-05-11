@@ -30,7 +30,7 @@ import {
   Star,
   Rss,
 } from 'react-feather';
-import { type Feed, type Folder, type FolderWithFeeds, Stats, Settings } from './types';
+import type { Feed, Folder, FolderWithFeeds, Stats, Settings } from './types';
 import { confirm, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
 
 export default function FeedList({
@@ -99,7 +99,7 @@ export default function FeedList({
     secondaryLabel: secondaryLabel(stats?.get(feed.id), !!errors?.get(feed.id)),
   });
   const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo) => {
-    const id = parseInt(`${node.id}`.split(':')[1]);
+    const id = Number.parseInt(`${node.id}`.split(':')[1]);
     setFolders(folders =>
       folders?.map(folder =>
         folder.id === id ? { ...folder, is_expanded: isExpanded } : folder,
@@ -154,7 +154,7 @@ export default function FeedList({
             ),
           }))
           .filter(
-            folder => folder.feeds.length || selectedFeed === `folder:${folder.id}`,
+            folder => folder.feeds.length > 0 || selectedFeed === `folder:${folder.id}`,
           );
   const visibleFeeds =
     filter === 'Feeds'
@@ -229,7 +229,8 @@ export default function FeedList({
                           method: 'POST',
                           body: {
                             url,
-                            folder_id: parseInt(folderSelectRef.current.value) || null,
+                            folder_id:
+                              Number.parseInt(folderSelectRef.current.value) || undefined,
                           },
                         });
                         await Promise.all([refreshFeeds(), refreshStats(false)]);
@@ -314,7 +315,7 @@ export default function FeedList({
                     />,
                     async () => {
                       if (!refreshRateRef.current) return;
-                      const refreshRate = parseInt(refreshRateRef.current.value);
+                      const refreshRate = Number.parseInt(refreshRateRef.current.value);
                       setSettings(
                         settings =>
                           settings && { ...settings, refresh_rate: refreshRate },
@@ -375,13 +376,13 @@ export default function FeedList({
             isSelected: !selectedFeed,
             secondaryLabel: total,
           },
-          ...(visibleFeeds ?? []).map(feed),
+          ...(visibleFeeds ?? []).map(f => feed(f)),
           ...(visibleFolders ?? []).map(folder => ({
             id: `folder:${folder.id}`,
             label: folder.title,
             isExpanded: folder.is_expanded,
             isSelected: selectedFeed === `folder:${folder.id}`,
-            childNodes: folder.feeds.map(feed),
+            childNodes: folder.feeds.map(f => feed(f)),
             secondaryLabel: secondaryLabel(folderStats.get(folder.id)),
           })),
         ]}

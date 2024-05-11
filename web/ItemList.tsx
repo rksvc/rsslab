@@ -41,7 +41,7 @@ import { useDebouncedCallback } from 'use-debounce';
 import useInfiniteScroll from 'react-infinite-scroll-hook';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types';
+import type { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types';
 import { cn, confirm, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
 
 dayjs.extend(relativeTime);
@@ -114,7 +114,7 @@ export default function ItemList({
       setLoading(true);
       try {
         const result = await xfetch<Items>('./api/items', {
-          query: { ...query(), after: items[items.length - 1].id },
+          query: { ...query(), after: items.at(-1)?.id },
         });
         setItems([...items, ...result.list]);
         setHasMore(result.has_more);
@@ -125,11 +125,11 @@ export default function ItemList({
   });
 
   const [type, s] = selectedFeed.split(':');
-  const id = parseInt(s);
+  const id = Number.parseInt(s);
   const isFeedSelected = type === 'feed';
-  const updateFeedAttr = async (
-    attrName: 'title' | 'feed_link' | 'folder_id',
-    value: any,
+  const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
+    attrName: T,
+    value: Feed[T],
   ) => {
     await xfetch(`./api/feeds/${id}`, {
       method: 'PUT',
@@ -155,7 +155,7 @@ export default function ItemList({
     const result = await xfetch<Items>('./api/items/', { query: query() });
     setItems(result.list);
     setHasMore(result.has_more);
-    loaded.current = new Array(result.list.length);
+    loaded.current = Array.from({ length: result.list.length });
   }, 500);
 
   useEffect(() => {
@@ -167,7 +167,7 @@ export default function ItemList({
       setSelectedItemId(undefined);
       setSelectedItemDetails(undefined);
       setHasMore(result.has_more);
-      loaded.current = new Array(result.list.length);
+      loaded.current = Array.from({ length: result.list.length });
       itemListRef.current?.scrollTo(0, 0);
     })();
   }, [query, setItems, setSelectedItemId, setSelectedItemDetails]);
@@ -297,11 +297,11 @@ export default function ItemList({
                           onClick={() => updateFeedAttr('folder_id', folder.id)}
                         />
                       ))}
-                    {feedsById.get(id)?.folder_id != null && (
+                    {feedsById.get(id)?.folder_id != undefined && (
                       <MenuItem
                         text="--"
                         icon={<FolderMinus {...menuIconProps} />}
-                        onClick={() => updateFeedAttr('folder_id', null)}
+                        onClick={() => updateFeedAttr('folder_id', undefined)}
                       />
                     )}
                   </MenuItem>
@@ -319,7 +319,9 @@ export default function ItemList({
                           await xfetch(`./api/feeds/${id}`, { method: 'DELETE' });
                           const folderId = feedsById.get(id)?.folder_id;
                           await Promise.all([refreshFeeds(), refreshStats(false)]);
-                          setSelectedFeed(folderId != null ? `folder:${folderId}` : '');
+                          setSelectedFeed(
+                            folderId == undefined ? '' : `folder:${folderId}`,
+                          );
                         },
                         Intent.DANGER,
                       )

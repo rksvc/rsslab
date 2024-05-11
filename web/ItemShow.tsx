@@ -9,7 +9,7 @@ import {
   H2,
 } from '@blueprintjs/core';
 import { Star, Circle, ExternalLink } from 'react-feather';
-import { Item, Image, Stats, Feed } from './types';
+import type { Item, Image, Stats, Feed } from './types';
 import { cn, iconProps, xfetch } from './utils';
 import classes from './styles.module.css';
 

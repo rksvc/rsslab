@@ -3,7 +3,7 @@ import { Divider, FocusStyleManager } from '@blueprintjs/core';
 import FeedList from './FeedList';
 import ItemList from './ItemList';
 import ItemShow from './ItemShow';
-import {
+import type {
   Item,
   Image,
   FolderWithFeeds,
@@ -49,7 +49,7 @@ export default function App() {
       xfetch<Status>('./api/status'),
     ]);
     setErrors(
-      new Map(Object.entries(errors).map(([id, error]) => [parseInt(id), error])),
+      new Map(Object.entries(errors).map(([id, error]) => [Number.parseInt(id), error])),
     );
     setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])));
     if (loop) {
@@ -69,8 +69,8 @@ export default function App() {
     const feedsById = new Map<number, Feed>();
     const feedsWithoutFolders: Feed[] = [];
     for (const feed of feeds ?? []) {
-      if (feed.folder_id != null) foldersById.get(feed.folder_id)?.feeds.push(feed);
-      else feedsWithoutFolders.push(feed);
+      if (feed.folder_id == undefined) feedsWithoutFolders.push(feed);
+      else foldersById.get(feed.folder_id)?.feeds.push(feed);
       feedsById.set(feed.id, feed);
     }
     return [[...foldersById.values()], feedsWithoutFolders, foldersById, feedsById];
