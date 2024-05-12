@@ -126,7 +126,7 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 				return goja.Undefined(), err
 			}
 			render, _ := goja.AssertFunction(require.Require(vm, "art-template").ToObject(vm).Get("render"))
-			return render(goja.Undefined(), vm.ToValue(source), content, vm.ToValue(map[string]any{
+			return render(goja.Undefined(), vm.ToValue(string(source)), content, vm.ToValue(map[string]any{
 				"debug":    false,
 				"minimize": false,
 			}))

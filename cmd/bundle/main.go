@@ -12,7 +12,7 @@ func main() {
 		entryPoint, outfile string
 		external            []string
 	}{
-		{"node_modules/art-template", "third_party/art-template.js", []string{"html-minifier"}},
+		{"node_modules/art-template/lib", "third_party/art-template.js", []string{"html-minifier"}},
 		{"node_modules/cheerio", "third_party/cheerio.js", nil},
 		{"node_modules/crypto-js", "third_party/crypto-js.js", nil},
 		{"node_modules/lz-string", "third_party/lz-string.js", nil},
