@@ -62,13 +62,11 @@ func New(db *storage.Storage, rsshubBaseUrl *url.URL) *Server {
 
 func (s *Server) Start() {
 	go func() {
-		s.db.DeleteOldItems()
-		s.db.Vacuum()
-		s.db.Optimize()
-		for range time.NewTicker(24 * time.Hour).C {
+		for {
 			s.db.DeleteOldItems()
 			s.db.Vacuum()
 			s.db.Optimize()
+			time.Sleep(24 * time.Hour)
 		}
 	}()
 
