@@ -14,7 +14,6 @@ Alternatives for some command line argument values:
 
 - `-src`
   - `https://unpkg.com/rsshub` (default)
-  - `https://registry.npmmirror.com/rsshub/latest/files` (recommended for users in Chinese mainland)
   - `https://cdn.jsdelivr.net/npm/rsshub`
   - `https://raw.githubusercontent.com/DIYgod/RSSHub/master`
 - `-routes`
