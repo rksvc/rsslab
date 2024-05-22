@@ -32,7 +32,7 @@ cd ../..
 go generate ./...
 pnpm i
 pnpm build
-go build -buildmode=exe -ldflags='-s -w' -tags='sqlite_foreign_keys sqlite_fts5' -trimpath
+go build -ldflags='-s -w' -tags='sqlite_foreign_keys sqlite_fts5' -trimpath
 ```
 
 ## Credits
