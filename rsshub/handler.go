@@ -120,17 +120,23 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 	registry := require.NewRegistryWithLoader(r.sourceLoader(workingDirectory))
 	loop := eventloop.NewEventLoop(eventloop.WithRegistry(registry))
 	registry.RegisterNativeModule("@/utils/render", func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("art", func(filename string, content goja.Value) (goja.Value, error) {
+		art := require.Require(vm, "art-template").ToObject(vm)
+		render := vm.ToValue(func(filename string, content goja.Value) (goja.Value, error) {
 			source, err := r.file(filename)
 			if err != nil {
 				return goja.Undefined(), err
 			}
-			render, _ := goja.AssertFunction(require.Require(vm, "art-template").ToObject(vm).Get("render"))
+			render, _ := goja.AssertFunction(art.Get("render"))
 			return render(goja.Undefined(), vm.ToValue(string(source)), content, vm.ToValue(map[string]any{
 				"debug":    false,
 				"minimize": false,
 			}))
-		})
+		}).ToObject(vm)
+		err := render.Set("defaults", art.Get("defaults"))
+		if err != nil {
+			panic(err)
+		}
+		module.Get("exports").ToObject(vm).Set("art", render)
 	})
 	registry.RegisterNativeModule("@/utils/cache", func(vm *goja.Runtime, module *goja.Object) {
 		module.Get("exports").ToObject(vm).Set("tryGet", func(key string, f func() *goja.Promise, _ any, ex *bool) *goja.Promise {
