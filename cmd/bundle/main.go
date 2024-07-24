@@ -19,6 +19,7 @@ func main() {
 		{"node_modules/markdown-it", "third_party/markdown-it.js", nil},
 		{"node_modules/query-string", "third_party/query-string.js", nil},
 		{"node_modules/query-string", "third_party/querystring.js", nil},
+		{"lib/types.ts", "lib/types.js", nil},
 		{"lib/errors/types/config-not-found.ts", "lib/errors/types/config-not-found.js", nil},
 		{"lib/errors/types/invalid-parameter.ts", "lib/errors/types/invalid-parameter.js", nil},
 		{"lib/errors/types/not-found.ts", "lib/errors/types/not-found.js", nil},
