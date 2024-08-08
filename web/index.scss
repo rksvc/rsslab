@@ -3,9 +3,15 @@
 @import '@blueprintjs/core/lib/scss/variables';
 
 .bp5-button {
-  border-radius: 3px;
+  border-radius: 0.25rem;
 }
-.bp5-button-group.bp5-minimal .bp5-button.bp5-intent-primary.bp5-active {
+.bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary:hover {
+  background-color: rgba($gray3, 15%);
+}
+.bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary:active {
+  background-color: rgba($gray3, 30%);
+}
+.bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary.bp5-active {
   color: $white;
   background-color: $blue3;
 }

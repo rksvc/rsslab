@@ -171,7 +171,7 @@ export default function FeedList({
     <div className="flex flex-col min-h-screen max-h-screen">
       <div className="flex flex-row justify-between items-center">
         <Wind className="ml-3 mr-3" {...iconProps} />
-        <ButtonGroup className="min-h-10 max-h-10" minimal>
+        <ButtonGroup className="min-h-10 max-h-10" outlined>
           {[
             { value: 'Unread', title: 'Unread', icon: <Circle {...iconProps} /> },
             { value: 'Feeds', title: 'All', icon: <MenuIcon {...iconProps} /> },
@@ -179,8 +179,8 @@ export default function FeedList({
           ].map(option => (
             <Button
               key={option.value}
-              className="my-1 mx-0.5"
-              intent={option.value === filter ? Intent.PRIMARY : undefined}
+              className="my-1"
+              intent={Intent.PRIMARY}
               icon={option.icon}
               title={option.title}
               active={option.value === filter}
