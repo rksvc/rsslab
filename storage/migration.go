@@ -113,8 +113,16 @@ var migrations = []func(*sql.Tx) error{
 			);
 
 			create trigger if not exists del_item_search after delete on items begin
-			  delete from search where rowid = old.search_rowid;
+			 delete from search where rowid = old.search_rowid;
 			end;
+		`
+		_, err := tx.Exec(sql)
+		return err
+	},
+	func(tx *sql.Tx) error {
+		sql := `
+			drop index if exists idx_item_status;
+			create index if not exists idx_item_date_id_status on items(date, id, status);
 		`
 		_, err := tx.Exec(sql)
 		return err
