@@ -90,7 +90,8 @@ func main() {
 		time.Sleep(10 * time.Second)
 	}
 	api.Start()
-	for range time.NewTicker(6 * time.Hour).C {
+	for {
+		time.Sleep(6 * time.Hour)
 		reload()
 	}
 }
