@@ -102,7 +102,7 @@ export default function FeedList({
     );
   const feed = (feed: Feed) => ({
     id: `feed:${feed.id}`,
-    label: feed.title,
+    label: <span title={feed.title}>{feed.title}</span>,
     icon: feed.has_icon ? (
       <img className="w-4 mr-[7px]" src={`./api/feeds/${feed.id}/icon`}></img>
     ) : (
@@ -296,7 +296,7 @@ export default function FeedList({
           ...(visibleFeeds ?? []).map(f => feed(f)),
           ...(visibleFolders ?? []).map(folder => ({
             id: `folder:${folder.id}`,
-            label: folder.title,
+            label: <span title={folder.title}>{folder.title}</span>,
             isExpanded: folder.is_expanded,
             isSelected: selected === `folder:${folder.id}`,
             childNodes: folder.feeds.map(f => feed(f)),
