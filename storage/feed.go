@@ -3,17 +3,19 @@ package storage
 import (
 	"database/sql"
 	"log"
+	"time"
 )
 
 type Feed struct {
-	Id          int64   `json:"id"`
-	FolderId    *int64  `json:"folder_id,omitempty"`
-	Title       string  `json:"title"`
-	Description string  `json:"description,omitempty"`
-	Link        string  `json:"link,omitempty"`
-	FeedLink    string  `json:"feed_link"`
-	Icon        *[]byte `json:"icon,omitempty"`
-	HasIcon     bool    `json:"has_icon"`
+	Id            int64      `json:"id"`
+	FolderId      *int64     `json:"folder_id,omitempty"`
+	Title         string     `json:"title"`
+	Description   string     `json:"description,omitempty"`
+	Link          string     `json:"link,omitempty"`
+	FeedLink      string     `json:"feed_link"`
+	Icon          *[]byte    `json:"icon,omitempty"`
+	HasIcon       bool       `json:"has_icon"`
+	LastRefreshed *time.Time `json:"last_refreshed,omitempty"`
 }
 
 type HTTPState struct {
@@ -90,7 +92,7 @@ func (s *Storage) UpdateFeedIcon(feedId int64, icon *[]byte) {
 func (s *Storage) ListFeeds() ([]Feed, error) {
 	rows, err := s.db.Query(`
 		select id, folder_id, title, description, link, feed_link,
-		       ifnull(length(icon), 0) > 0 as has_icon
+		       last_refreshed, ifnull(length(icon), 0) > 0 as has_icon
 		from feeds
 		order by title collate nocase
 	`)
@@ -108,6 +110,7 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 			&f.Description,
 			&f.Link,
 			&f.FeedLink,
+			&f.LastRefreshed,
 			&f.HasIcon,
 		)
 		if err != nil {
@@ -331,6 +334,17 @@ func (s *Storage) SetHTTPState(feedId int64, lastModified, etag string) error {
 		update feeds set last_modified = ?, etag = ?
 		where id = ?`,
 		lastModified, etag, feedId,
+	)
+	if err != nil {
+		log.Print(err)
+	}
+	return err
+}
+
+func (s *Storage) SetFeedLastRefreshed(feedId int64, lastRefreshed time.Time) error {
+	_, err := s.db.Exec(`
+		update feeds set last_refreshed = ? where id = ?`,
+		lastRefreshed.UTC(), feedId,
 	)
 	if err != nil {
 		log.Print(err)

@@ -21,6 +21,7 @@ export type Feed = {
   description?: string;
   link?: string;
   feed_link: string;
+  last_refreshed?: string;
   has_icon: boolean;
 };
 

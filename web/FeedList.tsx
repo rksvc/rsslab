@@ -90,13 +90,20 @@ export default function FeedList({
   const refreshRateRef = useRef<HTMLInputElement>(null);
   const opmlFormRef = useRef<HTMLFormElement>(null);
 
-  const secondaryLabel = (stats?: Stats, error?: boolean) =>
+  const secondaryLabel = (stats?: Stats, error?: boolean, lastRefreshed?: string) =>
     filter === 'Unread' ? (
       `${stats?.unread ?? ''}`
     ) : filter === 'Starred' ? (
       `${stats?.starred ?? ''}`
     ) : error ? (
-      <AlertCircle {...iconProps} />
+      <span
+        className="flex"
+        title={
+          lastRefreshed && `Last Refreshed: ${new Date(lastRefreshed).toLocaleString()}`
+        }
+      >
+        <AlertCircle {...iconProps} />
+      </span>
     ) : (
       ''
     );
@@ -109,7 +116,11 @@ export default function FeedList({
       <Rss className="mr-[6px]" {...iconProps} />
     ),
     isSelected: selected === `feed:${feed.id}`,
-    secondaryLabel: secondaryLabel(stats?.get(feed.id), !!errors?.get(feed.id)),
+    secondaryLabel: secondaryLabel(
+      stats?.get(feed.id),
+      !!errors?.get(feed.id),
+      feed.last_refreshed,
+    ),
   });
   const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo) => {
     const id = Number.parseInt(`${node.id}`.split(':')[1]);

@@ -127,4 +127,11 @@ var migrations = []func(*sql.Tx) error{
 		_, err := tx.Exec(sql)
 		return err
 	},
+	func(tx *sql.Tx) error {
+		sql := `
+			alter table feeds add column last_refreshed datetime;
+		`
+		_, err := tx.Exec(sql)
+		return err
+	},
 }

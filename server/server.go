@@ -173,6 +173,7 @@ func (s *Server) worker(srcQueue <-chan storage.Feed, dstQueue chan<- []storage.
 		if err != nil {
 			s.db.SetFeedError(feed.Id, err)
 		} else {
+			s.db.SetFeedLastRefreshed(feed.Id, time.Now())
 			s.db.ResetFeedError(feed.Id)
 		}
 		dstQueue <- items

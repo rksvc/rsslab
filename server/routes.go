@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"rsslab/storage"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/mmcdole/gofeed"
@@ -180,7 +181,12 @@ func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 		}
 	}
 	go s.FindFeedFavicon(*feed)
+	lastRefreshed := time.Now()
+	if err = s.db.SetFeedLastRefreshed(feed.Id, lastRefreshed); err != nil {
+		return c.Status(http.StatusInternalServerError).SendString(err.Error())
+	}
 
+	feed.LastRefreshed = &lastRefreshed
 	return c.JSON(feed)
 }
 
