@@ -128,7 +128,7 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 
 func (s *Storage) ListFeedsMissingIcons() []Feed {
 	rows, err := s.db.Query(`
-		select id, folder_id, title, description, link, feed_link
+		select id, link, feed_link
 		from feeds
 		where icon is null
 	`)
@@ -141,9 +141,6 @@ func (s *Storage) ListFeedsMissingIcons() []Feed {
 		var f Feed
 		err = rows.Scan(
 			&f.Id,
-			&f.FolderId,
-			&f.Title,
-			&f.Description,
 			&f.Link,
 			&f.FeedLink,
 		)
@@ -163,14 +160,9 @@ func (s *Storage) ListFeedsMissingIcons() []Feed {
 func (s *Storage) GetFeed(id int64) (*Feed, error) {
 	var f Feed
 	err := s.db.QueryRow(`
-		select
-			id, folder_id, title, link, feed_link,
-			icon, ifnull(icon, '') != '' as has_icon
+		select id, link, feed_link, icon
 		from feeds where id = ?
-	`, id).Scan(
-		&f.Id, &f.FolderId, &f.Title, &f.Link, &f.FeedLink,
-		&f.Icon, &f.HasIcon,
-	)
+	`, id).Scan(&f.Id, &f.Link, &f.FeedLink, &f.Icon)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -183,8 +175,7 @@ func (s *Storage) GetFeed(id int64) (*Feed, error) {
 
 func (s *Storage) GetFeeds(folderId int64) ([]Feed, error) {
 	rows, err := s.db.Query(`
-		select id, folder_id, title, description, link, feed_link,
-		   	ifnull(length(icon), 0) > 0 as has_icon
+		select id, feed_link
 		from feeds
 		where folder_id = ?
 		order by title collate nocase
@@ -196,15 +187,7 @@ func (s *Storage) GetFeeds(folderId int64) ([]Feed, error) {
 	result := make([]Feed, 0)
 	for rows.Next() {
 		var f Feed
-		err = rows.Scan(
-			&f.Id,
-			&f.FolderId,
-			&f.Title,
-			&f.Description,
-			&f.Link,
-			&f.FeedLink,
-			&f.HasIcon,
-		)
+		err = rows.Scan(&f.Id, &f.FeedLink)
 		if err != nil {
 			log.Print(err)
 			return nil, err
@@ -265,8 +248,7 @@ func (s *Storage) GetFeedErrors() (map[int64]string, error) {
 
 func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
 	rows, err := s.db.Query(`
-		select id, folder_id, title, description, link, feed_link,
-		   	ifnull(length(icon), 0) > 0 as has_icon
+		select id, feed_link
 		from feeds where error is not null
 		order by title collate nocase
 	`)
@@ -277,15 +259,7 @@ func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
 	result := make([]Feed, 0)
 	for rows.Next() {
 		var f Feed
-		err = rows.Scan(
-			&f.Id,
-			&f.FolderId,
-			&f.Title,
-			&f.Description,
-			&f.Link,
-			&f.FeedLink,
-			&f.HasIcon,
-		)
+		err = rows.Scan(&f.Id, &f.FeedLink)
 		if err != nil {
 			log.Print(err)
 			return nil, err

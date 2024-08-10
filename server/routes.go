@@ -274,12 +274,6 @@ func (s *Server) handleFeedUpdate(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-	feed, err := s.db.GetFeed(id)
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).SendString(err.Error())
-	} else if feed == nil {
-		return c.Status(http.StatusBadRequest).SendString("no such feed")
-	}
 	var body map[string]any
 	if err = c.Bind().JSON(&body); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
