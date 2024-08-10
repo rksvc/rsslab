@@ -41,8 +41,9 @@ import { useDebouncedCallback } from 'use-debounce';
 import useInfiniteScroll from 'react-infinite-scroll-hook';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { Confirm } from './Confirm';
 import type { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types';
-import { cn, confirm, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
+import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
 
 dayjs.extend(relativeTime);
 
@@ -53,8 +54,8 @@ export default function ItemList({
   setFeeds,
   setStats,
   errors,
-  selectedFeed,
-  setSelectedFeed,
+  selected,
+  setSelected,
   loadingFeeds,
   settings,
 
@@ -76,8 +77,8 @@ export default function ItemList({
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>;
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>;
   setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>;
-  setSelectedFeed: Dispatch<SetStateAction<string>>;
-  selectedFeed: string;
+  setSelected: Dispatch<SetStateAction<string>>;
+  selected: string;
   errors?: Map<number, string>;
   loadingFeeds: number;
   settings?: Settings;
@@ -96,8 +97,13 @@ export default function ItemList({
   feedsById: Map<number, Feed>;
 }) {
   const [search, setSearch] = useState('');
-  const [hasMore, setHasMore] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [renameFeedDialogOpen, setRenameFeedDialogOpen] = useState(false);
+  const [changeLinkDialogOpen, setChangeLinkDialogOpen] = useState(false);
+  const [deleteFeedDialogOpen, setDeleteFeedDialogOpen] = useState(false);
+  const [renameFolderDialogOpen, setRenameFolderDialogOpen] = useState(false);
+  const [deleteFolderDialogOpen, setDeleteFolderDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const feedTitleRef = useRef<HTMLInputElement>(null);
   const feedLinkRef = useRef<HTMLInputElement>(null);
@@ -124,7 +130,7 @@ export default function ItemList({
     },
   });
 
-  const [type, s] = selectedFeed.split(':');
+  const [type, s] = selected.split(':');
   const id = Number.parseInt(s);
   const isFeedSelected = type === 'feed';
   const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
@@ -141,8 +147,8 @@ export default function ItemList({
   };
   const query = useCallback(() => {
     const query: Record<string, any> = {};
-    if (selectedFeed) {
-      const [type, id] = selectedFeed.split(':');
+    if (selected) {
+      const [type, id] = selected.split(':');
       query[`${type}_id`] = id;
     }
     if (filter !== 'Feeds') query.status = filter.toLowerCase();
@@ -150,7 +156,7 @@ export default function ItemList({
     const search = inputRef.current?.value;
     if (search) query.search = search;
     return query;
-  }, [selectedFeed, filter]);
+  }, [selected, filter]);
   const onSearch = useDebouncedCallback(async () => {
     const result = await xfetch<Items>('./api/items/', { query: query() });
     setItems(result.list);
@@ -194,8 +200,8 @@ export default function ItemList({
           minimal
           onClick={async () => {
             const query: Record<string, any> = {};
-            if (selectedFeed) {
-              const [type, id] = selectedFeed.split(':');
+            if (selected) {
+              const [type, id] = selected.split(':');
               query[`${type}_id`] = id;
             }
             await xfetch('./api/items', { method: 'PUT', query });
@@ -239,39 +245,12 @@ export default function ItemList({
                   <MenuItem
                     text="Rename"
                     icon={<Edit {...menuIconProps} />}
-                    onClick={() =>
-                      confirm(
-                        'Rename Feed',
-                        <InputGroup
-                          defaultValue={feedsById.get(id)?.title}
-                          inputRef={feedTitleRef}
-                        />,
-                        async () => {
-                          const title = feedTitleRef.current?.value;
-                          if (title && title !== feedsById.get(id)?.title)
-                            await updateFeedAttr('title', title);
-                        },
-                      )
-                    }
+                    onClick={() => setRenameFeedDialogOpen(true)}
                   />
                   <MenuItem
                     text="Change Link"
                     icon={<Edit {...menuIconProps} />}
-                    onClick={() =>
-                      confirm(
-                        'Change Feed Link',
-                        <InputGroup
-                          defaultValue={feedsById.get(id)?.feed_link}
-                          inputRef={feedLinkRef}
-                          spellCheck={false}
-                        />,
-                        async () => {
-                          const feedLink = feedLinkRef.current?.value;
-                          if (feedLink && feedLink !== feedsById.get(id)?.feed_link)
-                            await updateFeedAttr('feed_link', feedLink);
-                        },
-                      )
-                    }
+                    onClick={() => setChangeLinkDialogOpen(true)}
                   />
                   <MenuItem
                     text="Refresh"
@@ -309,23 +288,7 @@ export default function ItemList({
                     text="Delete"
                     icon={<Trash {...menuIconProps} />}
                     intent={Intent.DANGER}
-                    onClick={async () =>
-                      confirm(
-                        'Delete Feed',
-                        `Are you sure you want to delete ${
-                          feedsById.get(id)?.title || 'untitled'
-                        }?`,
-                        async () => {
-                          await xfetch(`./api/feeds/${id}`, { method: 'DELETE' });
-                          const folderId = feedsById.get(id)?.folder_id;
-                          await Promise.all([refreshFeeds(), refreshStats(false)]);
-                          setSelectedFeed(
-                            folderId == undefined ? '' : `folder:${folderId}`,
-                          );
-                        },
-                        Intent.DANGER,
-                      )
-                    }
+                    onClick={async () => setDeleteFeedDialogOpen(true)}
                   />
                 </>
               ) : (
@@ -333,29 +296,7 @@ export default function ItemList({
                   <MenuItem
                     text="Rename"
                     icon={<Edit {...menuIconProps} />}
-                    onClick={() =>
-                      confirm(
-                        'Rename Folder',
-                        <InputGroup
-                          defaultValue={foldersById.get(id)?.title}
-                          inputRef={folderTitleRef}
-                        />,
-                        async () => {
-                          const title = folderTitleRef.current?.value;
-                          if (title && title !== foldersById.get(id)?.title) {
-                            await xfetch(`./api/folders/${id}`, {
-                              method: 'PUT',
-                              body: { title },
-                            });
-                            setFolders(folders =>
-                              folders?.map(folder =>
-                                folder.id === id ? { ...folder, title } : folder,
-                              ),
-                            );
-                          }
-                        },
-                      )
-                    }
+                    onClick={() => setRenameFolderDialogOpen(true)}
                   />
                   <MenuItem
                     text="Refresh"
@@ -370,20 +311,7 @@ export default function ItemList({
                     text="Delete"
                     icon={<Trash {...menuIconProps} />}
                     intent={Intent.DANGER}
-                    onClick={async () =>
-                      confirm(
-                        'Delete Folder',
-                        `Are you sure you want to delete ${
-                          foldersById.get(id)?.title || 'untitled'
-                        }?`,
-                        async () => {
-                          await xfetch(`./api/folders/${id}`, { method: 'DELETE' });
-                          await Promise.all([refreshFeeds(), refreshStats(false)]);
-                          setSelectedFeed('');
-                        },
-                        Intent.DANGER,
-                      )
-                    }
+                    onClick={async () => setDeleteFolderDialogOpen(true)}
                   />
                 </>
               )}
@@ -400,7 +328,7 @@ export default function ItemList({
                 ? 'Folder Settings'
                 : ''
             }
-            disabled={!selectedFeed}
+            disabled={!selected}
             minimal
           />
         </Popover>
@@ -434,6 +362,88 @@ export default function ItemList({
           <div className="p-3 break-words text-red-600">{errors?.get(id)}</div>
         </>
       )}
+      <Confirm
+        open={renameFeedDialogOpen}
+        setOpen={setRenameFeedDialogOpen}
+        title="Rename Feed"
+        children={
+          <InputGroup defaultValue={feedsById.get(id)?.title} inputRef={feedTitleRef} />
+        }
+        callback={async () => {
+          const title = feedTitleRef.current?.value;
+          if (title && title !== feedsById.get(id)?.title)
+            await updateFeedAttr('title', title);
+        }}
+      />
+      <Confirm
+        open={changeLinkDialogOpen}
+        setOpen={setChangeLinkDialogOpen}
+        title="Change Feed Link"
+        children={
+          <InputGroup
+            defaultValue={feedsById.get(id)?.feed_link}
+            inputRef={feedLinkRef}
+            spellCheck={false}
+          />
+        }
+        callback={async () => {
+          const feedLink = feedLinkRef.current?.value;
+          if (feedLink && feedLink !== feedsById.get(id)?.feed_link)
+            await updateFeedAttr('feed_link', feedLink);
+        }}
+      />
+      <Confirm
+        open={deleteFeedDialogOpen}
+        setOpen={setDeleteFeedDialogOpen}
+        title="Delete Feed"
+        children={`Are you sure you want to delete ${
+          feedsById.get(id)?.title || 'untitled'
+        }?`}
+        callback={async () => {
+          await xfetch(`./api/feeds/${id}`, { method: 'DELETE' });
+          const folderId = feedsById.get(id)?.folder_id;
+          await Promise.all([refreshFeeds(), refreshStats(false)]);
+          setSelected(folderId == undefined ? '' : `folder:${folderId}`);
+        }}
+        intent={Intent.DANGER}
+      />
+      <Confirm
+        open={renameFolderDialogOpen}
+        setOpen={setRenameFolderDialogOpen}
+        title="Rename Folder"
+        children={
+          <InputGroup
+            defaultValue={foldersById.get(id)?.title}
+            inputRef={folderTitleRef}
+          />
+        }
+        callback={async () => {
+          const title = folderTitleRef.current?.value;
+          if (title && title !== foldersById.get(id)?.title) {
+            await xfetch(`./api/folders/${id}`, {
+              method: 'PUT',
+              body: { title },
+            });
+            setFolders(folders =>
+              folders?.map(folder => (folder.id === id ? { ...folder, title } : folder)),
+            );
+          }
+        }}
+      />
+      <Confirm
+        open={deleteFolderDialogOpen}
+        setOpen={setDeleteFolderDialogOpen}
+        title="Delete Folder"
+        children={`Are you sure you want to delete ${
+          foldersById.get(id)?.title || 'untitled'
+        }?`}
+        callback={async () => {
+          await xfetch(`./api/folders/${id}`, { method: 'DELETE' });
+          await Promise.all([refreshFeeds(), refreshStats(false)]);
+          setSelected('');
+        }}
+        intent={Intent.DANGER}
+      />
     </div>
   );
 }

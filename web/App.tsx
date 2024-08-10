@@ -23,7 +23,7 @@ export default function App() {
   const [feeds, setFeeds] = useState<Feed[]>();
   const [stats, setStats] = useState<Map<number, Stats>>();
   const [errors, setErrors] = useState<Map<number, string>>();
-  const [selectedFeed, setSelectedFeed] = useState<string>('');
+  const [selected, setSelected] = useState('');
   const [loadingFeeds, setLoadingFeeds] = useState(0);
   const [settings, setSettings] = useState<Settings>();
 
@@ -85,8 +85,8 @@ export default function App() {
     stats,
     setStats,
     errors,
-    selectedFeed,
-    setSelectedFeed,
+    selected,
+    setSelected,
     loadingFeeds,
     settings,
     setSettings,

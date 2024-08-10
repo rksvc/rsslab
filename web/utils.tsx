@@ -1,9 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Intent } from '@blueprintjs/core';
 import { FetchOptions, ofetch } from 'ofetch';
 import { Error as Err } from './Error';
-import { Confirm } from './Confirm';
 
 export const iconProps = { size: 16 } as const;
 export const menuIconProps = { size: 14 } as const;
@@ -43,27 +41,4 @@ function alert(error: string): never {
     </React.StrictMode>,
   );
   throw new Error(error);
-}
-
-export function confirm(
-  title: string,
-  body: React.ReactNode,
-  callback: () => Promise<void>,
-  intent: Intent = Intent.PRIMARY,
-) {
-  const container = document.body.appendChild(document.createElement('div'));
-  const root = ReactDOM.createRoot(container);
-  root.render(
-    <React.StrictMode>
-      <Confirm
-        title={title}
-        intent={intent}
-        callback={callback}
-        root={root}
-        container={container}
-      >
-        {body}
-      </Confirm>
-    </React.StrictMode>,
-  );
 }

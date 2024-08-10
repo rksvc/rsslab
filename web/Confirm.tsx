@@ -1,32 +1,23 @@
-import ReactDOM from 'react-dom/client';
-import { ReactNode, useState } from 'react';
+import { Dispatch, ReactNode, SetStateAction, useState } from 'react';
 import { Button, Dialog, DialogBody, DialogFooter, Intent } from '@blueprintjs/core';
 
 export function Confirm({
+  open,
+  setOpen,
   title,
-  children,
-  intent,
   callback,
-  root,
-  container,
+  children,
+  intent = Intent.PRIMARY,
 }: {
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
   title: string;
-  children: ReactNode;
-  intent: Intent;
   callback: () => Promise<void>;
-  root: ReactDOM.Root;
-  container: HTMLDivElement;
+  children: ReactNode;
+  intent?: Intent;
 }) {
-  const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
-  const onClose = () => {
-    setOpen(false);
-    // https://blueprintjs.com/docs/#core/components/alert
-    setTimeout(() => {
-      root.unmount();
-      container.remove();
-    }, 300);
-  };
+  const onClose = () => setOpen(false);
   const onConfirm = async () => {
     setLoading(true);
     try {
@@ -44,14 +35,10 @@ export function Confirm({
       onClose={onClose}
       canEscapeKeyClose
       canOutsideClickClose
+      onOpening={node => node.getElementsByTagName('input')[0]?.focus()}
     >
       <DialogBody>
-        <div
-          ref={body => body?.getElementsByTagName('input')[0]?.focus()}
-          onKeyDown={evt => evt.key === 'Enter' && onConfirm()}
-        >
-          {children}
-        </div>
+        <div onKeyDown={evt => evt.key === 'Enter' && onConfirm()}>{children}</div>
       </DialogBody>
       <DialogFooter
         actions={
