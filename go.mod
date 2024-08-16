@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/Xuanwo/go-locale v1.1.1
-	github.com/dop251/goja v0.0.0-20240806095544-3491d4a58fbe
+	github.com/dop251/goja v0.0.0-20240815170236-7d18bf7df119
 	github.com/dop251/goja_nodejs v0.0.0-20240728170619-29b559befffc
 	github.com/evanw/esbuild v0.23.0
 	github.com/go-resty/resty/v2 v2.14.0
