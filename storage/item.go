@@ -114,15 +114,15 @@ func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
 	var cond []string
 	var args []any
 	if filter.FolderId != nil {
-		cond = append(cond, "i.feed_id in (select id from feeds where folder_id = ?)")
+		cond = append(cond, "feed_id in (select id from feeds where folder_id = ?)")
 		args = append(args, *filter.FolderId)
 	}
 	if filter.FeedId != nil {
-		cond = append(cond, "i.feed_id = ?")
+		cond = append(cond, "feed_id = ?")
 		args = append(args, *filter.FeedId)
 	}
 	if filter.Status != nil {
-		cond = append(cond, "i.status = ?")
+		cond = append(cond, "status = ?")
 		args = append(args, *filter.Status)
 	}
 	if filter.Search != nil {
@@ -132,7 +132,7 @@ func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
 			terms[i] = word + "*"
 		}
 
-		cond = append(cond, "i.search_rowid in (select rowid from search where search match ?)")
+		cond = append(cond, "search_rowid in (select rowid from search where search match ?)")
 		args = append(args, strings.Join(terms, " "))
 	}
 	if filter.After != nil {
@@ -140,7 +140,7 @@ func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
 		if newestFirst {
 			compare = "<"
 		}
-		cond = append(cond, fmt.Sprintf("(i.date, i.id) %s (select date, id from items where id = ?)", compare))
+		cond = append(cond, fmt.Sprintf("(date, id) %s (select date, id from items where id = ?)", compare))
 		args = append(args, *filter.After)
 	}
 
@@ -160,10 +160,10 @@ func (s *Storage) ListItems(filter ItemFilter, limit int, newestFirst bool) ([]I
 		order = "date desc, id desc"
 	}
 
-	selectCols := "i.id, i.guid, i.feed_id, i.title, i.link, i.date, i.status, i.image, i.podcast_url"
+	selectCols := "id, guid, feed_id, title, link, date, status, image, podcast_url"
 	query := fmt.Sprintf(`
 		select %s
-		from items i
+		from items
 		where %s
 		order by %s
 		limit %d
@@ -194,10 +194,10 @@ func (s *Storage) GetItem(id int64) (*Item, error) {
 	i := new(Item)
 	err := s.db.QueryRow(`
 		select
-			i.id, i.guid, i.feed_id, i.title, i.link, i.content,
-			i.date, i.status, i.image, i.podcast_url
-		from items i
-		where i.id = ?
+			id, guid, feed_id, title, link, content,
+			date, status, image, podcast_url
+		from items
+		where id = ?
 	`, id).Scan(
 		&i.Id, &i.GUID, &i.FeedId, &i.Title, &i.Link, &i.Content,
 		&i.Date, &i.Status, &i.ImageURL, &i.AudioURL,
@@ -222,8 +222,8 @@ func (s *Storage) MarkItemsRead(filter MarkFilter) error {
 		FeedId:   filter.FeedId,
 	}, false)
 	query := fmt.Sprintf(`
-		update items as i set status = %d
-		where %s and i.status != %d
+		update items set status = %d
+		where %s and status != %d
 		`, READ, predicate, STARRED)
 	_, err := s.db.Exec(query, args...)
 	if err != nil {
@@ -368,9 +368,9 @@ func (s *Storage) DeleteOldItems() {
 		result, err := s.db.Exec(`
 			delete from items
 			where id in (
-				select i.id
-				from items i
-				where i.feed_id = ? and status != ?
+				select id
+				from items
+				where feed_id = ? and status != ?
 				order by date desc
 				limit -1 offset ?
 			) and date_arrived < ?
