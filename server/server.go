@@ -142,7 +142,7 @@ func (s *Server) refresher(feeds []storage.Feed) {
 	srcQueue := make(chan storage.Feed)
 	dstQueue := make(chan []storage.Item)
 
-	for i := 0; i < NUM_WORKERS; i++ {
+	for range NUM_WORKERS {
 		go s.worker(srcQueue, dstQueue)
 	}
 	go func() {
