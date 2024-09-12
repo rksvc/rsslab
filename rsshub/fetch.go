@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/dop251/goja"
@@ -64,11 +66,7 @@ func (h *headers) Delete(key string) bool {
 }
 
 func (h *headers) Keys() []string {
-	var keys []string
-	for key := range h.h {
-		keys = append(keys, key)
-	}
-	return keys
+	return slices.Collect(maps.Keys(h.h))
 }
 
 func (r *RSSHub) fetch(opts map[string]any) (*response, error) {

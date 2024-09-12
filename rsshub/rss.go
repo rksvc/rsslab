@@ -192,7 +192,7 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 				return
 			}
 			doc.Find("script").Remove()
-			doc.Find("img").Each(func(_ int, s *goquery.Selection) {
+			for _, s := range doc.Find("img").EachIter() {
 				if _, exists := s.Attr("src"); !exists {
 					var src string
 					if src, exists = s.Attr("data-src"); !exists {
@@ -205,19 +205,19 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 				for _, attrName := range []string{"onclick", "onerror", "onload"} {
 					s.RemoveAttr(attrName)
 				}
-			})
-			doc.Find("a, area").Each(func(_ int, s *goquery.Selection) {
+			}
+			for _, s := range doc.Find("a, area").EachIter() {
 				resolveRelativeLink(s, "href")
-			})
-			doc.Find("img, video, audio, source, iframe, embed, track").Each(func(_ int, s *goquery.Selection) {
+			}
+			for _, s := range doc.Find("img, video, audio, source, iframe, embed, track").EachIter() {
 				resolveRelativeLink(s, "src")
-			})
-			doc.Find("video[poster]").Each(func(_ int, s *goquery.Selection) {
+			}
+			for _, s := range doc.Find("video[poster]").EachIter() {
 				resolveRelativeLink(s, "poster")
-			})
-			doc.Find("img, iframe").Each(func(_ int, s *goquery.Selection) {
+			}
+			for _, s := range doc.Find("img, iframe").EachIter() {
 				s.SetAttr("referrerpolicy", "no-referrer")
-			})
+			}
 			var description strings.Builder
 			body := doc.Find("body")
 			for i := range body.Nodes {

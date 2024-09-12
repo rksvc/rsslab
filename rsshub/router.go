@@ -13,11 +13,9 @@ import (
 func (r *RSSHub) Register(rsshub fiber.Router) {
 	rsshub.Use(cache.New(cache.Config{
 		Expiration: 5 * time.Minute,
-		ExpirationGenerator: func(c fiber.Ctx, cfg *cache.Config) time.Duration {
-			if status := c.Response().StatusCode(); status >= 200 && status < 300 {
-				return cfg.Expiration
-			}
-			return 0
+		CacheInvalidator: func(c fiber.Ctx) bool {
+			status := c.Response().StatusCode()
+			return status < 200 || status >= 300
 		},
 	}))
 	var prefix string

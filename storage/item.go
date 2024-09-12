@@ -81,8 +81,7 @@ func (s *Storage) CreateItems(items []Item) error {
 		return err
 	}
 	now := time.Now().UTC()
-	for i := len(items) - 1; i >= 0; i-- {
-		item := items[i]
+	for _, item := range slices.Backward(items) {
 		_, err = tx.Exec(`
 			insert into items (
 				guid, feed_id, title, link, date,

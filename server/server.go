@@ -253,8 +253,7 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 	result := make([]storage.Item, len(items))
 	now := time.Now()
 	for i, item := range items {
-		links := []string{item.Link}
-		links = append(links, item.Links...)
+		links := append([]string{item.Link}, item.Links...)
 		result[i] = storage.Item{
 			GUID:    utils.FirstNonEmpty(item.GUID, item.Link),
 			FeedId:  feed.Id,

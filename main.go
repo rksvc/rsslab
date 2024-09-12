@@ -18,8 +18,8 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
-	"github.com/gofiber/fiber/v3/middleware/filesystem"
 	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/static"
 )
 
 var noCache bool
@@ -78,7 +78,7 @@ func main() {
 
 	app := engine()
 	dist, _ := fs.Sub(dist, "dist")
-	app.Use("/", filesystem.New(filesystem.Config{Root: dist}))
+	app.Use("/", static.New("", static.Config{FS: dist}))
 	srv.Store(app)
 
 	go func() {
@@ -127,7 +127,7 @@ func reload() bool {
 	app := engine()
 	rsshub.Register(app.Group(RSSHUB_PATH))
 	dist, _ := fs.Sub(dist, "dist")
-	app.Use("/", filesystem.New(filesystem.Config{Root: dist}))
+	app.Use("/", static.New("", static.Config{FS: dist}))
 
 	if err := srv.Swap(app).(*fiber.App).ShutdownWithTimeout(5 * time.Second); err != nil {
 		log.Print(err)
