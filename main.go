@@ -5,7 +5,6 @@ import (
 	"flag"
 	"io/fs"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -28,7 +27,6 @@ var cc cache.ICache
 var db *storage.Storage
 var api *server.Server
 var srv atomic.Value
-var reloading atomic.Bool
 
 const RSSHUB_PATH = "/rsshub"
 
@@ -104,19 +102,10 @@ func engine() *fiber.App {
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	app.Use(compress.New())
 	api.Register(app.Group("/api"))
-	app.All("/reload", func(c fiber.Ctx) error {
-		if reloading.Load() {
-			return c.SendStatus(http.StatusConflict)
-		}
-		go reload()
-		return c.SendStatus(http.StatusOK)
-	})
 	return app
 }
 
 func reload() bool {
-	reloading.Store(true)
-	defer reloading.Store(false)
 	log.Printf("loading routes from %s", routesUrl)
 
 	rsshub, err := rsshub.NewRSSHub(cc, routesUrl, srcUrl)
