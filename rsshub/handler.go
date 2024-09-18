@@ -17,9 +17,11 @@ import (
 	"github.com/dop251/goja_nodejs/eventloop"
 	"github.com/dop251/goja_nodejs/require"
 	"github.com/dop251/goja_nodejs/url"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
-//go:embed lib
+//go:embed utils
 var lib embed.FS
 
 //go:embed third_party
@@ -50,6 +52,15 @@ func init() {
 	require.RegisterNativeModule("@/utils/rand-user-agent", func(_ *goja.Runtime, module *goja.Object) {
 		module.Set("exports", func() string { return utils.UserAgent })
 	})
+	require.RegisterNativeModule("@/types", func(vm *goja.Runtime, module *goja.Object) {
+		module.Get("exports").ToObject(vm).Set("ViewType", vm.NewObject())
+	})
+	require.RegisterNativeModule("@/utils/logger", func(vm *goja.Runtime, module *goja.Object) {
+		o := module.Get("exports").ToObject(vm)
+		for _, name := range []string{"debug", "info", "warn", "error", "http"} {
+			o.Set(name, func() {})
+		}
+	})
 }
 
 func (r *RSSHub) sourceLoader(workingDirectory string) func(string) ([]byte, error) {
@@ -59,12 +70,23 @@ func (r *RSSHub) sourceLoader(workingDirectory string) func(string) ([]byte, err
 
 		if i := strings.LastIndex(name, "@/"); i != -1 {
 			name := name[i+len("@/"):]
+
 			if name == "config" {
 				return r.route("lib/config.ts")
 			}
 
-			name = path.Join("lib", name+".js")
-			data, err := lib.ReadFile(name)
+			if name, found := strings.CutPrefix(name, "errors/types/"); found {
+				words := strings.Split(name, "-")
+				var name string
+				caser := cases.Title(language.AmericanEnglish)
+				for _, word := range words {
+					name += caser.String(word)
+				}
+				name += "Error"
+				return []byte(fmt.Sprintf("module.exports=class %s extends Error{name='%s'}", name, name)), nil
+			}
+
+			data, err := lib.ReadFile(name + ".js")
 			if err != nil {
 				return nil, fmt.Errorf("require %s: %s", name, require.ModuleFileDoesNotExistError)
 			}

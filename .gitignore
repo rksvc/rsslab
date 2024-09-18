@@ -1,8 +1,6 @@
 node_modules
-.vscode
 /dist
 /rsshub/**/*.js
 !polyfill.js
 !got.js
-!logger.js
 !ofetch.js

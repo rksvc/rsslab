@@ -1,5 +1,0 @@
-[submodule "deps/rsshub"]
-	path = deps/rsshub
-	url = https://github.com/DIYgod/RSSHub.git
-	depth = 1
-	shallow = true

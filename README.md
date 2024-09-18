@@ -25,13 +25,9 @@ Alternatives for some command line argument values:
 Install `libsqlite3-dev`. Run:
 
 ```bash
-git submodule update --init
-cd ./deps/rsshub
-PUPPETEER_SKIP_DOWNLOAD=1 pnpm i
-cd ../..
-go generate ./...
-pnpm i
+pnpm install
 pnpm build
+go generate ./...
 go build -ldflags='-s -w' -tags='sqlite_foreign_keys sqlite_fts5' -trimpath
 ```
 

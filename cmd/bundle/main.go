@@ -1,53 +1,114 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"sync"
+	"time"
 
 	"github.com/evanw/esbuild/pkg/api"
+	"github.com/go-resty/resty/v2"
 )
 
-func main() {
+func bundle() bool {
+	opts := api.BuildOptions{
+		Platform:          api.PlatformNode,
+		Sourcemap:         api.SourceMapInline,
+		SourcesContent:    api.SourcesContentExclude,
+		Target:            api.ES2017,
+		LogLevel:          api.LogLevelInfo,
+		Bundle:            true,
+		Write:             true,
+		MinifyWhitespace:  true,
+		MinifySyntax:      true,
+		MinifyIdentifiers: true,
+	}
+
 	for _, pkg := range []struct {
-		entryPoint, outfile string
-		external            []string
+		path, outfile string
+		external      []string
 	}{
-		{"node_modules/art-template/lib", "third_party/art-template.js", []string{"html-minifier"}},
-		{"node_modules/cheerio", "third_party/cheerio.js", nil},
-		{"node_modules/crypto-js", "third_party/crypto-js.js", nil},
-		{"node_modules/lz-string", "third_party/lz-string.js", nil},
-		{"node_modules/markdown-it", "third_party/markdown-it.js", nil},
-		{"node_modules/query-string", "third_party/query-string.js", nil},
-		{"node_modules/query-string", "third_party/querystring.js", nil},
-		{"lib/types.ts", "lib/types.js", nil},
-		{"lib/errors/types/config-not-found.ts", "lib/errors/types/config-not-found.js", nil},
-		{"lib/errors/types/invalid-parameter.ts", "lib/errors/types/invalid-parameter.js", nil},
-		{"lib/errors/types/not-found.ts", "lib/errors/types/not-found.js", nil},
-		{"lib/errors/types/reject.ts", "lib/errors/types/reject.js", nil},
-		{"lib/errors/types/request-in-progress.ts", "lib/errors/types/request-in-progress.js", nil},
-		{"lib/utils/helpers.ts", "lib/utils/helpers.js", nil},
-		{"lib/utils/parse-date.ts", "lib/utils/parse-date.js", nil},
-		{"lib/utils/readable-social.ts", "lib/utils/readable-social.js", nil},
-		{"lib/utils/timezone.ts", "lib/utils/timezone.js", nil},
-		{"lib/utils/valid-host.ts", "lib/utils/valid-host.js", nil},
+		{"art-template/lib", "art-template.js", []string{"html-minifier"}},
+		{"cheerio/dist/browser", "cheerio.js", nil},
+		{"crypto-js", "crypto-js.js", nil},
+		{"lz-string", "lz-string.js", nil},
+		{"markdown-it", "markdown-it.js", nil},
+		{"query-string", "query-string.js", nil},
+		{"query-string", "querystring.js", nil},
 	} {
-		result := api.Build(api.BuildOptions{
-			EntryPoints:       []string{path.Join("../deps/rsshub", pkg.entryPoint)},
-			Outfile:           pkg.outfile,
-			Platform:          api.PlatformNode,
-			Sourcemap:         api.SourceMapInline,
-			SourcesContent:    api.SourcesContentExclude,
-			Target:            api.ES2017,
-			LogLevel:          api.LogLevelInfo,
-			External:          pkg.external,
-			Bundle:            true,
-			Write:             true,
-			MinifyWhitespace:  true,
-			MinifySyntax:      true,
-			MinifyIdentifiers: true,
-		})
+		opts := opts
+		opts.EntryPoints = []string{path.Join("../node_modules", pkg.path)}
+		opts.Outfile = path.Join("third_party", pkg.outfile)
+		opts.External = pkg.external
+		result := api.Build(opts)
 		if len(result.Errors) > 0 {
-			os.Exit(1)
+			return false
 		}
+	}
+
+	files := []struct {
+		path, outfile string
+		content       any
+	}{
+		{"utils/helpers.ts", "utils/helpers.js", nil},
+		{"utils/parse-date.ts", "utils/parse-date.js", nil},
+		{"utils/readable-social.ts", "utils/readable-social.js", nil},
+		{"utils/timezone.ts", "utils/timezone.js", nil},
+		{"utils/valid-host.ts", "utils/valid-host.js", nil},
+	}
+	var wg sync.WaitGroup
+	wg.Add(len(files))
+	client := resty.New().SetTimeout(30 * time.Second)
+	for i, file := range files {
+		go func() {
+			defer wg.Done()
+			resp, err := client.R().Get("https://raw.githubusercontent.com/DIYgod/RSSHub/master/lib/" + file.path)
+			if err != nil {
+				files[i].content = err
+			} else {
+				files[i].content = resp.Body()
+			}
+		}()
+	}
+	wg.Wait()
+	f, err := os.CreateTemp(".", "*.ts")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+	for _, file := range files {
+		content, ok := file.content.([]byte)
+		if !ok {
+			fmt.Println(file.content)
+			return false
+		}
+		err := f.Truncate(0)
+		if err != nil {
+			fmt.Println(err)
+			return false
+		}
+		_, err = f.WriteAt(content, 0)
+		if err != nil {
+			fmt.Println(err)
+			return false
+		}
+		opts := opts
+		opts.EntryPoints = []string{f.Name()}
+		opts.Outfile = file.outfile
+		result := api.Build(opts)
+		if len(result.Errors) > 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func main() {
+	if !bundle() {
+		os.Exit(1)
 	}
 }
