@@ -68,8 +68,9 @@ func (r *RSSHub) sourceLoader(workingDirectory string) func(string) ([]byte, err
 	return func(filename string) ([]byte, error) {
 		name := strings.ReplaceAll(filename, NODE_MODULES, "")
 
-		if i := strings.LastIndex(name, "@/"); i != -1 {
-			name := name[i+len("@/"):]
+		const ROOT = "@/"
+		if i := strings.LastIndex(name, ROOT); i != -1 {
+			name := name[i+len(ROOT):]
 
 			if name == "config" {
 				return r.route("lib/config.ts")
@@ -88,7 +89,7 @@ func (r *RSSHub) sourceLoader(workingDirectory string) func(string) ([]byte, err
 
 			data, err := lib.ReadFile(name + ".js")
 			if err != nil {
-				return nil, fmt.Errorf("require %s: %s", name, require.ModuleFileDoesNotExistError)
+				return nil, fmt.Errorf("require %s: %s", ROOT+name, require.ModuleFileDoesNotExistError)
 			}
 			return data, nil
 		}
@@ -229,7 +230,11 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 			return promise
 		})
 
-		v := require.Require(vm, "./"+path.Base(location)).ToObject(vm).Get("route").ToObject(vm).Get("handler")
+		v, err := vm.RunString(fmt.Sprintf("require('./%s').route.handler", path.Base(location)))
+		if err != nil {
+			result <- errorWithFullStack(err)
+			return
+		}
 		handler, _ := goja.AssertFunction(v)
 		v, err = handler(goja.Undefined(), vm.ToValue(ctx))
 		if err != nil {
