@@ -1,14 +1,4 @@
 import {
-  Dispatch,
-  MutableRefObject,
-  RefObject,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import {
   Button,
   Card,
   CardList,
@@ -23,29 +13,39 @@ import {
   Popover,
   Spinner,
   SpinnerSize,
-} from '@blueprintjs/core';
+} from '@blueprintjs/core'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import {
+  type Dispatch,
+  type MutableRefObject,
+  type RefObject,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   Check,
-  Link,
-  Rss,
-  RotateCw,
   Edit,
-  Move,
-  Trash,
   Folder as FolderIcon,
   FolderMinus,
-  Search,
+  Link,
   MoreHorizontal,
-} from 'react-feather';
-import { useDebouncedCallback } from 'use-debounce';
-import useInfiniteScroll from 'react-infinite-scroll-hook';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import { Confirm } from './Confirm';
-import type { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types';
-import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils';
+  Move,
+  RotateCw,
+  Rss,
+  Search,
+  Trash,
+} from 'react-feather'
+import useInfiniteScroll from 'react-infinite-scroll-hook'
+import { useDebouncedCallback } from 'use-debounce'
+import { Confirm } from './Confirm'
+import type { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types'
+import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils'
 
-dayjs.extend(relativeTime);
+dayjs.extend(relativeTime)
 
 export default function ItemList({
   filter,
@@ -72,67 +72,67 @@ export default function ItemList({
   foldersById,
   feedsById,
 }: {
-  filter: string;
-  folders?: Folder[];
-  setFolders: Dispatch<SetStateAction<Folder[] | undefined>>;
-  setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>;
-  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>;
-  setSelected: Dispatch<SetStateAction<string>>;
-  selected: string;
-  errors?: Map<number, string>;
-  loadingFeeds: number;
-  settings?: Settings;
+  filter: string
+  folders?: Folder[]
+  setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
+  setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
+  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>
+  setSelected: Dispatch<SetStateAction<string>>
+  selected: string
+  errors?: Map<number, string>
+  loadingFeeds: number
+  settings?: Settings
 
-  items?: (Item & Image)[];
-  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>;
-  selectedItemId?: number;
-  setSelectedItemId: Dispatch<SetStateAction<number | undefined>>;
+  items?: (Item & Image)[]
+  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
+  selectedItemId?: number
+  setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
 
-  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>;
-  contentRef: RefObject<HTMLDivElement>;
+  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
+  contentRef: RefObject<HTMLDivElement>
 
-  refreshFeeds: () => Promise<void>;
-  refreshStats: (loop?: boolean) => Promise<void>;
-  foldersById: Map<number, Folder>;
-  feedsById: Map<number, Feed>;
+  refreshFeeds: () => Promise<void>
+  refreshStats: (loop?: boolean) => Promise<void>
+  foldersById: Map<number, Folder>
+  feedsById: Map<number, Feed>
 }) {
-  const [search, setSearch] = useState('');
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [renameFeedDialogOpen, setRenameFeedDialogOpen] = useState(false);
-  const [changeLinkDialogOpen, setChangeLinkDialogOpen] = useState(false);
-  const [deleteFeedDialogOpen, setDeleteFeedDialogOpen] = useState(false);
-  const [renameFolderDialogOpen, setRenameFolderDialogOpen] = useState(false);
-  const [deleteFolderDialogOpen, setDeleteFolderDialogOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const feedTitleRef = useRef<HTMLInputElement>(null);
-  const feedLinkRef = useRef<HTMLInputElement>(null);
-  const folderTitleRef = useRef<HTMLInputElement>(null);
-  const itemListRef = useRef<HTMLDivElement>(null);
-  const loaded = useRef<boolean[]>();
+  const [search, setSearch] = useState('')
+  const [hasMore, setHasMore] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [renameFeedDialogOpen, setRenameFeedDialogOpen] = useState(false)
+  const [changeLinkDialogOpen, setChangeLinkDialogOpen] = useState(false)
+  const [deleteFeedDialogOpen, setDeleteFeedDialogOpen] = useState(false)
+  const [renameFolderDialogOpen, setRenameFolderDialogOpen] = useState(false)
+  const [deleteFolderDialogOpen, setDeleteFolderDialogOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const feedTitleRef = useRef<HTMLInputElement>(null)
+  const feedLinkRef = useRef<HTMLInputElement>(null)
+  const folderTitleRef = useRef<HTMLInputElement>(null)
+  const itemListRef = useRef<HTMLDivElement>(null)
+  const loaded = useRef<boolean[]>()
   const [sentryRef] = useInfiniteScroll({
     disabled: false,
     loading: loading,
     hasNextPage: hasMore,
     rootMargin: '0px 0px 400px 0px',
     onLoadMore: async () => {
-      if (!items) return;
-      setLoading(true);
+      if (!items) return
+      setLoading(true)
       try {
         const result = await xfetch<Items>('./api/items', {
           query: { ...query(), after: items.at(-1)?.id },
-        });
-        setItems([...items, ...result.list]);
-        setHasMore(result.has_more);
+        })
+        setItems([...items, ...result.list])
+        setHasMore(result.has_more)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     },
-  });
+  })
 
-  const [type, s] = selected.split(':');
-  const id = Number.parseInt(s);
-  const isFeedSelected = type === 'feed';
+  const [type, s] = selected.split(':')
+  const id = Number.parseInt(s)
+  const isFeedSelected = type === 'feed'
   const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
     attrName: T,
     value: Feed[T],
@@ -140,43 +140,43 @@ export default function ItemList({
     await xfetch(`./api/feeds/${id}`, {
       method: 'PUT',
       body: { [attrName]: value },
-    });
+    })
     setFeeds(feeds =>
       feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)),
-    );
-  };
+    )
+  }
   const query = useCallback(() => {
-    const query: Record<string, any> = {};
+    const query: Record<string, string | boolean> = {}
     if (selected) {
-      const [type, id] = selected.split(':');
-      query[`${type}_id`] = id;
+      const [type, id] = selected.split(':')
+      query[`${type}_id`] = id
     }
-    if (filter !== 'Feeds') query.status = filter.toLowerCase();
-    if (filter === 'Unread') query.oldest_first = true;
-    const search = inputRef.current?.value;
-    if (search) query.search = search;
-    return query;
-  }, [selected, filter]);
+    if (filter !== 'Feeds') query.status = filter.toLowerCase()
+    if (filter === 'Unread') query.oldest_first = true
+    const search = inputRef.current?.value
+    if (search) query.search = search
+    return query
+  }, [selected, filter])
   const onSearch = useDebouncedCallback(async () => {
-    const result = await xfetch<Items>('./api/items/', { query: query() });
-    setItems(result.list);
-    setHasMore(result.has_more);
-    loaded.current = Array.from({ length: result.list.length });
-  }, 500);
+    const result = await xfetch<Items>('./api/items/', { query: query() })
+    setItems(result.list)
+    setHasMore(result.has_more)
+    loaded.current = Array.from({ length: result.list.length })
+  }, 500)
 
   useEffect(() => {
-    (async function () {
+    ;(async () => {
       const result = await xfetch<Items>('./api/items', {
         query: query(),
-      });
-      setItems(result.list);
-      setSelectedItemId(undefined);
-      setSelectedItemDetails(undefined);
-      setHasMore(result.has_more);
-      loaded.current = Array.from({ length: result.list.length });
-      itemListRef.current?.scrollTo(0, 0);
-    })();
-  }, [query, setItems, setSelectedItemId, setSelectedItemDetails]);
+      })
+      setItems(result.list)
+      setSelectedItemId(undefined)
+      setSelectedItemDetails(undefined)
+      setHasMore(result.has_more)
+      loaded.current = Array.from({ length: result.list.length })
+      itemListRef.current?.scrollTo(0, 0)
+    })()
+  }, [query, setItems, setSelectedItemId, setSelectedItemDetails])
 
   return (
     <div className="flex flex-col min-h-screen max-h-screen">
@@ -188,8 +188,8 @@ export default function ItemList({
           type="search"
           value={search}
           onValueChange={value => {
-            setSearch(value);
-            onSearch();
+            setSearch(value)
+            onSearch()
           }}
           fill
         />
@@ -199,20 +199,20 @@ export default function ItemList({
           disabled={filter === 'Starred'}
           minimal
           onClick={async () => {
-            const query: Record<string, any> = {};
+            const query: Record<string, string> = {}
             if (selected) {
-              const [type, id] = selected.split(':');
-              query[`${type}_id`] = id;
+              const [type, id] = selected.split(':')
+              query[`${type}_id`] = id
             }
-            await xfetch('./api/items', { method: 'PUT', query });
+            await xfetch('./api/items', { method: 'PUT', query })
             setItems(items =>
               items?.map(item => ({
                 ...item,
                 status: item.status === 'starred' ? 'starred' : 'read',
               })),
-            );
-            const status = await xfetch<Status>('./api/status');
-            setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])));
+            )
+            const status = await xfetch<Status>('./api/status')
+            setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])))
           }}
         />
         <Popover
@@ -235,10 +235,10 @@ export default function ItemList({
                     icon={<Rss {...menuIconProps} />}
                     target="_blank"
                     href={(() => {
-                      const feedLink = feedsById.get(id)?.feed_link;
+                      const feedLink = feedsById.get(id)?.feed_link
                       return settings && feedLink?.startsWith('rsshub:')
                         ? `${settings.rsshub_path}/${feedLink.slice('rsshub:'.length)}`
-                        : feedLink;
+                        : feedLink
                     })()}
                   />
                   <MenuDivider />
@@ -257,8 +257,8 @@ export default function ItemList({
                     icon={<RotateCw {...menuIconProps} />}
                     disabled={loadingFeeds > 0}
                     onClick={async () => {
-                      await xfetch(`./api/feeds/${id}/refresh`, { method: 'POST' });
-                      await refreshStats();
+                      await xfetch(`./api/feeds/${id}/refresh`, { method: 'POST' })
+                      await refreshStats()
                     }}
                   />
                   <MenuItem
@@ -276,11 +276,11 @@ export default function ItemList({
                           onClick={() => updateFeedAttr('folder_id', folder.id)}
                         />
                       ))}
-                    {feedsById.get(id)?.folder_id != undefined && (
+                    {feedsById.get(id)?.folder_id != null && (
                       <MenuItem
                         text="--"
                         icon={<FolderMinus {...menuIconProps} />}
-                        onClick={() => updateFeedAttr('folder_id', undefined)}
+                        onClick={() => updateFeedAttr('folder_id', null)}
                       />
                     )}
                   </MenuItem>
@@ -303,8 +303,8 @@ export default function ItemList({
                     icon={<RotateCw {...menuIconProps} />}
                     disabled={loadingFeeds > 0}
                     onClick={async () => {
-                      await xfetch(`./api/folders/${id}/refresh`, { method: 'POST' });
-                      await refreshStats();
+                      await xfetch(`./api/folders/${id}/refresh`, { method: 'POST' })
+                      await refreshStats()
                     }}
                   />
                   <MenuItem
@@ -325,8 +325,8 @@ export default function ItemList({
               type === 'feed'
                 ? 'Feed Settings'
                 : type === 'folder'
-                ? 'Folder Settings'
-                : ''
+                  ? 'Folder Settings'
+                  : ''
             }
             disabled={!selected}
             minimal
@@ -366,86 +366,78 @@ export default function ItemList({
         open={renameFeedDialogOpen}
         setOpen={setRenameFeedDialogOpen}
         title="Rename Feed"
-        children={
-          <InputGroup defaultValue={feedsById.get(id)?.title} inputRef={feedTitleRef} />
-        }
         callback={async () => {
-          const title = feedTitleRef.current?.value;
+          const title = feedTitleRef.current?.value
           if (title && title !== feedsById.get(id)?.title)
-            await updateFeedAttr('title', title);
+            await updateFeedAttr('title', title)
         }}
-      />
+      >
+        <InputGroup defaultValue={feedsById.get(id)?.title} inputRef={feedTitleRef} />
+      </Confirm>
       <Confirm
         open={changeLinkDialogOpen}
         setOpen={setChangeLinkDialogOpen}
         title="Change Feed Link"
-        children={
-          <InputGroup
-            defaultValue={feedsById.get(id)?.feed_link}
-            inputRef={feedLinkRef}
-            spellCheck={false}
-          />
-        }
         callback={async () => {
-          const feedLink = feedLinkRef.current?.value;
+          const feedLink = feedLinkRef.current?.value
           if (feedLink && feedLink !== feedsById.get(id)?.feed_link)
-            await updateFeedAttr('feed_link', feedLink);
+            await updateFeedAttr('feed_link', feedLink)
         }}
-      />
+      >
+        <InputGroup
+          defaultValue={feedsById.get(id)?.feed_link}
+          inputRef={feedLinkRef}
+          spellCheck={false}
+        />
+      </Confirm>
       <Confirm
         open={deleteFeedDialogOpen}
         setOpen={setDeleteFeedDialogOpen}
         title="Delete Feed"
-        children={`Are you sure you want to delete ${
-          feedsById.get(id)?.title || 'untitled'
-        }?`}
         callback={async () => {
-          await xfetch(`./api/feeds/${id}`, { method: 'DELETE' });
-          const folderId = feedsById.get(id)?.folder_id;
-          await Promise.all([refreshFeeds(), refreshStats(false)]);
-          setSelected(folderId == undefined ? '' : `folder:${folderId}`);
+          await xfetch(`./api/feeds/${id}`, { method: 'DELETE' })
+          const folderId = feedsById.get(id)?.folder_id
+          await Promise.all([refreshFeeds(), refreshStats(false)])
+          setSelected(folderId === null ? '' : `folder:${folderId}`)
         }}
         intent={Intent.DANGER}
-      />
+      >
+        Are you sure you want to delete {feedsById.get(id)?.title || 'untitled'}?
+      </Confirm>
       <Confirm
         open={renameFolderDialogOpen}
         setOpen={setRenameFolderDialogOpen}
         title="Rename Folder"
-        children={
-          <InputGroup
-            defaultValue={foldersById.get(id)?.title}
-            inputRef={folderTitleRef}
-          />
-        }
         callback={async () => {
-          const title = folderTitleRef.current?.value;
+          const title = folderTitleRef.current?.value
           if (title && title !== foldersById.get(id)?.title) {
             await xfetch(`./api/folders/${id}`, {
               method: 'PUT',
               body: { title },
-            });
+            })
             setFolders(folders =>
               folders?.map(folder => (folder.id === id ? { ...folder, title } : folder)),
-            );
+            )
           }
         }}
-      />
+      >
+        <InputGroup defaultValue={foldersById.get(id)?.title} inputRef={folderTitleRef} />
+      </Confirm>
       <Confirm
         open={deleteFolderDialogOpen}
         setOpen={setDeleteFolderDialogOpen}
         title="Delete Folder"
-        children={`Are you sure you want to delete ${
-          foldersById.get(id)?.title || 'untitled'
-        }?`}
         callback={async () => {
-          await xfetch(`./api/folders/${id}`, { method: 'DELETE' });
-          await Promise.all([refreshFeeds(), refreshStats(false)]);
-          setSelected('');
+          await xfetch(`./api/folders/${id}`, { method: 'DELETE' })
+          await Promise.all([refreshFeeds(), refreshStats(false)])
+          setSelected('')
         }}
         intent={Intent.DANGER}
-      />
+      >
+        Are you sure you want to delete {foldersById.get(id)?.title || 'untitled'}?
+      </Confirm>
     </div>
-  );
+  )
 }
 
 function CardItem({
@@ -460,43 +452,43 @@ function CardItem({
   contentRef,
   feedsById,
 }: {
-  item: Item & Image;
-  i: number;
-  loaded: MutableRefObject<boolean[] | undefined>;
-  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>;
-  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>;
-  selectedItemId?: number;
-  setSelectedItemId: Dispatch<SetStateAction<number | undefined>>;
-  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>;
-  contentRef: RefObject<HTMLDivElement>;
-  feedsById: Map<number, Feed>;
+  item: Item & Image
+  i: number
+  loaded: MutableRefObject<boolean[] | undefined>
+  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>
+  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
+  selectedItemId?: number
+  setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
+  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
+  contentRef: RefObject<HTMLDivElement>
+  feedsById: Map<number, Feed>
 }) {
-  const previousStatus = usePrevious(item.status);
+  const previousStatus = usePrevious(item.status)
   const onLoad = () => {
     if (loaded.current && !loaded.current[i]) {
-      loaded.current[i] = true;
+      loaded.current[i] = true
       setItems(items =>
         items?.map(i => (i.id === item.id ? { ...item, loaded: true } : i)),
-      );
+      )
     }
-  };
+  }
 
-  const selected = item.id === selectedItemId;
+  const selected = item.id === selectedItemId
   return (
     <Card
       className="w-full"
       selected={selected}
       interactive
       onClick={async () => {
-        if (selected) return;
-        setSelectedItemId(item.id);
-        setSelectedItemDetails(await xfetch<Item>(`./api/items/${item.id}`));
-        contentRef.current?.scrollTo(0, 0);
+        if (selected) return
+        setSelectedItemId(item.id)
+        setSelectedItemDetails(await xfetch<Item>(`./api/items/${item.id}`))
+        contentRef.current?.scrollTo(0, 0)
         if (item.status === 'unread') {
           await xfetch(`./api/items/${item.id}`, {
             method: 'PUT',
             body: { status: 'read' },
-          });
+          })
           setStats(
             stats =>
               stats &&
@@ -511,11 +503,11 @@ function CardItem({
                     : stats,
                 ]),
               ),
-          );
+          )
           setItems(items =>
             items?.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),
-          );
-          setSelectedItemDetails(item => item && { ...item, status: 'read' });
+          )
+          setSelectedItemDetails(item => item && { ...item, status: 'read' })
         }
       }}
     >
@@ -567,13 +559,13 @@ function CardItem({
         </div>
       </div>
     </Card>
-  );
+  )
 }
 
 function usePrevious<T>(value: T) {
-  const ref = useRef<T>();
+  const ref = useRef<T>()
   useEffect(() => {
-    ref.current = value;
-  }, [value]);
-  return ref.current;
+    ref.current = value
+  })
+  return ref.current
 }

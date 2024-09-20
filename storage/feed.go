@@ -8,7 +8,7 @@ import (
 
 type Feed struct {
 	Id            int64      `json:"id"`
-	FolderId      *int64     `json:"folder_id,omitempty"`
+	FolderId      *int64     `json:"folder_id"`
 	Title         string     `json:"title"`
 	Description   string     `json:"description,omitempty"`
 	Link          string     `json:"link,omitempty"`

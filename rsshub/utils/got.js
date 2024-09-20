@@ -1,32 +1,27 @@
 function parseArgs(request, options = {}) {
   if (typeof request === 'string' || request instanceof URL) {
-    options.url = request.toString();
-  } else {
-    options = request;
+    options.url = request.toString()
+    return options
   }
-  return options;
+  return request
 }
 
 function got(request, options) {
-  options = parseArgs(request, options);
-  if (options.prefixUrl) {
-    options.baseURL = options.prefixUrl;
-    delete options.prefixUrl;
+  const opts = parseArgs(request, options)
+  if (opts.prefixUrl) {
+    opts.baseURL = opts.prefixUrl
+    delete opts.prefixUrl
   }
-  if (options.searchParams) {
-    options.query = options.searchParams;
-    delete options.searchParams;
+  if (opts.searchParams) {
+    opts.query = opts.searchParams
+    delete opts.searchParams
   }
-  return $fetch(options);
+  return $fetch(opts)
 }
 
-got.get = (request, options) => got({ ...parseArgs(request, options), method: 'GET' });
-got.post = (request, options) => got({ ...parseArgs(request, options), method: 'POST' });
-got.put = (request, options) => got({ ...parseArgs(request, options), method: 'PUT' });
-got.head = (request, options) => got({ ...parseArgs(request, options), method: 'HEAD' });
-got.patch = (request, options) =>
-  got({ ...parseArgs(request, options), method: 'PATCH' });
-got.delete = (request, options) =>
-  got({ ...parseArgs(request, options), method: 'DELETE' });
+for (const method of ['get', 'post', 'put', 'head', 'patch', 'delete']) {
+  got[method] = (request, options) =>
+    got({ ...parseArgs(request, options), method: method.toUpperCase() })
+}
 
-module.exports = got;
+module.exports = got

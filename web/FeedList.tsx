@@ -1,38 +1,45 @@
-import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  type TreeNodeInfo,
-  Tree,
-  Divider,
-  Intent,
   Button,
-  Menu,
-  Popover,
-  InputGroup,
-  MenuItem,
-  HTMLSelect,
-  MenuDivider,
-  FileInput,
-  NumericInput,
   ButtonGroup,
+  Divider,
+  FileInput,
+  HTMLSelect,
+  InputGroup,
+  Intent,
+  Menu,
+  MenuDivider,
+  MenuItem,
+  NumericInput,
+  Popover,
   Spinner,
-} from '@blueprintjs/core';
+  Tree,
+  type TreeNodeInfo,
+} from '@blueprintjs/core'
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   AlertCircle,
   Circle,
   Download,
   Edit,
+  Menu as MenuIcon,
   MoreHorizontal,
   Plus,
   RotateCw,
+  Rss,
+  Star,
   Upload,
   Wind,
-  Menu as MenuIcon,
-  Star,
-  Rss,
-} from 'react-feather';
-import { Confirm } from './Confirm';
-import type { Feed, Folder, FolderWithFeeds, Stats, Settings } from './types';
-import { iconProps, menuIconProps, popoverProps, xfetch } from './utils';
+} from 'react-feather'
+import { Confirm } from './Confirm'
+import type { Feed, Folder, FolderWithFeeds, Settings, Stats } from './types'
+import { iconProps, menuIconProps, popoverProps, xfetch } from './utils'
 
 export default function FeedList({
   filter,
@@ -53,42 +60,42 @@ export default function FeedList({
   feedsWithoutFolders,
   feedsById,
 }: {
-  filter: string;
-  setFilter: Dispatch<SetStateAction<string>>;
-  folders?: Folder[];
-  setFolders: Dispatch<SetStateAction<Folder[] | undefined>>;
-  stats?: Map<number, Stats>;
-  errors?: Map<number, string>;
-  selected: string;
-  setSelected: Dispatch<SetStateAction<string>>;
-  loadingFeeds: number;
-  settings?: Settings;
-  setSettings: Dispatch<SetStateAction<Settings | undefined>>;
+  filter: string
+  setFilter: Dispatch<SetStateAction<string>>
+  folders?: Folder[]
+  setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
+  stats?: Map<number, Stats>
+  errors?: Map<number, string>
+  selected: string
+  setSelected: Dispatch<SetStateAction<string>>
+  loadingFeeds: number
+  settings?: Settings
+  setSettings: Dispatch<SetStateAction<Settings | undefined>>
 
-  refreshFeeds: () => Promise<void>;
-  refreshStats: (loop?: boolean) => Promise<void>;
-  foldersWithFeeds?: FolderWithFeeds[];
-  feedsWithoutFolders?: Feed[];
-  feedsById: Map<number, Feed>;
+  refreshFeeds: () => Promise<void>
+  refreshStats: (loop?: boolean) => Promise<void>
+  foldersWithFeeds?: FolderWithFeeds[]
+  feedsWithoutFolders?: Feed[]
+  feedsById: Map<number, Feed>
 }) {
   const [selectedFolder, setSelectedFolder] = useState(
     getSelectedFolder(selected, feedsById),
-  );
+  )
   useEffect(
     () => setSelectedFolder(getSelectedFolder(selected, feedsById)),
     [selected, feedsById],
-  );
+  )
 
-  const [creatingNewFeed, setCreatingNewFeed] = useState(false);
-  const [creatingNewFolder, setCreatingNewFolder] = useState(false);
-  const [newFeedDialogOpen, setNewFeedDialogOpen] = useState(false);
-  const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false);
-  const [changeRefreshRateDialogOpen, setChangeRefreshRateDialogOpen] = useState(false);
-  const menuRef = useRef<HTMLButtonElement>(null);
-  const newFeedLinkRef = useRef<HTMLInputElement>(null);
-  const newFolderTitleRef = useRef<HTMLInputElement>(null);
-  const refreshRateRef = useRef<HTMLInputElement>(null);
-  const opmlFormRef = useRef<HTMLFormElement>(null);
+  const [creatingNewFeed, setCreatingNewFeed] = useState(false)
+  const [creatingNewFolder, setCreatingNewFolder] = useState(false)
+  const [newFeedDialogOpen, setNewFeedDialogOpen] = useState(false)
+  const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
+  const [changeRefreshRateDialogOpen, setChangeRefreshRateDialogOpen] = useState(false)
+  const menuRef = useRef<HTMLButtonElement>(null)
+  const newFeedLinkRef = useRef<HTMLInputElement>(null)
+  const newFolderTitleRef = useRef<HTMLInputElement>(null)
+  const refreshRateRef = useRef<HTMLInputElement>(null)
+  const opmlFormRef = useRef<HTMLFormElement>(null)
 
   const secondaryLabel = (stats?: Stats, error?: boolean, lastRefreshed?: string) =>
     filter === 'Unread' ? (
@@ -106,12 +113,12 @@ export default function FeedList({
       </span>
     ) : (
       ''
-    );
+    )
   const feed = (feed: Feed) => ({
     id: `feed:${feed.id}`,
     label: <span title={feed.title}>{feed.title}</span>,
     icon: feed.has_icon ? (
-      <img className="w-4 mr-[7px]" src={`./api/feeds/${feed.id}/icon`}></img>
+      <img className="w-4 mr-[7px]" src={`./api/feeds/${feed.id}/icon`} />
     ) : (
       <Rss className="mr-[6px]" {...iconProps} />
     ),
@@ -121,19 +128,19 @@ export default function FeedList({
       !!errors?.get(feed.id),
       feed.last_refreshed,
     ),
-  });
+  })
   const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo) => {
-    const id = Number.parseInt(`${node.id}`.split(':')[1]);
+    const id = Number.parseInt(`${node.id}`.split(':')[1])
     setFolders(folders =>
       folders?.map(folder =>
         folder.id === id ? { ...folder, is_expanded: isExpanded } : folder,
       ),
-    );
+    )
     await xfetch(`./api/folders/${id}`, {
       method: 'PUT',
       body: { is_expanded: isExpanded },
-    });
-  };
+    })
+  }
 
   const folderStats = useMemo(
     () =>
@@ -153,7 +160,7 @@ export default function FeedList({
         ]),
       ),
     [foldersWithFeeds, stats],
-  );
+  )
   const total = useMemo(
     () =>
       filter !== 'Feeds' &&
@@ -162,7 +169,7 @@ export default function FeedList({
         0,
       )}`,
     [stats, filter],
-  );
+  )
   const visibleFolders =
     filter === 'Feeds'
       ? foldersWithFeeds
@@ -173,13 +180,11 @@ export default function FeedList({
               feed =>
                 selected === `feed:${feed.id}` ||
                 (filter === 'Unread'
-                  ? stats?.get(feed.id)?.unread ?? 0
-                  : stats?.get(feed.id)?.starred ?? 0) > 0,
+                  ? (stats?.get(feed.id)?.unread ?? 0)
+                  : (stats?.get(feed.id)?.starred ?? 0)) > 0,
             ),
           }))
-          .filter(
-            folder => folder.feeds.length > 0 || selected === `folder:${folder.id}`,
-          );
+          .filter(folder => folder.feeds.length > 0 || selected === `folder:${folder.id}`)
   const visibleFeeds =
     filter === 'Feeds'
       ? feedsWithoutFolders
@@ -187,9 +192,9 @@ export default function FeedList({
           feed =>
             selected === `feed:${feed.id}` ||
             (filter === 'Unread'
-              ? stats?.get(feed.id)?.unread ?? 0
-              : stats?.get(feed.id)?.starred ?? 0) > 0,
-        );
+              ? (stats?.get(feed.id)?.unread ?? 0)
+              : (stats?.get(feed.id)?.starred ?? 0)) > 0,
+        )
 
   return (
     <div className="flex flex-col min-h-screen max-h-screen">
@@ -236,8 +241,8 @@ export default function FeedList({
                   icon={<RotateCw {...menuIconProps} />}
                   disabled={loadingFeeds > 0}
                   onClick={async () => {
-                    await xfetch('./api/feeds/errors/refresh', { method: 'POST' });
-                    await refreshStats();
+                    await xfetch('./api/feeds/errors/refresh', { method: 'POST' })
+                    await refreshStats()
                   }}
                 />
               )}
@@ -246,8 +251,8 @@ export default function FeedList({
                 icon={<RotateCw {...menuIconProps} />}
                 disabled={loadingFeeds > 0}
                 onClick={async () => {
-                  await xfetch('./api/feeds/refresh', { method: 'POST' });
-                  await refreshStats();
+                  await xfetch('./api/feeds/refresh', { method: 'POST' })
+                  await refreshStats()
                 }}
               />
               <MenuDivider className="select-none" />
@@ -262,12 +267,12 @@ export default function FeedList({
                   className="hidden"
                   inputProps={{ name: 'opml', id: 'opml-import' }}
                   onInputChange={async () => {
-                    if (!opmlFormRef.current) return;
+                    if (!opmlFormRef.current) return
                     await xfetch('./api/opml/import', {
                       method: 'POST',
                       body: new FormData(opmlFormRef.current),
-                    });
-                    menuRef.current?.parentElement?.click();
+                    })
+                    menuRef.current?.parentElement?.click()
                   }}
                 />
                 <label htmlFor="opml-import">
@@ -331,109 +336,108 @@ export default function FeedList({
         open={newFeedDialogOpen}
         setOpen={setNewFeedDialogOpen}
         title="New Feed"
-        children={
-          <div className="flex flex-row">
-            <InputGroup
-              placeholder="https://example.com/feed"
-              inputRef={newFeedLinkRef}
-              spellCheck={false}
-              fill
-            />
-            <HTMLSelect
-              className="ml-2"
-              iconName="caret-down"
-              options={[
-                { value: '', label: '--' },
-                ...(folders ?? []).map(folder => ({
-                  value: folder.id.toString(),
-                  label: folder.title,
-                })),
-              ]}
-              value={selectedFolder}
-              onChange={evt => setSelectedFolder(evt.currentTarget.value)}
-            />
-          </div>
-        }
         callback={async () => {
-          const url = newFeedLinkRef.current?.value;
-          if (!url) return;
-          setCreatingNewFeed(true);
+          const url = newFeedLinkRef.current?.value
+          if (!url) return
+          setCreatingNewFeed(true)
           try {
-            const feed = await xfetch<Feed>(`./api/feeds`, {
+            const feed = await xfetch<Feed>('./api/feeds', {
               method: 'POST',
               body: {
                 url,
-                folder_id: selectedFolder ? Number.parseInt(selectedFolder) : undefined,
+                folder_id: selectedFolder ? Number.parseInt(selectedFolder) : null,
               },
-            });
-            await Promise.all([refreshFeeds(), refreshStats(false)]);
-            setSelected(`feed:${feed.id}`);
+            })
+            await Promise.all([refreshFeeds(), refreshStats(false)])
+            setSelected(`feed:${feed.id}`)
           } finally {
-            setCreatingNewFeed(false);
+            setCreatingNewFeed(false)
           }
         }}
-      />
+      >
+        <div className="flex flex-row">
+          <InputGroup
+            placeholder="https://example.com/feed"
+            inputRef={newFeedLinkRef}
+            spellCheck={false}
+            fill
+          />
+          <HTMLSelect
+            className="ml-2"
+            iconName="caret-down"
+            options={[
+              { value: '', label: '--' },
+              ...(folders ?? []).map(folder => ({
+                value: folder.id.toString(),
+                label: folder.title,
+              })),
+            ]}
+            value={selectedFolder}
+            onChange={evt => setSelectedFolder(evt.currentTarget.value)}
+          />
+        </div>
+      </Confirm>
       <Confirm
         open={newFolderDialogOpen}
         setOpen={setNewFolderDialogOpen}
         title="New Folder"
-        children={<InputGroup className="ml-1" inputRef={newFolderTitleRef} />}
         callback={async () => {
-          const title = newFolderTitleRef.current?.value;
-          if (!title) return;
-          setCreatingNewFolder(true);
+          const title = newFolderTitleRef.current?.value
+          if (!title) return
+          setCreatingNewFolder(true)
           try {
-            const folder = await xfetch<Folder>(`./api/folders`, {
+            const folder = await xfetch<Folder>('./api/folders', {
               method: 'POST',
               body: { title },
-            });
+            })
             setFolders(
               folders =>
                 folders &&
                 [...folders, folder].toSorted((a, b) =>
                   a.title.toLocaleLowerCase().localeCompare(b.title.toLocaleLowerCase()),
                 ),
-            );
-            setSelected(`folder:${folder.id}`);
+            )
+            setSelected(`folder:${folder.id}`)
           } finally {
-            setCreatingNewFolder(false);
+            setCreatingNewFolder(false)
           }
         }}
-      />
+      >
+        <InputGroup className="ml-1" inputRef={newFolderTitleRef} />
+      </Confirm>
       <Confirm
         open={changeRefreshRateDialogOpen}
         setOpen={setChangeRefreshRateDialogOpen}
         title="Change Auto Refresh Rate (min)"
-        children={
-          <NumericInput
-            defaultValue={settings?.refresh_rate}
-            inputRef={refreshRateRef}
-            min={0}
-            stepSize={30}
-            minorStepSize={1}
-            majorStepSize={60}
-            fill
-          />
-        }
         callback={async () => {
-          if (!refreshRateRef.current) return;
-          const refreshRate = Number.parseInt(refreshRateRef.current.value);
-          setSettings(settings => settings && { ...settings, refresh_rate: refreshRate });
+          if (!refreshRateRef.current) return
+          const refreshRate = Number.parseInt(refreshRateRef.current.value)
+          setSettings(settings => settings && { ...settings, refresh_rate: refreshRate })
           await xfetch('./api/settings', {
             method: 'PUT',
             body: { refresh_rate: refreshRate },
-          });
+          })
         }}
-      />
+      >
+        <NumericInput
+          defaultValue={settings?.refresh_rate}
+          inputRef={refreshRateRef}
+          min={0}
+          stepSize={30}
+          minorStepSize={1}
+          majorStepSize={60}
+          fill
+        />
+      </Confirm>
     </div>
-  );
+  )
 }
 
 function getSelectedFolder(selected: string, feedsById: Map<number, Feed>): string {
-  const [type, id] = selected.split(':');
+  const [type, id] = selected.split(':')
   return type === 'feed'
-    ? feedsById.get(Number.parseInt(id))?.folder_id?.toString() ?? ''
+    ? (feedsById.get(Number.parseInt(id))?.folder_id?.toString() ?? '')
     : type === 'folder'
-    ? id
-    : '';
+      ? id
+      : ''
 }

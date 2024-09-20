@@ -3,74 +3,87 @@
 @import '@blueprintjs/core/lib/scss/variables';
 
 .bp5-button {
-  border-radius: 0.25rem;
+	border-radius: 0.25rem;
 }
+
 .bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary:hover {
-  background-color: rgba($gray3, 15%);
+	background-color: rgba($gray3, 15%);
 }
+
 .bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary:active {
-  background-color: rgba($gray3, 30%);
+	background-color: rgba($gray3, 30%);
 }
+
 .bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary.bp5-active {
-  color: $white;
-  background-color: $blue3;
+	color: $white;
+	background-color: $blue3;
 }
 
 .bp5-tree-root {
-  padding: 0.5rem;
-  padding-top: 0.25rem;
+	padding: 0.5rem;
+	padding-top: 0.25rem;
 }
+
 .bp5-tree-node {
-  border-radius: 0.5rem;
-  margin-top: 0.25rem;
+	border-radius: 0.5rem;
+	margin-top: 0.25rem;
 }
+
 .bp5-tree-node-content {
-  padding-left: 0;
-  border-radius: 0.25rem;
-  height: 2.1rem;
+	padding-left: 0;
+	border-radius: 0.25rem;
+	height: 2.1rem;
 }
+
 .bp5-tree-node-content:hover {
-  cursor: pointer;
+	cursor: pointer;
 }
+
 .bp5-tree-node-content * {
-  user-select: none;
+	user-select: none;
 }
+
 .bp5-tree-node-secondary-label {
-  display: flex;
+	display: flex;
 }
 
 .bp5-card-list.bp5-compact {
-  padding-top: 0.25rem;
-  padding-bottom: 0.5rem;
+	padding-top: 0.25rem;
+	padding-bottom: 0.5rem;
 }
-.bp5-card-list > .bp5-card:not(:last-child) {
-  border-bottom: 0;
+
+.bp5-card-list>.bp5-card:not(:last-child) {
+	border-bottom: 0;
 }
-.bp5-card-list > .bp5-card.bp5-interactive:hover {
-  background-color: $light-gray4;
+
+.bp5-card-list>.bp5-card.bp5-interactive:hover {
+	background-color: $light-gray4;
 }
-.bp5-card-list > .bp5-card.bp5-selected,
-.bp5-card-list > .bp5-card.bp5-selected:hover {
-  color: $white;
-  background-color: $blue3;
+
+.bp5-card-list>.bp5-card.bp5-selected,
+.bp5-card-list>.bp5-card.bp5-selected:hover {
+	color: $white;
+	background-color: $blue3;
 }
-.bp5-card-list.bp5-compact > .bp5-card {
-  width: 95%;
-  margin-top: 0.25rem;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  user-select: none;
+
+.bp5-card-list.bp5-compact>.bp5-card {
+	width: 95%;
+	margin-top: 0.25rem;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+	user-select: none;
 }
 
 .bp5-html-select select {
-  width: auto;
+	width: auto;
 }
 
 .bp5-alert-body .bp5-icon {
-  margin-right: 0;
+	margin-right: 0;
 }
+
 .bp5-alert-contents {
-  width: 100%;
+	width: 100%;
 }

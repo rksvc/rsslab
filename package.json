@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "biome check",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -27,62 +27,15 @@
     "use-debounce": "^10.0.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.1",
-    "@typescript-eslint/parser": "^8.0.1",
     "@vitejs/plugin-react-swc": "^3.7.0",
     "autoprefixer": "^10.4.20",
-    "eslint": "^9.8.0",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.9",
-    "eslint-plugin-unicorn": "^55.0.0",
     "postcss": "^8.4.41",
-    "sass": "^1.77.8",
+    "sass-embedded": "^1.79.2",
     "tailwindcss": "^3.4.8",
     "typescript": "^5.5.4",
     "vite": "^5.4.0"
-  },
-  "prettier": {
-    "arrowParens": "avoid",
-    "singleQuote": true,
-    "printWidth": 90,
-    "trailingComma": "all"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "browser": true,
-      "es2020": true
-    },
-    "extends": [
-      "eslint:recommended",
-      "plugin:unicorn/recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:react-hooks/recommended"
-    ],
-    "ignorePatterns": [
-      "*.js"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "unicorn",
-      "react-refresh"
-    ],
-    "rules": {
-      "@typescript-eslint/no-explicit-any": 0,
-      "unicorn/filename-case": 0,
-      "unicorn/prevent-abbreviations": 0,
-      "unicorn/no-nested-ternary": 0,
-      "unicorn/no-useless-undefined": 0,
-      "unicorn/prefer-query-selector": 0,
-      "unicorn/prefer-dom-node-append": 0,
-      "react-refresh/only-export-components": [
-        "warn",
-        {
-          "allowConstantExport": true
-        }
-      ]
-    }
   }
 }

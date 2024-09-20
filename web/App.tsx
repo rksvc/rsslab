@@ -1,80 +1,80 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Divider, FocusStyleManager } from '@blueprintjs/core';
-import FeedList from './FeedList';
-import ItemList from './ItemList';
-import ItemShow from './ItemShow';
+import { Divider, FocusStyleManager } from '@blueprintjs/core'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import FeedList from './FeedList'
+import ItemList from './ItemList'
+import ItemShow from './ItemShow'
 import type {
-  Item,
-  Image,
-  FolderWithFeeds,
-  Stats,
   Feed,
   Folder,
-  Status,
+  FolderWithFeeds,
+  Image,
+  Item,
   Settings,
-} from './types';
-import { xfetch } from './utils';
+  Stats,
+  Status,
+} from './types'
+import { xfetch } from './utils'
 
-FocusStyleManager.onlyShowFocusOnTabs();
+FocusStyleManager.onlyShowFocusOnTabs()
 
 export default function App() {
-  const [filter, setFilter] = useState('Unread');
-  const [folders, setFolders] = useState<Folder[]>();
-  const [feeds, setFeeds] = useState<Feed[]>();
-  const [stats, setStats] = useState<Map<number, Stats>>();
-  const [errors, setErrors] = useState<Map<number, string>>();
-  const [selected, setSelected] = useState('');
-  const [loadingFeeds, setLoadingFeeds] = useState(0);
-  const [settings, setSettings] = useState<Settings>();
+  const [filter, setFilter] = useState('Unread')
+  const [folders, setFolders] = useState<Folder[]>()
+  const [feeds, setFeeds] = useState<Feed[]>()
+  const [stats, setStats] = useState<Map<number, Stats>>()
+  const [errors, setErrors] = useState<Map<number, string>>()
+  const [selected, setSelected] = useState('')
+  const [loadingFeeds, setLoadingFeeds] = useState(0)
+  const [settings, setSettings] = useState<Settings>()
 
-  const [items, setItems] = useState<(Item & Image)[]>();
-  const [selectedItemId, setSelectedItemId] = useState<number>();
+  const [items, setItems] = useState<(Item & Image)[]>()
+  const [selectedItemId, setSelectedItemId] = useState<number>()
 
-  const [selectedItemDetails, setSelectedItemDetails] = useState<Item>();
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [selectedItemDetails, setSelectedItemDetails] = useState<Item>()
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const refreshFeeds = useCallback(async () => {
     const [folders, feeds, settings] = await Promise.all([
       xfetch<Folder[]>('./api/folders'),
       xfetch<Feed[]>('./api/feeds'),
       xfetch<Settings>('./api/settings'),
-    ]);
-    setFolders(folders);
-    setFeeds(feeds);
-    setSettings(settings);
-  }, []);
-  const refreshStats = useCallback(async (loop: boolean = true) => {
+    ])
+    setFolders(folders)
+    setFeeds(feeds)
+    setSettings(settings)
+  }, [])
+  const refreshStats = useCallback(async (loop = true) => {
     const [errors, status] = await Promise.all([
       xfetch<Record<number, string>>('./api/feeds/errors'),
       xfetch<Status>('./api/status'),
-    ]);
+    ])
     setErrors(
       new Map(Object.entries(errors).map(([id, error]) => [Number.parseInt(id), error])),
-    );
-    setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])));
+    )
+    setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])))
     if (loop) {
-      setLoadingFeeds(status.running);
-      if (status.running) setTimeout(() => refreshStats(), 500);
+      setLoadingFeeds(status.running)
+      if (status.running) setTimeout(() => refreshStats(), 500)
     }
-  }, []);
+  }, [])
   useEffect(() => {
-    refreshFeeds();
-    refreshStats();
-  }, [refreshFeeds, refreshStats]);
+    refreshFeeds()
+    refreshStats()
+  }, [refreshFeeds, refreshStats])
 
   const [foldersWithFeeds, feedsWithoutFolders, foldersById, feedsById] = useMemo(() => {
-    const foldersById = new Map<number, FolderWithFeeds>();
+    const foldersById = new Map<number, FolderWithFeeds>()
     for (const folder of folders ?? [])
-      foldersById.set(folder.id, { ...folder, feeds: [] });
-    const feedsById = new Map<number, Feed>();
-    const feedsWithoutFolders: Feed[] = [];
+      foldersById.set(folder.id, { ...folder, feeds: [] })
+    const feedsById = new Map<number, Feed>()
+    const feedsWithoutFolders: Feed[] = []
     for (const feed of feeds ?? []) {
-      if (feed.folder_id == undefined) feedsWithoutFolders.push(feed);
-      else foldersById.get(feed.folder_id)?.feeds.push(feed);
-      feedsById.set(feed.id, feed);
+      if (feed.folder_id === null) feedsWithoutFolders.push(feed)
+      else foldersById.get(feed.folder_id)?.feeds.push(feed)
+      feedsById.set(feed.id, feed)
     }
-    return [[...foldersById.values()], feedsWithoutFolders, foldersById, feedsById];
-  }, [feeds, folders]);
+    return [[...foldersById.values()], feedsWithoutFolders, foldersById, feedsById]
+  }, [feeds, folders])
 
   const props = {
     filter,
@@ -105,7 +105,7 @@ export default function App() {
     feedsWithoutFolders,
     foldersById,
     feedsById,
-  };
+  }
 
   return (
     <div className="flex flex-row text-base min-h-screen max-h-screen">
@@ -123,5 +123,5 @@ export default function App() {
         )}
       </div>
     </div>
-  );
+  )
 }

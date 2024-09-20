@@ -1,4 +1,3 @@
-import { Dispatch, RefObject, SetStateAction } from 'react';
 import {
   AnchorButton,
   Button,
@@ -7,11 +6,12 @@ import {
   Colors,
   Divider,
   H2,
-} from '@blueprintjs/core';
-import { Star, Circle, ExternalLink } from 'react-feather';
-import type { Item, Image, Stats, Feed } from './types';
-import { cn, iconProps, xfetch } from './utils';
-import classes from './styles.module.css';
+} from '@blueprintjs/core'
+import type { Dispatch, RefObject, SetStateAction } from 'react'
+import { Circle, ExternalLink, Star } from 'react-feather'
+import classes from './styles.module.css'
+import type { Feed, Image, Item, Stats } from './types'
+import { cn, iconProps, xfetch } from './utils'
 
 export default function ItemShow({
   setStats,
@@ -21,21 +21,21 @@ export default function ItemShow({
   contentRef,
   feedsById,
 }: {
-  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>;
-  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>;
-  selectedItemDetails: Item;
-  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>;
-  contentRef: RefObject<HTMLDivElement>;
-  feedsById: Map<number, Feed>;
+  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>
+  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
+  selectedItemDetails: Item
+  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
+  contentRef: RefObject<HTMLDivElement>
+  feedsById: Map<number, Feed>
 }) {
-  const toggleStatus = (status: string) => async () => {
-    status = status === selectedItemDetails.status ? 'read' : status;
+  const toggleStatus = (targetStatus: string) => async () => {
+    const status = targetStatus === selectedItemDetails.status ? 'read' : targetStatus
     await xfetch(`./api/items/${selectedItemDetails.id}`, {
       method: 'PUT',
       body: { status },
-    });
+    })
     const diff = (s: string) =>
-      status === s ? +1 : selectedItemDetails.status === s ? -1 : 0;
+      status === s ? +1 : selectedItemDetails.status === s ? -1 : 0
     setStats(
       stats =>
         stats &&
@@ -50,12 +50,12 @@ export default function ItemShow({
               : stats,
           ]),
         ),
-    );
+    )
     setItems(items =>
       items?.map(i => (i.id === selectedItemDetails.id ? { ...i, status } : i)),
-    );
-    setSelectedItemDetails({ ...selectedItemDetails, status });
-  };
+    )
+    setSelectedItemDetails({ ...selectedItemDetails, status })
+  }
 
   return (
     <div className="flex flex-col min-h-screen max-h-screen">
@@ -110,8 +110,8 @@ export default function ItemShow({
         <div
           className={cn(Classes.RUNNING_TEXT, classes.content, 'text-base')}
           dangerouslySetInnerHTML={{ __html: selectedItemDetails.content }}
-        ></div>
+        />
       </div>
     </div>
-  );
+  )
 }

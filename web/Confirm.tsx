@@ -1,5 +1,5 @@
-import { Dispatch, ReactNode, SetStateAction, useState } from 'react';
-import { Button, Dialog, DialogBody, DialogFooter, Intent } from '@blueprintjs/core';
+import { Button, Dialog, DialogBody, DialogFooter, Intent } from '@blueprintjs/core'
+import { type Dispatch, type ReactNode, type SetStateAction, useState } from 'react'
 
 export function Confirm({
   open,
@@ -9,24 +9,24 @@ export function Confirm({
   children,
   intent = Intent.PRIMARY,
 }: {
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  title: string;
-  callback: () => Promise<void>;
-  children: ReactNode;
-  intent?: Intent;
+  open: boolean
+  setOpen: Dispatch<SetStateAction<boolean>>
+  title: string
+  callback: () => Promise<void>
+  children: ReactNode
+  intent?: Intent
 }) {
-  const [loading, setLoading] = useState(false);
-  const onClose = () => setOpen(false);
+  const [loading, setLoading] = useState(false)
+  const onClose = () => setOpen(false)
   const onConfirm = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      await callback();
-      onClose();
+      await callback()
+      onClose()
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
   return (
     <Dialog
       title={title}
@@ -55,5 +55,5 @@ export function Confirm({
         }
       />
     </Dialog>
-  );
+  )
 }
