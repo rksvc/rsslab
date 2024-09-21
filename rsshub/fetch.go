@@ -45,12 +45,17 @@ type headers struct {
 }
 
 func (h *headers) Get(key string) goja.Value {
-	if key == "getSetCookie" {
+	switch key {
+	case "getSetCookie":
 		return h.vm.ToValue(func() []string {
 			return h.h.Values("Set-Cookie")
 		})
+	case "get":
+		return h.vm.ToValue(func(key string) string {
+			return h.h.Get(key)
+		})
 	}
-	return h.vm.ToValue(h.h.Get(key))
+	return nil
 }
 
 func (h *headers) Set(key string, val goja.Value) bool {
