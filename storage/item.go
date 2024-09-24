@@ -334,7 +334,7 @@ const (
 // Delete old articles from the database to cleanup space.
 //
 // The rules:
-//   - Never delete starred entries.
+//   - Never delete unread/starred entries.
 //   - Keep at least the same amount of articles the feed provides (default: 50).
 //     This prevents from deleting items for rarely updated and/or ever-growing
 //     feeds which might eventually reappear as unread.
@@ -369,13 +369,13 @@ func (s *Storage) DeleteOldItems() {
 			where id in (
 				select id
 				from items
-				where feed_id = ? and status != ?
+				where feed_id = ? and status = ?
 				order by date desc
 				limit -1 offset ?
 			) and date_arrived < ?
 			`,
 			feedId,
-			STARRED,
+			READ,
 			limit,
 			time.Now().UTC().Add(-time.Duration(ITEMS_KEEP_DAYS)*24*time.Hour),
 		)
