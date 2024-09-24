@@ -1,4 +1,3 @@
-import { type FetchOptions, ofetch } from 'ofetch'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Alert } from './Alert'
@@ -11,25 +10,29 @@ export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ')
 }
 
-export async function xfetch(
-  request: RequestInfo,
-  options?: FetchOptions<'json'>,
-): Promise<unknown>
+export function param(query: Record<string, string | number | boolean | undefined>) {
+  const keys = Object.keys(query)
+  if (!keys.length) return ''
+  return `?${keys
+    .filter(key => query[key] !== undefined)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(query[key]!)}`)
+    .join('&')}`
+}
+
+export async function xfetch(url: string, options?: RequestInit): Promise<unknown>
+export async function xfetch<T>(url: string, options?: RequestInit): Promise<T>
 export async function xfetch<T>(
-  request: RequestInfo,
-  options?: FetchOptions<'json'>,
-): Promise<T>
-export async function xfetch<T>(
-  request: RequestInfo,
-  options?: FetchOptions<'json'>,
+  url: string,
+  options?: RequestInit,
 ): Promise<T | unknown> {
-  const response = await ofetch.raw<T | string>(request, {
-    ...options,
-    ignoreResponseError: true,
-  })
-  const data = response._data
-  if (typeof data === 'string' && !response.ok) alert(data.trim() || response.statusText)
-  return data
+  try {
+    const response = await fetch(url, options)
+    const text = await response.text()
+    if (response.ok) return text && text !== 'OK' && JSON.parse(text)
+    throw new Error(text || `${response.status} ${response.statusText}`)
+  } catch (error) {
+    alert(String(error))
+  }
 }
 
 function alert(error: string): never {

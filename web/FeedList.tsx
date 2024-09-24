@@ -138,7 +138,7 @@ export default function FeedList({
     )
     await xfetch(`./api/folders/${id}`, {
       method: 'PUT',
-      body: { is_expanded: isExpanded },
+      body: JSON.stringify({ is_expanded: isExpanded }),
     })
   }
 
@@ -343,10 +343,10 @@ export default function FeedList({
           try {
             const feed = await xfetch<Feed>('./api/feeds', {
               method: 'POST',
-              body: {
+              body: JSON.stringify({
                 url,
                 folder_id: selectedFolder ? Number.parseInt(selectedFolder) : null,
-              },
+              }),
             })
             await Promise.all([refreshFeeds(), refreshStats(false)])
             setSelected(`feed:${feed.id}`)
@@ -388,7 +388,7 @@ export default function FeedList({
           try {
             const folder = await xfetch<Folder>('./api/folders', {
               method: 'POST',
-              body: { title },
+              body: JSON.stringify({ title }),
             })
             setFolders(
               folders =>
@@ -415,7 +415,7 @@ export default function FeedList({
           setSettings(settings => settings && { ...settings, refresh_rate: refreshRate })
           await xfetch('./api/settings', {
             method: 'PUT',
-            body: { refresh_rate: refreshRate },
+            body: JSON.stringify({ refresh_rate: refreshRate }),
           })
         }}
       >

@@ -32,7 +32,7 @@ export default function ItemShow({
     const status = targetStatus === selectedItemDetails.status ? 'read' : targetStatus
     await xfetch(`./api/items/${selectedItemDetails.id}`, {
       method: 'PUT',
-      body: { status },
+      body: JSON.stringify({ status }),
     })
     const diff = (s: string) =>
       status === s ? +1 : selectedItemDetails.status === s ? -1 : 0

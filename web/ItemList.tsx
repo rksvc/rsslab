@@ -43,7 +43,7 @@ import useInfiniteScroll from 'react-infinite-scroll-hook'
 import { useDebouncedCallback } from 'use-debounce'
 import { Confirm } from './Confirm'
 import type { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types'
-import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils'
+import { cn, iconProps, menuIconProps, param, popoverProps, xfetch } from './utils'
 
 dayjs.extend(relativeTime)
 
@@ -119,9 +119,9 @@ export default function ItemList({
       if (!items) return
       setLoading(true)
       try {
-        const result = await xfetch<Items>('./api/items', {
-          query: { ...query(), after: items.at(-1)?.id },
-        })
+        const result = await xfetch<Items>(
+          `./api/items${param({ ...query(), after: items.at(-1)?.id })}`,
+        )
         setItems([...items, ...result.list])
         setHasMore(result.has_more)
       } finally {
@@ -139,7 +139,7 @@ export default function ItemList({
   ) => {
     await xfetch(`./api/feeds/${id}`, {
       method: 'PUT',
-      body: { [attrName]: value },
+      body: JSON.stringify({ [attrName]: value }),
     })
     setFeeds(feeds =>
       feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)),
@@ -158,7 +158,7 @@ export default function ItemList({
     return query
   }, [selected, filter])
   const onSearch = useDebouncedCallback(async () => {
-    const result = await xfetch<Items>('./api/items/', { query: query() })
+    const result = await xfetch<Items>(`./api/items${param(query())}`)
     setItems(result.list)
     setHasMore(result.has_more)
     loaded.current = Array.from({ length: result.list.length })
@@ -166,9 +166,7 @@ export default function ItemList({
 
   useEffect(() => {
     ;(async () => {
-      const result = await xfetch<Items>('./api/items', {
-        query: query(),
-      })
+      const result = await xfetch<Items>(`./api/items${param(query())}`)
       setItems(result.list)
       setSelectedItemId(undefined)
       setSelectedItemDetails(undefined)
@@ -204,7 +202,7 @@ export default function ItemList({
               const [type, id] = selected.split(':')
               query[`${type}_id`] = id
             }
-            await xfetch('./api/items', { method: 'PUT', query })
+            await xfetch(`./api/items${param(query)}`, { method: 'PUT' })
             setItems(items =>
               items?.map(item => ({
                 ...item,
@@ -413,7 +411,7 @@ export default function ItemList({
           if (title && title !== foldersById.get(id)?.title) {
             await xfetch(`./api/folders/${id}`, {
               method: 'PUT',
-              body: { title },
+              body: JSON.stringify({ title }),
             })
             setFolders(folders =>
               folders?.map(folder => (folder.id === id ? { ...folder, title } : folder)),
@@ -487,7 +485,7 @@ function CardItem({
         if (item.status === 'unread') {
           await xfetch(`./api/items/${item.id}`, {
             method: 'PUT',
-            body: { status: 'read' },
+            body: JSON.stringify({ status: 'read' }),
           })
           setStats(
             stats =>
