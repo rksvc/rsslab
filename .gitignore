@@ -1,6 +1,5 @@
 node_modules
 /dist
 /rsshub/**/*.js
-!polyfill.js
 !got.js
 !ofetch.js

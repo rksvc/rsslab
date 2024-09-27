@@ -29,9 +29,6 @@ var lib embed.FS
 //go:embed third_party
 var third_party embed.FS
 
-//go:embed polyfill.js
-var polyfill string
-
 func init() {
 	require.RegisterCoreModule("assert", func(vm *goja.Runtime, module *goja.Object) {
 		module.Get("exports").ToObject(vm).Set("strict", func(value goja.Value, message goja.Value) error {
@@ -216,10 +213,6 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) (any, error) {
 		vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
 		url.Enable(vm)
 		require.Require(vm, "url").ToObject(vm).Set("fileURLToPath", func(url string) string { return url })
-		_, w.Err = vm.RunString(polyfill)
-		if w.Err != nil {
-			return
-		}
 
 		vm.Set("process", map[string]any{"env": utils.Env})
 		vm.Set("$fetch", func(opts map[string]any) *goja.Promise {
