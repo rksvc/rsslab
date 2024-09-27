@@ -22,7 +22,7 @@ import (
 
 var noCache bool
 var addr, redisUrl, database, routesUrl, srcUrl string
-var cc cache.ICache
+var cc *cache.Cache
 var db *storage.Storage
 var api *server.Server
 var rssHub *rsshub.RSSHub
@@ -57,13 +57,15 @@ func main() {
 		database = filepath.Join(dir, "storage.db")
 	}
 
+	var c cache.ICache
 	if noCache {
-		cc = cache.NewDisabled()
+		c = cache.NewDisabled()
 	} else if redisUrl == "" {
-		cc = cache.NewLRU()
+		c = cache.NewLRU()
 	} else {
-		cc = cache.NewRedis(redisUrl)
+		c = cache.NewRedis(redisUrl)
 	}
+	cc = cache.NewCache(c)
 
 	var err error
 	db, err = storage.New(database)

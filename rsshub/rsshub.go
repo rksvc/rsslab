@@ -24,15 +24,12 @@ type routes map[string]struct {
 }
 
 type RSSHub struct {
-	*resty.Client
-
-	srcUrl          string
-	routesUrl       string
-	routeCacheTTL   time.Duration
-	contentCacheTTL time.Duration
-	routeCache      *cache.Cache
-	contentCache    *cache.Cache
-	routes          routes
+	srcUrl, routesUrl string
+	routeCacheTTL     time.Duration
+	contentCacheTTL   time.Duration
+	cache             *cache.Cache
+	client            *resty.Client
+	routes            routes
 }
 
 var retryStatusCodes = map[int]struct{}{
@@ -46,44 +43,43 @@ var retryStatusCodes = map[int]struct{}{
 	http.StatusGatewayTimeout:      {},
 }
 
-func NewRSSHub(c cache.ICache, routesUrl, srcUrl string) *RSSHub {
+func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 	return &RSSHub{
 		srcUrl:          srcUrl,
 		routesUrl:       routesUrl,
 		routeCacheTTL:   6 * time.Hour,
 		contentCacheTTL: time.Hour,
-		routeCache:      cache.NewCache(c),
-		contentCache:    cache.NewCache(c),
-
-		Client: resty.
+		cache:           cache,
+		client: resty.
 			New().
 			SetHeader("User-Agent", utils.UserAgent).
-			SetHeader("Accept-Language", utils.AcceptLanguage).
-			SetTimeout(30 * time.Second).
+			SetTimeout(time.Minute).
 			SetRetryCount(2).
-			AddRetryCondition(func(r *resty.Response, err error) bool {
-				if err != nil {
-					return true
+			OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
+				if r.IsError() {
+					return utils.ResponseError(r)
 				}
-				_, ok := retryStatusCodes[r.StatusCode()]
-				return ok
+				return nil
+			}).
+			AddRetryCondition(func(r *resty.Response, err error) bool {
+				if r != nil {
+					_, ok := retryStatusCodes[r.StatusCode()]
+					return ok
+				}
+				return err != nil
 			}).
 			AddRetryHook(func(r *resty.Response, err error) {
-				if err == nil {
-					log.Printf(`%s "%s": %s, retry attempt %d`, r.Request.Method, r.Request.URL, r.Status(), r.Request.Attempt)
-				}
+				log.Printf(`%s, retry attempt %d`, err, r.Request.Attempt)
 			}),
 	}
 }
 
 func (r *RSSHub) LoadRoutes() error {
 	var routes routes
-	v, err := r.routeCache.TryGet(r.routesUrl, r.routeCacheTTL, false, func() (any, error) {
-		resp, err := r.R().Get(r.routesUrl)
+	v, err := r.cache.TryGet(r.routesUrl, r.routeCacheTTL, false, func() (any, error) {
+		resp, err := r.client.NewRequest().Get(r.routesUrl)
 		if err != nil {
 			return nil, err
-		} else if resp.IsError() {
-			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, r.routesUrl, resp.Status())
 		}
 		return resp.Body(), nil
 	})
@@ -105,12 +101,10 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.routeCache.TryGet(rawUrl, r.routeCacheTTL, false, func() (any, error) {
-		resp, err := r.R().Get(rawUrl)
+	data, err := r.cache.TryGet(rawUrl, r.routeCacheTTL, false, func() (any, error) {
+		resp, err := r.client.NewRequest().Get(rawUrl)
 		if err != nil {
 			return nil, err
-		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
-			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, rawUrl, resp.Status())
 		}
 
 		code := strings.ReplaceAll(resp.String(), "import.meta.url", `"`+path+`"`)
@@ -130,9 +124,9 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 			Target:         api.ES2017,
 		})
 		if len(result.Errors) > 0 {
-			return nil, errorf(result.Errors...)
+			return nil, errorf(result.Errors)
 		} else if len(result.Warnings) > 0 {
-			log.Print(errorf(result.Warnings...))
+			log.Print(errorf(result.Warnings))
 		}
 		return result.Code, nil
 	})
@@ -147,12 +141,10 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.routeCache.TryGet(url, r.routeCacheTTL, false, func() (any, error) {
-		resp, err := r.R().Get(url)
+	data, err := r.cache.TryGet(url, r.routeCacheTTL, false, func() (any, error) {
+		resp, err := r.client.NewRequest().Get(url)
 		if err != nil {
 			return nil, err
-		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
-			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, url, resp.Status())
 		}
 		return resp.Body(), nil
 	})
@@ -162,12 +154,12 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 	return data.([]byte), nil
 }
 
-func errorf(messages ...api.Message) error {
-	var errs []error
+func errorf(messages []api.Message) error {
+	errs := make([]error, 0, len(messages))
 	for _, m := range messages {
 		var err error
 		if m.Location == nil {
-			err = fmt.Errorf("%s", m.Text)
+			err = errors.New(m.Text)
 		} else {
 			err = fmt.Errorf("%s:%d:%d %s, %s",
 				m.Location.File, m.Location.Line,

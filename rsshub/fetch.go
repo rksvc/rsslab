@@ -69,7 +69,7 @@ func (h *headers) Keys() []string {
 
 func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	rawUrl := toString(opts["url"])
-	req := r.R()
+	req := r.client.NewRequest()
 
 	if queryParams, ok := opts["query"]; ok {
 		switch queryParams := queryParams.(type) {
@@ -149,8 +149,6 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	resp, err := req.Execute(method, rawUrl)
 	if err != nil {
 		return nil, err
-	} else if resp.IsError() {
-		return nil, fmt.Errorf(`%s "%s": %s`, method, rawUrl, resp.Status())
 	}
 	body := resp.Body()
 

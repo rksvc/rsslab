@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"rsslab/utils"
 	"sync"
-	"time"
 
 	"github.com/evanw/esbuild/pkg/api"
 	"github.com/go-resty/resty/v2"
@@ -41,15 +41,14 @@ func bundle() bool {
 		opts.EntryPoints = []string{path.Join("../node_modules", pkg.path)}
 		opts.Outfile = path.Join("third_party", pkg.outfile)
 		opts.External = pkg.external
-		result := api.Build(opts)
-		if len(result.Errors) > 0 {
+		if len(api.Build(opts).Errors) > 0 {
 			return false
 		}
 	}
 
 	files := []struct {
 		path, outfile string
-		content       any
+		content       []byte
 	}{
 		{"utils/helpers.ts", "utils/helpers.js", nil},
 		{"utils/parse-date.ts", "utils/parse-date.js", nil},
@@ -59,16 +58,17 @@ func bundle() bool {
 	}
 	var wg sync.WaitGroup
 	wg.Add(len(files))
-	client := resty.New().SetTimeout(30 * time.Second)
+	client := resty.New()
 	for i, file := range files {
 		go func() {
 			defer wg.Done()
 			resp, err := client.R().Get("https://raw.githubusercontent.com/DIYgod/RSSHub/master/lib/" + file.path)
 			if err != nil {
-				files[i].content = err
-			} else {
-				files[i].content = resp.Body()
+				panic(err)
+			} else if resp.IsError() {
+				panic(utils.ResponseError(resp))
 			}
+			files[i].content = resp.Body()
 		}()
 	}
 	wg.Wait()
@@ -80,17 +80,12 @@ func bundle() bool {
 	defer os.Remove(f.Name())
 	defer f.Close()
 	for _, file := range files {
-		content, ok := file.content.([]byte)
-		if !ok {
-			fmt.Println(file.content)
-			return false
-		}
 		err := f.Truncate(0)
 		if err != nil {
 			fmt.Println(err)
 			return false
 		}
-		_, err = f.WriteAt(content, 0)
+		_, err = f.WriteAt(file.content, 0)
 		if err != nil {
 			fmt.Println(err)
 			return false
@@ -98,8 +93,7 @@ func bundle() bool {
 		opts := opts
 		opts.EntryPoints = []string{f.Name()}
 		opts.Outfile = file.outfile
-		result := api.Build(opts)
-		if len(result.Errors) > 0 {
+		if len(api.Build(opts).Errors) > 0 {
 			return false
 		}
 	}

@@ -181,7 +181,7 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) (any, error) {
 				if maxAge != nil {
 					ttl = time.Duration(*maxAge) * time.Second
 				}
-				v, err := r.contentCache.TryGet(key, ttl, ex == nil || *ex, func() (result any, err error) {
+				v, err := r.cache.TryGet(key, ttl, ex == nil || *ex, func() (result any, err error) {
 					w := newWait()
 					loop.RunOnLoop(func(*goja.Runtime) { w.Await(vm, vm.ToValue(f())) })
 					w.Wait()

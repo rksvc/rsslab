@@ -3,6 +3,7 @@ package rsshub
 import (
 	"log"
 	"net/http"
+	"rsslab/utils"
 	"strings"
 	"time"
 
@@ -14,8 +15,7 @@ func (r *RSSHub) Register(app *fiber.App) {
 	app.Use(cache.New(cache.Config{
 		Expiration: 5 * time.Minute,
 		CacheInvalidator: func(c fiber.Ctx) bool {
-			status := c.Response().StatusCode()
-			return status < 200 || status >= 300
+			return utils.IsErrorResponse(c.Response().StatusCode())
 		},
 	}))
 
