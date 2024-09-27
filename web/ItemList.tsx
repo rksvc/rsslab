@@ -42,7 +42,7 @@ import {
 import useInfiniteScroll from 'react-infinite-scroll-hook'
 import { useDebouncedCallback } from 'use-debounce'
 import { Confirm } from './Confirm'
-import type { Feed, Folder, Image, Item, Items, Settings, Stats, Status } from './types'
+import type { Feed, Folder, Image, Item, Items, Stats, Status } from './types'
 import { cn, iconProps, menuIconProps, param, popoverProps, xfetch } from './utils'
 
 dayjs.extend(relativeTime)
@@ -57,7 +57,6 @@ export default function ItemList({
   selected,
   setSelected,
   loadingFeeds,
-  settings,
 
   items,
   setItems,
@@ -81,7 +80,6 @@ export default function ItemList({
   selected: string
   errors?: Map<number, string>
   loadingFeeds: number
-  settings?: Settings
 
   items?: (Item & Image)[]
   setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
@@ -234,8 +232,8 @@ export default function ItemList({
                     target="_blank"
                     href={(() => {
                       const feedLink = feedsById.get(id)?.feed_link
-                      return settings && feedLink?.startsWith('rsshub:')
-                        ? `${settings.rsshub_path}/${feedLink.slice('rsshub:'.length)}`
+                      return feedLink?.startsWith('rsshub:')
+                        ? `/${feedLink.slice('rsshub:'.length)}`
                         : feedLink
                     })()}
                   />

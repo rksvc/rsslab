@@ -11,6 +11,8 @@ import (
 	"path"
 	"rsslab/utils"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/buffer"
@@ -108,37 +110,50 @@ func (r *RSSHub) sourceLoader(workingDirectory string) func(string) ([]byte, err
 	}
 }
 
-func errorWithFullStack(err error) error {
-	if err, ok := err.(*goja.Exception); ok {
-		return errors.New(err.String())
-	}
-	return err
+type wait struct {
+	sync.WaitGroup
+	Value any
+	Err   error
 }
 
-func await(vm *goja.Runtime, promise goja.Value, result chan<- any) {
+func newWait() *wait {
+	var w wait
+	w.Add(1)
+	return &w
+}
+
+func (w *wait) Result() (any, error) {
+	if err, ok := w.Err.(*goja.Exception); ok {
+		w.Err = errors.New(err.String())
+	}
+	return w.Value, w.Err
+}
+
+func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 	then, _ := goja.AssertFunction(promise.ToObject(vm).Get("then"))
 	_, err := then(promise, vm.ToValue(func(value goja.Value) {
-		result <- value.Export()
+		w.Value = value.Export()
+		w.Done()
 	}), vm.ToValue(func(reason *goja.Object) {
 		stack := reason.Get("stack")
 		if stack == nil || goja.IsUndefined(stack) {
 			if err, ok := reason.Export().(error); ok {
-				result <- err
+				w.Err = err
 			} else {
-				result <- errors.New(reason.String())
+				w.Err = errors.New(reason.String())
 			}
 		} else {
-			result <- errors.New(stack.String())
+			w.Err = errors.New(stack.String())
 		}
+		w.Done()
 	}))
 	if err != nil {
-		result <- errorWithFullStack(err)
+		w.Err = err
+		w.Done()
 	}
 }
 
-func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
-	result := make(chan any)
-
+func (r *RSSHub) Data(namespace, location string, ctx *Ctx) (any, error) {
 	workingDirectory := path.Dir(path.Join(namespace, location))
 	registry := require.NewRegistryWithLoader(r.sourceLoader(workingDirectory))
 	loop := eventloop.NewEventLoop(eventloop.WithRegistry(registry))
@@ -162,19 +177,18 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 		module.Get("exports").ToObject(vm).Set("art", render)
 	})
 	registry.RegisterNativeModule("@/utils/cache", func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("tryGet", func(key string, f func() *goja.Promise, _ any, ex *bool) *goja.Promise {
+		module.Get("exports").ToObject(vm).Set("tryGet", func(key string, f func() *goja.Promise, maxAge *int, ex *bool) *goja.Promise {
 			promise, resolve, reject := vm.NewPromise()
 			go func() {
-				v, err := r.contentCache.TryGet(key, ex == nil || *ex, func() (any, error) {
-					var result = make(chan any)
-					loop.RunOnLoop(func(*goja.Runtime) {
-						await(vm, vm.ToValue(f()), result)
-					})
-					v := <-result
-					if err, ok := v.(error); ok {
-						return nil, err
-					}
-					return v, nil
+				ttl := r.contentCacheTTL
+				if maxAge != nil {
+					ttl = time.Duration(*maxAge) * time.Second
+				}
+				v, err := r.contentCache.TryGet(key, ttl, ex == nil || *ex, func() (result any, err error) {
+					w := newWait()
+					loop.RunOnLoop(func(*goja.Runtime) { w.Await(vm, vm.ToValue(f())) })
+					w.Wait()
+					return w.Result()
 				})
 				var data any
 				if b, ok := v.([]byte); !ok {
@@ -194,15 +208,16 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 		})
 	})
 
+	w := newWait()
 	loop.Start()
 	defer loop.Stop()
 	loop.RunOnLoop(func(vm *goja.Runtime) {
+		defer w.Done()
 		vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
 		url.Enable(vm)
 		require.Require(vm, "url").ToObject(vm).Set("fileURLToPath", func(url string) string { return url })
-		_, err := vm.RunString(polyfill)
-		if err != nil {
-			result <- errorWithFullStack(err)
+		_, w.Err = vm.RunString(polyfill)
+		if w.Err != nil {
 			return
 		}
 
@@ -230,19 +245,20 @@ func (r *RSSHub) Data(namespace, location string, ctx *Ctx) any {
 			return promise
 		})
 
-		v, err := vm.RunString(fmt.Sprintf("require('./%s').route.handler", path.Base(location)))
-		if err != nil {
-			result <- errorWithFullStack(err)
+		var v goja.Value
+		v, w.Err = vm.RunString(fmt.Sprintf("require('./%s').route.handler", path.Base(location)))
+		if w.Err != nil {
 			return
 		}
 		handler, _ := goja.AssertFunction(v)
-		v, err = handler(goja.Undefined(), vm.ToValue(ctx))
-		if err != nil {
-			result <- errorWithFullStack(err)
+		v, w.Err = handler(goja.Undefined(), vm.ToValue(ctx))
+		if w.Err != nil {
 			return
 		}
-		await(vm, v, result)
+		w.Add(1)
+		w.Await(vm, v)
 	})
 
-	return <-result
+	w.Wait()
+	return w.Result()
 }

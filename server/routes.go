@@ -143,13 +143,16 @@ func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	resp, err := s.client.R().Get(body.Url)
+	req, err := http.NewRequest("GET", body.Url, nil)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+	resp, err := s.do(req)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
-	rawBody := resp.RawBody()
-	defer rawBody.Close()
-	var f io.Reader = rawBody
+	defer resp.Body.Close()
+	var f io.Reader = resp.Body
 	if e := getEncoding(resp); e != nil {
 		f = e.NewDecoder().Reader(f)
 	}
@@ -224,7 +227,7 @@ func (s *Server) handleFeedIcon(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	dat, err := s.cache.TryGet(strconv.FormatInt(id, 10), true, func() (any, error) {
+	dat, err := s.cache.TryGet(strconv.FormatInt(id, 10), s.cacheTTL, true, func() (any, error) {
 		feed, err := s.db.GetFeed(id)
 		if err != nil {
 			return nil, err
@@ -441,7 +444,6 @@ func (s *Server) handleSettings(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
-	settings["rsshub_path"] = s.base.Path
 	return c.JSON(settings)
 }
 

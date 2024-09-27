@@ -14,17 +14,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-resty/resty/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 )
 
 type Server struct {
-	db     *storage.Storage
-	client *resty.Client
-	cache  *cache.Cache
-	base   *url.URL
+	App atomic.Value
+
+	db       *storage.Storage
+	client   *http.Client
+	cacheTTL time.Duration
+	cache    *cache.Cache
 
 	pending atomic.Int32
 	refresh *time.Ticker
@@ -32,31 +34,12 @@ type Server struct {
 	mu      sync.Mutex
 }
 
-func New(db *storage.Storage, rsshubBaseUrl *url.URL) *Server {
+func New(db *storage.Storage) *Server {
 	return &Server{
-		db: db,
-		client: resty.
-			New().
-			SetTimeout(30 * time.Second).
-			SetDoNotParseResponse(true).
-			OnBeforeRequest(func(c *resty.Client, r *resty.Request) error {
-				url, err := url.Parse(r.URL)
-				if err != nil {
-					return err
-				}
-				if url.Scheme == "rsshub" {
-					url.Scheme = rsshubBaseUrl.Scheme
-					url.User = rsshubBaseUrl.User
-					url.Host = rsshubBaseUrl.Host
-					url.Path = rsshubBaseUrl.Path
-					url = url.JoinPath(url.Opaque)
-					url.Opaque = ""
-					r.URL = url.String()
-				}
-				return nil
-			}),
-		cache: cache.NewCache(cache.NewLRU(), time.Hour),
-		base:  rsshubBaseUrl,
+		db:       db,
+		client:   &http.Client{Timeout: 30 * time.Second},
+		cacheTTL: time.Hour,
+		cache:    cache.NewCache(cache.NewLRU()),
 	}
 }
 
@@ -167,6 +150,15 @@ func (s *Server) refresher(feeds []storage.Feed) {
 	log.Printf("finished refreshing %d feeds", len(feeds))
 }
 
+func (s *Server) do(req *http.Request) (*http.Response, error) {
+	if req.URL.Scheme == "rsshub" {
+		req.URL.Path = "/" + req.URL.Opaque
+		req.URL.Opaque = ""
+		return s.App.Load().(*fiber.App).Test(req, -1)
+	}
+	return s.client.Do(req)
+}
+
 func (s *Server) worker(srcQueue <-chan storage.Feed, dstQueue chan<- []storage.Item) {
 	for feed := range srcQueue {
 		items, err := s.listItems(feed)
@@ -186,27 +178,28 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
 		return nil, err
 	}
 
-	req := s.client.R()
-	if state.LastModified != nil {
-		req.SetHeader("If-Modified-Since", *state.LastModified)
-	}
-	if state.Etag != nil {
-		req.SetHeader("If-None-Match", *state.Etag)
-	}
-	resp, err := req.Get(f.FeedLink)
+	req, err := http.NewRequest("GET", f.FeedLink, nil)
 	if err != nil {
 		return nil, err
 	}
-	rawBody := resp.RawBody()
-	defer rawBody.Close()
-	switch {
-	case resp.StatusCode() == http.StatusNotModified:
+	if state.LastModified != nil {
+		req.Header.Set("If-Modified-Since", *state.LastModified)
+	}
+	if state.Etag != nil {
+		req.Header.Set("If-None-Match", *state.Etag)
+	}
+	resp, err := s.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotModified {
 		return nil, nil
-	case resp.StatusCode() < 200 || resp.StatusCode() >= 300:
-		return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, resp.Request.URL, resp.Status())
+	} else if utils.IsErrorResponse(resp.StatusCode) {
+		return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, resp.Request.URL, resp.Status)
 	}
 
-	var body io.Reader = rawBody
+	var body io.Reader = resp.Body
 	if e := getEncoding(resp); e != nil {
 		body = e.NewDecoder().Reader(body)
 	}
@@ -215,8 +208,8 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
 		return nil, err
 	}
 
-	lmod := resp.Header().Get("Last-Modified")
-	etag := resp.Header().Get("Etag")
+	lmod := resp.Header.Get("Last-Modified")
+	etag := resp.Header.Get("Etag")
 	if lmod != "" || etag != "" {
 		err = s.db.SetHTTPState(f.Id, lmod, etag)
 		if err != nil {
@@ -232,15 +225,12 @@ func (s *Server) findFavicon(siteUrl, feedUrl string) *[]byte {
 		if err != nil || url.Host == "" {
 			continue
 		}
-		resp, err := s.client.R().Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
-		if err != nil {
-			continue
-		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
+		resp, err := s.client.Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
+		if err != nil || utils.IsErrorResponse(resp.StatusCode) {
 			continue
 		}
-		body := resp.RawBody()
-		icon, err := io.ReadAll(body)
-		body.Close()
+		icon, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			return nil
 		}
@@ -276,8 +266,8 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 	return result
 }
 
-func getEncoding(resp *resty.Response) encoding.Encoding {
-	contentType := resp.Header().Get("Content-Type")
+func getEncoding(resp *http.Response) encoding.Encoding {
+	contentType := resp.Header.Get("Content-Type")
 	if _, params, err := mime.ParseMediaType(contentType); err == nil {
 		if cs, ok := params["charset"]; ok {
 			e, _ := charset.Lookup(cs)

@@ -10,25 +10,18 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cache"
 )
 
-func (r *RSSHub) Register(rsshub fiber.Router) {
-	rsshub.Use(cache.New(cache.Config{
+func (r *RSSHub) Register(app *fiber.App) {
+	app.Use(cache.New(cache.Config{
 		Expiration: 5 * time.Minute,
 		CacheInvalidator: func(c fiber.Ctx) bool {
 			status := c.Response().StatusCode()
 			return status < 200 || status >= 300
 		},
 	}))
-	var prefix string
-	if g, ok := rsshub.(*fiber.Group); ok {
-		prefix = g.Prefix
-		if !strings.HasPrefix(prefix, "/") {
-			prefix = "/" + prefix
-		}
-	}
 
 	var total, cnt int
 	for name, routes := range r.routes {
-		namespace := rsshub.Group(name)
+		namespace := app.Group(name)
 		total += len(routes.Routes)
 	register:
 		for path, route := range routes.Routes {
@@ -45,23 +38,20 @@ func (r *RSSHub) Register(rsshub fiber.Router) {
 							params[extraParam] = value
 						}
 					}
-					path := strings.TrimPrefix(string(c.Request().URI().Path()), prefix)
+					path := string(c.Request().URI().Path())
 					location := strings.TrimSuffix(route.Location, ".ts")
 
-					data := r.Data(name, location, NewCtx(path, params, c.Queries()))
-					if err, ok := data.(error); ok {
-						status := http.StatusInternalServerError
-						if err, ok := err.(*ErrorResponse); ok {
-							status = err.Status
-						}
-						log.Print(err)
-						return c.Status(status).SendString(err.Error())
-					} else if feed, err := toJSONFeed(data); err != nil {
+					data, err := r.Data(name, location, NewCtx(path, params, c.Queries()))
+					if err != nil {
 						log.Print(err)
 						return c.Status(http.StatusInternalServerError).SendString(err.Error())
-					} else {
-						return c.JSON(feed, "application/feed+json; charset=UTF-8")
 					}
+					feed, err := toJSONFeed(data)
+					if err != nil {
+						log.Print(err)
+						return c.Status(http.StatusInternalServerError).SendString(err.Error())
+					}
+					return c.JSON(feed, "application/feed+json; charset=UTF-8")
 				})
 				cnt++
 			}

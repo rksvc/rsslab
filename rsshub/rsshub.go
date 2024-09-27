@@ -17,16 +17,22 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+type routes map[string]struct {
+	Routes map[string]struct {
+		Location string `json:"location"`
+	} `json:"routes"`
+}
+
 type RSSHub struct {
 	*resty.Client
 
-	srcUrl                   string
-	routeCache, contentCache *cache.Cache
-	routes                   map[string]struct {
-		Routes map[string]struct {
-			Location string `json:"location"`
-		} `json:"routes"`
-	}
+	srcUrl          string
+	routesUrl       string
+	routeCacheTTL   time.Duration
+	contentCacheTTL time.Duration
+	routeCache      *cache.Cache
+	contentCache    *cache.Cache
+	routes          routes
 }
 
 var retryStatusCodes = map[int]struct{}{
@@ -40,11 +46,14 @@ var retryStatusCodes = map[int]struct{}{
 	http.StatusGatewayTimeout:      {},
 }
 
-func NewRSSHub(c cache.ICache, routesUrl, srcUrl string) (*RSSHub, error) {
-	r := &RSSHub{
-		srcUrl:       srcUrl,
-		routeCache:   cache.NewCache(c, 6*time.Hour),
-		contentCache: cache.NewCache(c, time.Hour),
+func NewRSSHub(c cache.ICache, routesUrl, srcUrl string) *RSSHub {
+	return &RSSHub{
+		srcUrl:          srcUrl,
+		routesUrl:       routesUrl,
+		routeCacheTTL:   6 * time.Hour,
+		contentCacheTTL: time.Hour,
+		routeCache:      cache.NewCache(c),
+		contentCache:    cache.NewCache(c),
 
 		Client: resty.
 			New().
@@ -65,24 +74,28 @@ func NewRSSHub(c cache.ICache, routesUrl, srcUrl string) (*RSSHub, error) {
 				}
 			}),
 	}
+}
 
-	v, err := r.routeCache.TryGet(routesUrl, false, func() (any, error) {
-		resp, err := r.R().Get(routesUrl)
+func (r *RSSHub) LoadRoutes() error {
+	var routes routes
+	v, err := r.routeCache.TryGet(r.routesUrl, r.routeCacheTTL, false, func() (any, error) {
+		resp, err := r.R().Get(r.routesUrl)
 		if err != nil {
 			return nil, err
-		} else if status := resp.StatusCode(); status < 200 || status >= 300 {
-			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, routesUrl, resp.Status())
+		} else if resp.IsError() {
+			return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, r.routesUrl, resp.Status())
 		}
 		return resp.Body(), nil
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	err = json.Unmarshal(v.([]byte), &r.routes)
+	err = json.Unmarshal(v.([]byte), &routes)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return r, nil
+	r.routes = routes
+	return nil
 }
 
 var dynamicImport = regexp.MustCompile(`await import\(.+?\)`)
@@ -92,7 +105,7 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.routeCache.TryGet(rawUrl, false, func() (any, error) {
+	data, err := r.routeCache.TryGet(rawUrl, r.routeCacheTTL, false, func() (any, error) {
 		resp, err := r.R().Get(rawUrl)
 		if err != nil {
 			return nil, err
@@ -134,7 +147,7 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.routeCache.TryGet(url, false, func() (any, error) {
+	data, err := r.routeCache.TryGet(url, r.routeCacheTTL, false, func() (any, error) {
 		resp, err := r.R().Get(url)
 		if err != nil {
 			return nil, err

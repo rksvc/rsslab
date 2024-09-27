@@ -5,7 +5,6 @@ import (
 	"flag"
 	"io/fs"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 	"rsslab/cache"
@@ -26,12 +25,16 @@ var addr, redisUrl, database, routesUrl, srcUrl string
 var cc cache.ICache
 var db *storage.Storage
 var api *server.Server
+var rssHub *rsshub.RSSHub
 var srv atomic.Value
 
-const RSSHUB_PATH = "/rsshub"
+//go:embed dist
+var dist embed.FS
+var assets fs.FS
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	assets, _ = fs.Sub(dist, "dist")
 }
 
 func main() {
@@ -68,16 +71,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	rsshubBaseUrl, err := url.Parse("http://" + addr + RSSHUB_PATH)
-	if err != nil {
-		log.Fatal(err)
-	}
-	api = server.New(db, rsshubBaseUrl)
-
 	app := engine()
-	dist, _ := fs.Sub(dist, "dist")
-	app.Use("/", static.New("", static.Config{FS: dist}))
+	app.Use("/", static.New("", static.Config{FS: assets}))
+	api = server.New(db)
+	api.App.Store(app)
 	srv.Store(app)
+	rssHub = rsshub.NewRSSHub(cc, routesUrl, srcUrl)
 
 	go func() {
 		if err := app.Listen(addr); err != nil {
@@ -94,9 +93,6 @@ func main() {
 	}
 }
 
-//go:embed dist
-var dist embed.FS
-
 func engine() *fiber.App {
 	app := fiber.New()
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
@@ -108,16 +104,15 @@ func engine() *fiber.App {
 func reload() bool {
 	log.Printf("loading routes from %s", routesUrl)
 
-	rsshub, err := rsshub.NewRSSHub(cc, routesUrl, srcUrl)
-	if err != nil {
+	if err := rssHub.LoadRoutes(); err != nil {
 		log.Print(err)
 		return false
 	}
 	app := engine()
-	rsshub.Register(app.Group(RSSHUB_PATH))
-	dist, _ := fs.Sub(dist, "dist")
-	app.Use("/", static.New("", static.Config{FS: dist}))
+	rssHub.Register(app)
+	app.Use("/", static.New("", static.Config{FS: assets}))
 
+	api.App.Store(app)
 	if err := srv.Swap(app).(*fiber.App).ShutdownWithTimeout(5 * time.Second); err != nil {
 		log.Print(err)
 	}

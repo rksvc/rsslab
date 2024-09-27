@@ -53,5 +53,4 @@ export type Items = {
 
 export type Settings = {
   refresh_rate: number
-  rsshub_path: string
 }

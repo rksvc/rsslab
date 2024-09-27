@@ -15,21 +15,14 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-var ErrInvalidQueryParameter = errors.New("invalid query parameter")
-var ErrInvalidMethod = errors.New("invalid method")
-var ErrInvalidHeaders = errors.New("invalid headers")
-var ErrInvalidFormData = errors.New("invalid form data")
-var ErrUnsupportedResponseType = errors.New("unsupported response type")
-var ErrUnknownResponseType = errors.New("unknown response type")
-
-type ErrorResponse struct {
-	Method, URL string
-	Status      int
-}
-
-func (r *ErrorResponse) Error() string {
-	return fmt.Sprintf(`%s "%s": %s`, r.Method, r.URL, http.StatusText(r.Status))
-}
+var (
+	ErrInvalidQueryParameter   = errors.New("invalid query parameter")
+	ErrInvalidMethod           = errors.New("invalid method")
+	ErrInvalidHeaders          = errors.New("invalid headers")
+	ErrInvalidFormData         = errors.New("invalid form data")
+	ErrUnsupportedResponseType = errors.New("unsupported response type")
+	ErrUnknownResponseType     = errors.New("unknown response type")
+)
 
 type response struct {
 	URL     string `json:"url"`
@@ -156,8 +149,8 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	resp, err := req.Execute(method, rawUrl)
 	if err != nil {
 		return nil, err
-	} else if status := resp.StatusCode(); status < 200 || status >= 300 {
-		return nil, &ErrorResponse{method, rawUrl, status}
+	} else if resp.IsError() {
+		return nil, fmt.Errorf(`%s "%s": %s`, method, rawUrl, resp.Status())
 	}
 	body := resp.Body()
 

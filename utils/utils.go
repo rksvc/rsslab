@@ -42,3 +42,7 @@ func FirstNonEmpty(vals ...string) string {
 	}
 	return ""
 }
+
+func IsErrorResponse(statusCode int) bool {
+	return statusCode >= 400
+}

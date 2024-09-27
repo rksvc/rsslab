@@ -6,7 +6,7 @@ Routes that require Puppeteer are not currently supported.
 
 Execute the binary and open http://127.0.0.1:9854 in your browser. The RSSHub integration is not ready until you see the `registered ... routes` output on the console.
 
-Additionally, you can view the generated feed in `http://127.0.0.1:9854/rsshub/{route}` like http://127.0.0.1:9854/rsshub/github/issue/DIYgod/RSSHub.
+Additionally, you can view the generated feed in `http://127.0.0.1:9854/{route}` like http://127.0.0.1:9854/github/issue/DIYgod/RSSHub.
 
 Set `https_proxy` environment variable to use the proxy.
 

@@ -13,16 +13,15 @@ type ICache interface {
 
 type Cache struct {
 	ICache
-	ttl time.Duration
-	g   *singleflight.Group
+	g *singleflight.Group
 }
 
-func NewCache(c ICache, ttl time.Duration) *Cache {
-	return &Cache{c, ttl, new(singleflight.Group)}
+func NewCache(c ICache) *Cache {
+	return &Cache{c, new(singleflight.Group)}
 }
 
-func (c *Cache) TryGet(key string, ex bool, f func() (any, error)) (any, error) {
-	val, ok, err := c.Get(key, ex, c.ttl)
+func (c *Cache) TryGet(key string, ttl time.Duration, ex bool, f func() (any, error)) (any, error) {
+	val, ok, err := c.Get(key, ex, ttl)
 	if err != nil {
 		return nil, err
 	} else if ok {
@@ -32,5 +31,5 @@ func (c *Cache) TryGet(key string, ex bool, f func() (any, error)) (any, error) 
 	if err != nil {
 		return nil, err
 	}
-	return val, c.Set(key, val, c.ttl)
+	return val, c.Set(key, val, ttl)
 }
