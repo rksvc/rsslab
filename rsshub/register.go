@@ -1,32 +1,44 @@
 package rsshub
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
-	"rsslab/utils"
+	pathpkg "path"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/cache"
 )
 
-func (r *RSSHub) Register(app *fiber.App) {
-	app.Use(cache.New(cache.Config{
-		Expiration: 5 * time.Minute,
-		CacheInvalidator: func(c fiber.Ctx) bool {
-			return utils.IsErrorResponse(c.Response().StatusCode())
-		},
-	}))
+func (r *RSSHub) Register(app *fiber.App) error {
+	v, err := r.cache.TryGet(r.routesUrl, routeCacheTTL, false, func() (any, error) {
+		resp, err := r.client.NewRequest().Get(r.routesUrl)
+		if err != nil {
+			return nil, err
+		}
+		return resp.Body(), nil
+	})
+	if err != nil {
+		return err
+	}
+	var routes map[string]struct {
+		Routes map[string]struct {
+			Location string `json:"location"`
+		} `json:"routes"`
+	}
+	err = json.Unmarshal(v.([]byte), &routes)
+	if err != nil {
+		return err
+	}
 
 	var total, cnt int
-	for name, routes := range r.routes {
-		namespace := app.Group(name)
+	for namespace, routes := range routes {
+		group := app.Group(namespace)
 		total += len(routes.Routes)
 	register:
 		for path, route := range routes.Routes {
 			register := func(path, extraParam, key string) {
-				namespace.Get(path, func(c fiber.Ctx) error {
+				group.Get(path, func(c fiber.Ctx) error {
 					params := make(map[string]string)
 					for _, param := range c.Route().Params {
 						if value := c.Params(param); value != "" {
@@ -38,10 +50,12 @@ func (r *RSSHub) Register(app *fiber.App) {
 							params[extraParam] = value
 						}
 					}
-					path := string(c.Request().URI().Path())
-					location := strings.TrimSuffix(route.Location, ".ts")
-
-					data, err := r.Data(name, location, NewCtx(path, params, c.Queries()))
+					sourcePath := pathpkg.Join(namespace, strings.TrimSuffix(route.Location, ".ts"))
+					data, err := r.handle(sourcePath, &ctx{Req: req{
+						Path:    string(c.Request().URI().Path()),
+						queries: c.Queries(),
+						params:  params,
+					}})
 					if err != nil {
 						log.Print(err)
 						return c.Status(http.StatusInternalServerError).SendString(err.Error())
@@ -75,11 +89,12 @@ func (r *RSSHub) Register(app *fiber.App) {
 						continue register
 					}
 				}
-				log.Printf("skipped %s%s", name, path)
+				log.Printf("skipped %s%s", namespace, path)
 			} else {
 				register(path, "", "")
 			}
 		}
 	}
 	log.Printf("registered %d routes, skipped %d", cnt, total-cnt)
+	return nil
 }

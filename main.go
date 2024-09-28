@@ -106,16 +106,18 @@ func engine() *fiber.App {
 func reload() bool {
 	log.Printf("loading routes from %s", routesUrl)
 
-	if err := rssHub.LoadRoutes(); err != nil {
+	app := engine()
+	err := rssHub.Register(app)
+	if err != nil {
 		log.Print(err)
 		return false
 	}
-	app := engine()
-	rssHub.Register(app)
+	rssHub.ResetRegistry()
 	app.Use("/", static.New("", static.Config{FS: assets}))
 
 	api.App.Store(app)
-	if err := srv.Swap(app).(*fiber.App).ShutdownWithTimeout(5 * time.Second); err != nil {
+	err = srv.Swap(app).(*fiber.App).ShutdownWithTimeout(5 * time.Second)
+	if err != nil {
 		log.Print(err)
 	}
 	go func() {

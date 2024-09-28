@@ -1,35 +1,100 @@
 package rsshub
 
 import (
-	"encoding/json"
+	"crypto/md5"
+	"embed"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"rsslab/cache"
 	"rsslab/utils"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/dop251/goja"
+	"github.com/dop251/goja_nodejs/require"
 	"github.com/evanw/esbuild/pkg/api"
 	"github.com/go-resty/resty/v2"
 )
 
-type routes map[string]struct {
-	Routes map[string]struct {
-		Location string `json:"location"`
-	} `json:"routes"`
-}
+//go:embed utils
+var lib embed.FS
 
-type RSSHub struct {
-	srcUrl, routesUrl string
-	routeCacheTTL     time.Duration
-	contentCacheTTL   time.Duration
-	cache             *cache.Cache
-	client            *resty.Client
-	routes            routes
+//go:embed third_party
+var third_party embed.FS
+
+const routeCacheTTL = 6 * time.Hour
+
+const nodeModulesPrefix = "node_modules/"
+const rootPrefix = "@/"
+
+func init() {
+	require.RegisterCoreModule("assert", func(vm *goja.Runtime, module *goja.Object) {
+		module.Get("exports").ToObject(vm).Set("strict", func(value goja.Value, message goja.Value) error {
+			if value.ToBoolean() {
+				return nil
+			}
+			return errors.New(message.String())
+		})
+	})
+	require.RegisterCoreModule("path", func(vm *goja.Runtime, module *goja.Object) {
+		o := module.Get("exports").ToObject(vm)
+		o.Set("join", func(elem ...string) string { return path.Join(elem...) })
+		o.Set("dirname", func(p string) string { return path.Dir(p) })
+	})
+	require.RegisterNativeModule("dotenv/config", func(_ *goja.Runtime, _ *goja.Object) {})
+	require.RegisterNativeModule("ofetch", func(_ *goja.Runtime, _ *goja.Object) {})
+	require.RegisterNativeModule("@/utils/md5", func(_ *goja.Runtime, module *goja.Object) {
+		module.Set("exports", func(data string) string { return fmt.Sprintf("%x", md5.Sum([]byte(data))) })
+	})
+	require.RegisterNativeModule("@/utils/rand-user-agent", func(_ *goja.Runtime, module *goja.Object) {
+		module.Set("exports", func() string { return utils.UserAgent })
+	})
+	require.RegisterNativeModule("@/types", func(vm *goja.Runtime, module *goja.Object) {
+		module.Get("exports").ToObject(vm).Set("ViewType", vm.NewObject())
+	})
+	require.RegisterNativeModule("@/utils/logger", func(vm *goja.Runtime, module *goja.Object) {
+		o := module.Get("exports").ToObject(vm)
+		for _, name := range []string{"debug", "info", "warn", "error", "http"} {
+			o.Set(name, func() {})
+		}
+	})
+	require.RegisterNativeModule("@/utils/cache", func(vm *goja.Runtime, module *goja.Object) {
+		module.Get("exports").ToObject(vm).Set("tryGet", func(args ...goja.Value) (goja.Value, error) {
+			tryGet, _ := goja.AssertFunction(vm.Get("$tryGet"))
+			return tryGet(goja.Undefined(), args...)
+		})
+	})
+	for _, words := range [][]string{
+		{"config", "not", "found"},
+		{"invalid", "parameter"},
+		{"not", "found"},
+		{"reject"},
+		{"request", "in", "progress"},
+	} {
+		var name string
+		for _, word := range words {
+			name += strings.ToUpper(word[:1]) + word[1:]
+		}
+		name += "Error"
+		path := rootPrefix + "errors/types/" + strings.Join(words, "-")
+		prg, err := goja.Compile(path, fmt.Sprintf("class %s extends Error{name='%s'}", name, name), true)
+		if err != nil {
+			log.Fatal(err)
+		}
+		require.RegisterNativeModule(path, func(vm *goja.Runtime, module *goja.Object) {
+			result, err := vm.RunProgram(prg)
+			if err != nil {
+				panic(err)
+			}
+			module.Set("exports", result)
+		})
+	}
 }
 
 var retryStatusCodes = map[int]struct{}{
@@ -43,11 +108,18 @@ var retryStatusCodes = map[int]struct{}{
 	http.StatusGatewayTimeout:      {},
 }
 
+type RSSHub struct {
+	srcUrl, routesUrl string
+	contentCacheTTL   time.Duration
+	cache             *cache.Cache
+	client            *resty.Client
+	registry          atomic.Value
+}
+
 func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
-	return &RSSHub{
+	r := &RSSHub{
 		srcUrl:          srcUrl,
 		routesUrl:       routesUrl,
-		routeCacheTTL:   6 * time.Hour,
 		contentCacheTTL: time.Hour,
 		cache:           cache,
 		client: resty.
@@ -72,37 +144,65 @@ func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 				log.Printf(`%s, retry attempt %d`, err, r.Request.Attempt)
 			}),
 	}
+	r.ResetRegistry()
+	return r
 }
 
-func (r *RSSHub) LoadRoutes() error {
-	var routes routes
-	v, err := r.cache.TryGet(r.routesUrl, r.routeCacheTTL, false, func() (any, error) {
-		resp, err := r.client.NewRequest().Get(r.routesUrl)
-		if err != nil {
-			return nil, err
-		}
-		return resp.Body(), nil
+func (r *RSSHub) ResetRegistry() {
+	registry := require.NewRegistryWithLoader(r.sourceLoader)
+	registry.RegisterNativeModule("@/utils/render", func(vm *goja.Runtime, module *goja.Object) {
+		art := require.Require(vm, "art-template").ToObject(vm)
+		render := vm.ToValue(func(filename string, content goja.Value) (goja.Value, error) {
+			source, err := r.file(filename)
+			if err != nil {
+				return goja.Undefined(), err
+			}
+			render, _ := goja.AssertFunction(art.Get("render"))
+			return render(goja.Undefined(), vm.ToValue(string(source)), content, vm.ToValue(map[string]bool{
+				"debug":    false,
+				"minimize": false,
+			}))
+		}).ToObject(vm)
+		render.Set("defaults", art.Get("defaults"))
+		module.Get("exports").ToObject(vm).Set("art", render)
 	})
-	if err != nil {
-		return err
+	r.registry.Store(registry)
+}
+
+func (r *RSSHub) sourceLoader(p string) ([]byte, error) {
+	name := strings.ReplaceAll(p, nodeModulesPrefix, "")
+
+	if i := strings.LastIndex(name, rootPrefix); i != -1 {
+		name := name[i+len(rootPrefix):]
+		if name == "config" {
+			return r.route("lib/config.ts")
+		}
+		data, err := lib.ReadFile(name + ".js")
+		if err != nil {
+			return nil, fmt.Errorf("require %s: %s", rootPrefix+name, require.ModuleFileDoesNotExistError)
+		}
+		return data, nil
 	}
-	err = json.Unmarshal(v.([]byte), &routes)
-	if err != nil {
-		return err
+
+	if i := strings.LastIndex(p, nodeModulesPrefix); i != -1 {
+		data, err := third_party.ReadFile(path.Join("third_party", p[i+len(nodeModulesPrefix):]+".js"))
+		if err == nil {
+			return data, nil
+		}
 	}
-	r.routes = routes
-	return nil
+
+	return r.route(path.Join("lib/routes", name+".ts"))
 }
 
 var dynamicImport = regexp.MustCompile(`await import\(.+?\)`)
 
 func (r *RSSHub) route(path string) ([]byte, error) {
-	rawUrl, err := url.JoinPath(r.srcUrl, path)
+	url, err := url.JoinPath(r.srcUrl, path)
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.cache.TryGet(rawUrl, r.routeCacheTTL, false, func() (any, error) {
-		resp, err := r.client.NewRequest().Get(rawUrl)
+	data, err := r.cache.TryGet(url, routeCacheTTL, false, func() (any, error) {
+		resp, err := r.client.NewRequest().Get(url)
 		if err != nil {
 			return nil, err
 		}
@@ -111,12 +211,8 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 		if path == "lib/config.ts" {
 			code = dynamicImport.ReplaceAllLiteralString(code, "{}")
 		}
-		url, err := url.Parse(rawUrl)
-		if err != nil {
-			return nil, err
-		}
 		result := api.Transform(code, api.TransformOptions{
-			Sourcefile:     url.Path,
+			Sourcefile:     path,
 			Format:         api.FormatCommonJS,
 			Loader:         api.LoaderTS,
 			Sourcemap:      api.SourceMapInline,
@@ -124,9 +220,9 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 			Target:         api.ES2017,
 		})
 		if len(result.Errors) > 0 {
-			return nil, errorf(result.Errors)
+			return nil, utils.Errorf(result.Errors)
 		} else if len(result.Warnings) > 0 {
-			log.Print(errorf(result.Warnings))
+			log.Print(utils.Errorf(result.Warnings))
 		}
 		return result.Code, nil
 	})
@@ -141,7 +237,7 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.cache.TryGet(url, r.routeCacheTTL, false, func() (any, error) {
+	data, err := r.cache.TryGet(url, routeCacheTTL, false, func() (any, error) {
 		resp, err := r.client.NewRequest().Get(url)
 		if err != nil {
 			return nil, err
@@ -152,20 +248,4 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 		return nil, err
 	}
 	return data.([]byte), nil
-}
-
-func errorf(messages []api.Message) error {
-	errs := make([]error, 0, len(messages))
-	for _, m := range messages {
-		var err error
-		if m.Location == nil {
-			err = errors.New(m.Text)
-		} else {
-			err = fmt.Errorf("%s:%d:%d %s, %s",
-				m.Location.File, m.Location.Line,
-				m.Location.Column, m.Text, m.Location.LineText)
-		}
-		errs = append(errs, err)
-	}
-	return errors.Join(errs...)
 }

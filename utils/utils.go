@@ -1,23 +1,15 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/evanw/esbuild/pkg/api"
 	"github.com/go-resty/resty/v2"
 )
 
 var UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-var Env = make(map[string]string)
-
-func init() {
-	for _, kv := range os.Environ() {
-		if i := strings.IndexByte(kv, '='); i >= 0 {
-			Env[kv[:i]] = kv[i+1:]
-		}
-	}
-}
 
 func FirstNonEmpty(vals ...string) string {
 	for _, val := range vals {
@@ -34,4 +26,18 @@ func ResponseError(resp *resty.Response) error {
 
 func IsErrorResponse(statusCode int) bool {
 	return statusCode >= 400
+}
+
+func Errorf(messages []api.Message) error {
+	errs := make([]error, len(messages))
+	for i, m := range messages {
+		var err error
+		if m.Location == nil {
+			err = errors.New(m.Text)
+		} else {
+			err = fmt.Errorf("%s:%d:%d %s", m.Location.File, m.Location.Line, m.Location.Column, m.Text)
+		}
+		errs[i] = err
+	}
+	return errors.Join(errs...)
 }
