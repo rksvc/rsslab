@@ -1,10 +1,10 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
-	"mime"
 	"net/http"
 	"net/url"
 	"rsslab/cache"
@@ -16,31 +16,35 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/mmcdole/gofeed"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/encoding"
 )
 
 type Server struct {
 	App atomic.Value
 
-	db       *storage.Storage
-	client   *http.Client
-	cacheTTL time.Duration
-	cache    *cache.Cache
-
+	db      *storage.Storage
+	client  *http.Client
+	cache   *cache.Cache
 	pending atomic.Int32
-	refresh *time.Ticker
-	stopper chan struct{}
+	refresh chan storage.Feed
+	ticker  *time.Ticker
+	context context.Context
+	cancel  context.CancelFunc
 	mu      sync.Mutex
 }
 
 func New(db *storage.Storage) *Server {
-	return &Server{
-		db:       db,
-		client:   &http.Client{Timeout: 30 * time.Second},
-		cacheTTL: time.Hour,
-		cache:    cache.NewCache(cache.NewLRU()),
+	s := &Server{
+		db:      db,
+		client:  &http.Client{Timeout: 30 * time.Second},
+		cache:   cache.NewCache(cache.NewLRU()),
+		refresh: make(chan storage.Feed),
+		context: context.Background(),
+		cancel:  func() {},
 	}
+	for range 10 {
+		go s.worker()
+	}
+	return s
 }
 
 func (s *Server) Start() {
@@ -61,8 +65,6 @@ func (s *Server) Start() {
 	}
 }
 
-const NUM_WORKERS = 7
-
 func (s *Server) FindFavicons() {
 	for _, feed := range s.db.ListFeedsMissingIcons() {
 		s.FindFeedFavicon(feed)
@@ -70,34 +72,58 @@ func (s *Server) FindFavicons() {
 }
 
 func (s *Server) FindFeedFavicon(feed storage.Feed) {
-	icon := s.findFavicon(feed.Link, feed.FeedLink)
-	if icon == nil {
-		return
+	var icon []byte
+	for _, rawUrl := range []string{feed.Link, feed.FeedLink} {
+		url, err := url.Parse(rawUrl)
+		if err != nil || url.Host == "" {
+			continue
+		}
+		resp, err := s.client.Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+		if utils.IsErrorResponse(resp.StatusCode) {
+			continue
+		}
+		icon, err = io.ReadAll(resp.Body)
+		if err != nil {
+			log.Print(err)
+			icon = nil
+		}
+		break
 	}
-	s.db.UpdateFeedIcon(feed.Id, icon)
+	if len(icon) > 0 {
+		s.db.UpdateFeedIcon(feed.Id, icon)
+	}
 }
 
 func (s *Server) SetRefreshRate(minute int64) {
-	if s.stopper != nil {
-		s.refresh.Stop()
-		s.refresh = nil
-		s.stopper <- struct{}{}
-		s.stopper = nil
-	}
-	if minute == 0 {
+	s.mu.Lock()
+	s.cancel()
+	s.context, s.cancel = context.WithCancel(context.Background())
+	if minute <= 0 {
+		if s.ticker != nil {
+			s.ticker.Stop()
+		}
+		s.mu.Unlock()
 		return
 	}
-
-	s.stopper = make(chan struct{})
-	s.refresh = time.NewTicker(time.Duration(minute) * time.Minute)
+	d := time.Duration(minute) * time.Minute
+	if s.ticker != nil {
+		s.ticker.Reset(d)
+	} else {
+		s.ticker = time.NewTicker(d)
+	}
+	s.mu.Unlock()
 
 	log.Printf("auto-refresh %dm: starting", minute)
 	for {
 		select {
-		case <-s.refresh.C:
+		case <-s.ticker.C:
 			log.Printf("auto-refresh %dm: firing", minute)
 			go s.RefreshAllFeeds()
-		case <-s.stopper:
+		case <-s.context.Done():
 			log.Printf("auto-refresh %dm: stopping", minute)
 			return
 		}
@@ -113,54 +139,30 @@ func (s *Server) RefreshAllFeeds() {
 }
 
 func (s *Server) RefreshFeeds(feeds ...storage.Feed) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	log.Print("refreshing feeds")
-	s.pending.Store(int32(len(feeds)))
-	s.refresher(feeds)
+	log.Printf("refreshing %d feeds", len(feeds))
+	s.pending.Add(int32(len(feeds)))
+	for _, feed := range feeds {
+		s.refresh <- feed
+	}
 }
 
-func (s *Server) refresher(feeds []storage.Feed) {
-	srcQueue := make(chan storage.Feed)
-	dstQueue := make(chan []storage.Item)
-
-	for range NUM_WORKERS {
-		go s.worker(srcQueue, dstQueue)
-	}
-	go func() {
-		for _, feed := range feeds {
-			srcQueue <- feed
-		}
-	}()
-
-	for range feeds {
-		items := <-dstQueue
-		if len(items) > 0 {
-			if s.db.CreateItems(items) == nil {
-				s.db.SetFeedSize(items[0].FeedId, len(items))
-			}
-		}
-		s.pending.Add(-1)
-		s.db.SyncSearch()
-	}
-	close(srcQueue)
-	close(dstQueue)
-
-	log.Printf("finished refreshing %d feeds", len(feeds))
-}
-
-func (s *Server) do(req *http.Request) (*http.Response, error) {
+func (s *Server) do(req *http.Request) (resp *http.Response, err error) {
 	if req.URL.Scheme == "rsshub" {
 		req.URL.Path = "/" + req.URL.Opaque
 		req.URL.Opaque = ""
-		return s.App.Load().(*fiber.App).Test(req, -1)
+		resp, err = s.App.Load().(*fiber.App).Test(req, -1)
+	} else {
+		resp, err = s.client.Do(req)
 	}
-	return s.client.Do(req)
+	if err == nil && utils.IsErrorResponse(resp.StatusCode) {
+		resp.Body.Close()
+		err = utils.ResponseError(resp)
+	}
+	return
 }
 
-func (s *Server) worker(srcQueue <-chan storage.Feed, dstQueue chan<- []storage.Item) {
-	for feed := range srcQueue {
+func (s *Server) worker() {
+	for feed := range s.refresh {
 		items, err := s.listItems(feed)
 		if err != nil {
 			s.db.SetFeedError(feed.Id, err)
@@ -168,17 +170,19 @@ func (s *Server) worker(srcQueue <-chan storage.Feed, dstQueue chan<- []storage.
 			s.db.SetFeedLastRefreshed(feed.Id, time.Now())
 			s.db.ResetFeedError(feed.Id)
 		}
-		dstQueue <- items
+		if len(items) > 0 {
+			s.db.CreateItems(items)
+		}
+		s.pending.Add(-1)
 	}
 }
 
 func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
-	state, err := s.db.GetHTTPState(f.Id)
+	req, err := http.NewRequest("GET", f.FeedLink, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req, err := http.NewRequest("GET", f.FeedLink, nil)
+	state, err := s.db.GetHTTPState(f.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -195,12 +199,10 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotModified {
 		return nil, nil
-	} else if utils.IsErrorResponse(resp.StatusCode) {
-		return nil, fmt.Errorf(`%s "%s": %s`, resp.Request.Method, resp.Request.URL, resp.Status)
 	}
 
 	var body io.Reader = resp.Body
-	if e := getEncoding(resp); e != nil {
+	if e := utils.GetEncoding(resp); e != nil {
 		body = e.NewDecoder().Reader(body)
 	}
 	feed, err := gofeed.NewParser().Parse(body)
@@ -217,26 +219,6 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
 		}
 	}
 	return convertItems(feed.Items, f), nil
-}
-
-func (s *Server) findFavicon(siteUrl, feedUrl string) *[]byte {
-	for _, rawUrl := range []string{siteUrl, feedUrl} {
-		url, err := url.Parse(rawUrl)
-		if err != nil || url.Host == "" {
-			continue
-		}
-		resp, err := s.client.Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
-		if err != nil || utils.IsErrorResponse(resp.StatusCode) {
-			continue
-		}
-		icon, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return nil
-		}
-		return &icon
-	}
-	return nil
 }
 
 func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
@@ -264,15 +246,4 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 		}
 	}
 	return result
-}
-
-func getEncoding(resp *http.Response) encoding.Encoding {
-	contentType := resp.Header.Get("Content-Type")
-	if _, params, err := mime.ParseMediaType(contentType); err == nil {
-		if cs, ok := params["charset"]; ok {
-			e, _ := charset.Lookup(cs)
-			return e
-		}
-	}
-	return nil
 }

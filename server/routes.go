@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"rsslab/storage"
+	"rsslab/utils"
 	"strconv"
 	"time"
 
@@ -153,7 +154,7 @@ func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 	}
 	defer resp.Body.Close()
 	var f io.Reader = resp.Body
-	if e := getEncoding(resp); e != nil {
+	if e := utils.GetEncoding(resp); e != nil {
 		f = e.NewDecoder().Reader(f)
 	}
 	rawFeed, err := gofeed.NewParser().Parse(f)
@@ -174,12 +175,6 @@ func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 	items := convertItems(rawFeed.Items, *feed)
 	if len(items) > 0 {
 		if err = s.db.CreateItems(items); err != nil {
-			return c.Status(http.StatusInternalServerError).SendString(err.Error())
-		}
-		if err = s.db.SetFeedSize(feed.Id, len(items)); err != nil {
-			return c.Status(http.StatusInternalServerError).SendString(err.Error())
-		}
-		if err = s.db.SyncSearch(); err != nil {
 			return c.Status(http.StatusInternalServerError).SendString(err.Error())
 		}
 	}
@@ -227,7 +222,7 @@ func (s *Server) handleFeedIcon(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	dat, err := s.cache.TryGet(strconv.FormatInt(id, 10), s.cacheTTL, true, func() (any, error) {
+	dat, err := s.cache.TryGet(strconv.FormatInt(id, 10), time.Hour, true, func() (any, error) {
 		feed, err := s.db.GetFeed(id)
 		if err != nil {
 			return nil, err

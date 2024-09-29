@@ -3,10 +3,13 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"mime"
+	"net/http"
 	"strings"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/go-resty/resty/v2"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding"
 )
 
 var UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
@@ -20,8 +23,8 @@ func FirstNonEmpty(vals ...string) string {
 	return ""
 }
 
-func ResponseError(resp *resty.Response) error {
-	return fmt.Errorf(`%s "%s": %s`, resp.Request.Method, resp.Request.URL, resp.Status())
+func ResponseError(resp *http.Response) error {
+	return fmt.Errorf(`%s "%s": %s`, resp.Request.Method, resp.Request.URL, resp.Status)
 }
 
 func IsErrorResponse(statusCode int) bool {
@@ -40,4 +43,18 @@ func Errorf(messages []api.Message) error {
 		errs[i] = err
 	}
 	return errors.Join(errs...)
+}
+
+func GetEncoding(resp *http.Response) encoding.Encoding {
+	contentType := resp.Header.Get("Content-Type")
+	_, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return nil
+	}
+	cs, ok := params["charset"]
+	if !ok {
+		return nil
+	}
+	e, _ := charset.Lookup(cs)
+	return e
 }

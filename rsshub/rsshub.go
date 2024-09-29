@@ -122,11 +122,11 @@ func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 		client: resty.
 			New().
 			SetHeader("User-Agent", utils.UserAgent).
-			SetTimeout(time.Minute).
+			SetTimeout(30 * time.Second).
 			SetRetryCount(2).
 			OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
 				if r.IsError() {
-					return utils.ResponseError(r)
+					return utils.ResponseError(r.RawResponse)
 				}
 				return nil
 			}).

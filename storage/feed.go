@@ -82,7 +82,7 @@ func (s *Storage) UpdateFeedFolder(feedId int64, newFolderId *int64) error {
 	return err
 }
 
-func (s *Storage) UpdateFeedIcon(feedId int64, icon *[]byte) {
+func (s *Storage) UpdateFeedIcon(feedId int64, icon []byte) {
 	_, err := s.db.Exec(`update feeds set icon = ? where id = ?`, icon, feedId)
 	if err != nil {
 		log.Print(err)
@@ -271,17 +271,6 @@ func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
 		return nil, err
 	}
 	return result, nil
-}
-
-func (s *Storage) SetFeedSize(feedId int64, size int) error {
-	_, err := s.db.Exec(`
-		update feeds set size = ? where id = ?`,
-		size, feedId,
-	)
-	if err != nil {
-		log.Print(err)
-	}
-	return err
 }
 
 func (s *Storage) GetHTTPState(feedId int64) (*HTTPState, error) {

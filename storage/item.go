@@ -80,9 +80,17 @@ func (s *Storage) CreateItems(items []Item) error {
 		log.Print(err)
 		return err
 	}
+	onError := func(err error) error {
+		log.Output(2, err.Error())
+		if err := tx.Rollback(); err != nil {
+			log.Print(err)
+		}
+		return err
+	}
 	now := time.Now().UTC()
-	for _, item := range slices.Backward(items) {
-		_, err = tx.Exec(`
+	for i := len(items) - 1; i >= 0; i-- {
+		item := items[i]
+		result, err := tx.Exec(`
 			insert into items (
 				guid, feed_id, title, link, date,
 				content, image, podcast_url,
@@ -95,11 +103,44 @@ func (s *Storage) CreateItems(items []Item) error {
 			now, UNREAD,
 		)
 		if err != nil {
-			log.Print(err)
-			if err := tx.Rollback(); err != nil {
-				log.Print(err)
+			return onError(err)
+		}
+		n, err := result.RowsAffected()
+		if err != nil {
+			return onError(err)
+		}
+		if n > 0 {
+			itemId, err := result.LastInsertId()
+			if err != nil {
+				return onError(err)
 			}
-			return err
+			result, err := tx.Exec(`
+				insert into search (title, description, content) values (?, "", ?)`,
+				item.Title, htmlutil.ExtractText(item.Content),
+			)
+			if err != nil {
+				return onError(err)
+			}
+			rowId, err := result.LastInsertId()
+			if err != nil {
+				return onError(err)
+			}
+			_, err = tx.Exec(
+				`update items set search_rowid = ? where id = ?`,
+				rowId, itemId,
+			)
+			if err != nil {
+				return onError(err)
+			}
+		}
+	}
+	if len(items) > 0 {
+		_, err = tx.Exec(`
+			update feeds set size = ? where id = ?`,
+			len(items), items[0].FeedId,
+		)
+		if err != nil {
+			return onError(err)
 		}
 	}
 	err = tx.Commit()
@@ -265,65 +306,6 @@ func (s *Storage) FeedStats() ([]FeedStat, error) {
 		return nil, err
 	}
 	return result, nil
-}
-
-func (s *Storage) SyncSearch() error {
-	rows, err := s.db.Query(`
-		select id, title, content
-		from items
-		where search_rowid is null;
-	`)
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-
-	var items []Item
-	for rows.Next() {
-		var item Item
-		err = rows.Scan(&item.Id, &item.Title, &item.Content)
-		if err != nil {
-			log.Print(err)
-			return err
-		}
-		items = append(items, item)
-	}
-	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return err
-	}
-
-	for _, item := range items {
-		result, err := s.db.Exec(`
-			insert into search (title, description, content) values (?, "", ?)`,
-			item.Title, htmlutil.ExtractText(item.Content),
-		)
-		if err != nil {
-			log.Print(err)
-			return err
-		}
-		n, err := result.RowsAffected()
-		if err != nil {
-			log.Print(err)
-			return err
-		}
-		if n == 1 {
-			rowId, err := result.LastInsertId()
-			if err != nil {
-				log.Print(err)
-				return err
-			}
-			_, err = s.db.Exec(
-				`update items set search_rowid = ? where id = ?`,
-				rowId, item.Id,
-			)
-			if err != nil {
-				log.Print(err)
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 const (

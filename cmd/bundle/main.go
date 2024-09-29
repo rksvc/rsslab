@@ -66,7 +66,7 @@ func bundle() bool {
 			if err != nil {
 				panic(err)
 			} else if resp.IsError() {
-				panic(utils.ResponseError(resp))
+				panic(utils.ResponseError(resp.RawResponse))
 			}
 			files[i].content = resp.Body()
 		}()
