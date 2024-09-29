@@ -80,7 +80,7 @@ func init() {
 		}
 		name += "Error"
 		path := rootPrefix + "errors/types/" + strings.Join(words, "-")
-		prg, err := goja.Compile(path, fmt.Sprintf("class %s extends Error{name='%s'}", name, name), true)
+		prg, err := goja.Compile(path, fmt.Sprintf("(class extends Error{name='%s'})", name), true)
 		if err != nil {
 			log.Fatal(err)
 		}
