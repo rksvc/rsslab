@@ -60,17 +60,14 @@ func newWait() *wait {
 	return &w
 }
 
-func (w *wait) Result() (any, error) {
-	if err, ok := w.Err.(*goja.Exception); ok {
-		w.Err = errors.New(err.String())
-	}
-	return w.Value, w.Err
-}
-
-func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
+func (w *wait) Await(vm *goja.Runtime, promise goja.Value, export bool) {
 	then, _ := goja.AssertFunction(promise.ToObject(vm).Get("then"))
 	_, err := then(promise, vm.ToValue(func(value goja.Value) {
-		w.Value = value.Export()
+		if export {
+			w.Value = value.Export()
+		} else {
+			w.Value = value
+		}
 		w.Done()
 	}), vm.ToValue(func(reason *goja.Object) {
 		if stack := reason.Get("stack"); stack != nil && !goja.IsUndefined(stack) {
@@ -88,7 +85,7 @@ func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 	}
 }
 
-func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
+func (r *RSSHub) handle(sourcePath string, ctx *ctx) (data any, err error) {
 	loop := eventloop.NewEventLoop(eventloop.WithRegistry(r.registry.Load().(*require.Registry)))
 	loop.Start()
 	defer loop.Stop()
@@ -136,9 +133,9 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 				}
 				v, err := r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
 					w := newWait()
-					loop.RunOnLoop(func(vm *goja.Runtime) { w.Await(vm, vm.ToValue(f())) })
+					loop.RunOnLoop(func(vm *goja.Runtime) { w.Await(vm, vm.ToValue(f()), true) })
 					w.Wait()
-					return w.Result()
+					return w.Value, w.Err
 				})
 				var data any
 				if b, ok := v.([]byte); !ok {
@@ -169,8 +166,50 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 			return
 		}
 		w.Add(1)
-		w.Await(vm, v)
+		w.Await(vm, v, false)
 	})
 	w.Wait()
-	return w.Result()
+	if w.Err != nil {
+		return nil, w.Err
+	}
+	w.Add(1)
+	loop.RunOnLoop(func(vm *goja.Runtime) {
+		defer w.Done()
+		value := w.Value.(goja.Value)
+		items := value.ToObject(vm).Get("item")
+		if goja.IsUndefined(items) || goja.IsNull(items) {
+			data = value.Export()
+			return
+		}
+		date := vm.Get("Date")
+		e := vm.Try(func() {
+			vm.ForOf(items, func(item goja.Value) bool {
+				o := item.ToObject(vm)
+				for _, key := range []string{"pubDate", "updated"} {
+					v := o.Get(key)
+					if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
+						continue
+					}
+					v, err := vm.New(date, v)
+					if err != nil {
+						panic(err)
+					}
+					f, _ := goja.AssertFunction(v.ToObject(vm).Get("toISOString"))
+					v, err = f(v)
+					if err != nil {
+						panic(err)
+					}
+					o.Set(key, v)
+				}
+				return true
+			})
+		})
+		if e == nil {
+			data = value.Export()
+		} else {
+			err = e
+		}
+	})
+	w.Wait()
+	return data, err
 }

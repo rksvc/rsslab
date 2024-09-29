@@ -9,53 +9,12 @@ import (
 	"regexp"
 	"rsslab/utils"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
-
-type date time.Time
-
-func (d date) MarshalJSON() ([]byte, error) {
-	return time.Time(d).MarshalJSON()
-}
-
-func (d *date) UnmarshalJSON(data []byte) error {
-	s := string(data)
-	if s == "null" {
-		return nil
-	}
-	msec, err := strconv.ParseInt(s, 10, 64)
-	if err == nil {
-		*d = date(time.UnixMilli(msec))
-		return nil
-	}
-	for _, layout := range []string{
-		time.RubyDate,
-		time.RFC822,
-		time.RFC822Z,
-		time.RFC850,
-		time.RFC1123,
-		time.RFC1123Z,
-		time.RFC3339,
-		time.DateTime,
-		time.DateOnly,
-		"Mon, 02 Jan 2006 15:04:05 MST",
-		// https://stackoverflow.com/q/25953158
-		"Mon, 02 Jan 2006 15:04:05 Z0700",
-	} {
-		var t time.Time
-		t, err = time.Parse(`"`+layout+`"`, s)
-		if err == nil {
-			*d = date(t)
-			return nil
-		}
-	}
-	return err
-}
 
 type data struct {
 	Title       string     `json:"title"`
@@ -69,23 +28,23 @@ type data struct {
 }
 
 type dataItem struct {
-	Title           string `json:"title"`
-	Description     string `json:"description"`
-	PubDate         *date  `json:"pubDate"`
-	Updated         *date  `json:"updated"`
-	Link            string `json:"link"`
-	Category        any    `json:"category"`
-	Author          any    `json:"author"`
-	Guid            string `json:"guid"`
-	Id              string `json:"id"`
-	Image           string `json:"image"`
-	Banner          string `json:"banner"`
-	Language        string `json:"language"`
-	EnclosureUrl    string `json:"enclosure_url"`
-	EnclosureType   string `json:"enclosure_type"`
-	EnclosureTitle  string `json:"enclosure_title"`
-	EnclosureLength int    `json:"enclosure_length"`
-	ItunesDuration  any    `json:"itunes_duration"`
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	PubDate         *time.Time `json:"pubDate"`
+	Updated         *time.Time `json:"updated"`
+	Link            string     `json:"link"`
+	Category        any        `json:"category"`
+	Author          any        `json:"author"`
+	Guid            string     `json:"guid"`
+	Id              string     `json:"id"`
+	Image           string     `json:"image"`
+	Banner          string     `json:"banner"`
+	Language        string     `json:"language"`
+	EnclosureUrl    string     `json:"enclosure_url"`
+	EnclosureType   string     `json:"enclosure_type"`
+	EnclosureTitle  string     `json:"enclosure_title"`
+	EnclosureLength int        `json:"enclosure_length"`
+	ItunesDuration  any        `json:"itunes_duration"`
 	Content         struct {
 		Html string `json:"html"`
 		Text string `json:"text"`
@@ -112,8 +71,8 @@ type jsonFeedItem struct {
 	ContentText   string       `json:"content_text,omitempty"`
 	Image         string       `json:"image,omitempty"`
 	BannerImage   string       `json:"banner_image,omitempty"`
-	DatePublished *date        `json:"date_published,omitempty"`
-	DateModified  *date        `json:"date_modified,omitempty"`
+	DatePublished *time.Time   `json:"date_published,omitempty"`
+	DateModified  *time.Time   `json:"date_modified,omitempty"`
 	Authors       []author     `json:"authors,omitempty"`
 	Tags          []string     `json:"tags,omitempty"`
 	Language      string       `json:"language,omitempty"`

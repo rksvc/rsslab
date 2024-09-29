@@ -2,11 +2,13 @@ package rsshub
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	pathpkg "path"
 	"strings"
 
+	"github.com/dop251/goja"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -57,7 +59,9 @@ func (r *RSSHub) Register(app *fiber.App) error {
 						params:  params,
 					}})
 					if err != nil {
-						log.Print(err)
+						if e, ok := err.(*goja.Exception); ok {
+							err = errors.New(e.String())
+						}
 						return c.Status(http.StatusInternalServerError).SendString(err.Error())
 					}
 					feed, err := toJSONFeed(data)
