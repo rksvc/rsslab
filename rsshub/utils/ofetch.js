@@ -15,6 +15,6 @@ async function ofetch(request, options) {
   return response.data
 }
 
-ofetch.raw = (request, options) => raw(request, options)
+ofetch.raw = raw
 
 module.exports = ofetch

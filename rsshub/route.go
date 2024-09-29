@@ -2,9 +2,10 @@
 package rsshub
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -16,6 +17,18 @@ import (
 	"github.com/dop251/goja_nodejs/require"
 	"github.com/dop251/goja_nodejs/url"
 )
+
+//go:embed handler.js
+var handler string
+var handlerPrg *goja.Program
+
+func init() {
+	prg, err := goja.Compile("", handler, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	handlerPrg = prg
+}
 
 type ctx struct {
 	Req req `json:"req"`
@@ -60,14 +73,10 @@ func newWait() *wait {
 	return &w
 }
 
-func (w *wait) Await(vm *goja.Runtime, promise goja.Value, export bool) {
+func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 	then, _ := goja.AssertFunction(promise.ToObject(vm).Get("then"))
 	_, err := then(promise, vm.ToValue(func(value goja.Value) {
-		if export {
-			w.Value = value.Export()
-		} else {
-			w.Value = value
-		}
+		w.Value = value.Export()
 		w.Done()
 	}), vm.ToValue(func(reason *goja.Object) {
 		if stack := reason.Get("stack"); stack != nil && !goja.IsUndefined(stack) {
@@ -85,7 +94,7 @@ func (w *wait) Await(vm *goja.Runtime, promise goja.Value, export bool) {
 	}
 }
 
-func (r *RSSHub) handle(sourcePath string, ctx *ctx) (data any, err error) {
+func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 	loop := eventloop.NewEventLoop(eventloop.WithRegistry(r.registry.Load().(*require.Registry)))
 	loop.Start()
 	defer loop.Stop()
@@ -133,7 +142,7 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (data any, err error) {
 				}
 				v, err := r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
 					w := newWait()
-					loop.RunOnLoop(func(vm *goja.Runtime) { w.Await(vm, vm.ToValue(f()), true) })
+					loop.RunOnLoop(func(vm *goja.Runtime) { w.Await(vm, vm.ToValue(f())) })
 					w.Wait()
 					return w.Value, w.Err
 				})
@@ -156,60 +165,18 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (data any, err error) {
 
 		defer w.Done()
 		var v goja.Value
-		v, w.Err = vm.RunString(fmt.Sprintf("require('./%s').route.handler", sourcePath))
+		v, w.Err = vm.RunProgram(handlerPrg)
 		if w.Err != nil {
 			return
 		}
 		handler, _ := goja.AssertFunction(v)
-		v, w.Err = handler(goja.Undefined(), vm.ToValue(ctx))
+		v, w.Err = handler(goja.Undefined(), vm.ToValue(sourcePath), vm.ToValue(ctx))
 		if w.Err != nil {
 			return
 		}
 		w.Add(1)
-		w.Await(vm, v, false)
+		w.Await(vm, v)
 	})
 	w.Wait()
-	if w.Err != nil {
-		return nil, w.Err
-	}
-	w.Add(1)
-	loop.RunOnLoop(func(vm *goja.Runtime) {
-		defer w.Done()
-		value := w.Value.(goja.Value)
-		items := value.ToObject(vm).Get("item")
-		if goja.IsUndefined(items) || goja.IsNull(items) {
-			data = value.Export()
-			return
-		}
-		date := vm.Get("Date")
-		e := vm.Try(func() {
-			vm.ForOf(items, func(item goja.Value) bool {
-				o := item.ToObject(vm)
-				for _, key := range []string{"pubDate", "updated"} {
-					v := o.Get(key)
-					if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
-						continue
-					}
-					v, err := vm.New(date, v)
-					if err != nil {
-						panic(err)
-					}
-					f, _ := goja.AssertFunction(v.ToObject(vm).Get("toISOString"))
-					v, err = f(v)
-					if err != nil {
-						panic(err)
-					}
-					o.Set(key, v)
-				}
-				return true
-			})
-		})
-		if e == nil {
-			data = value.Export()
-		} else {
-			err = e
-		}
-	})
-	w.Wait()
-	return data, err
+	return w.Value, w.Err
 }

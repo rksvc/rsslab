@@ -1,5 +1,6 @@
 node_modules
 /dist
 /rsshub/**/*.js
+!handler.js
 !got.js
 !ofetch.js
