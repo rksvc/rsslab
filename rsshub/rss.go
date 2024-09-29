@@ -194,11 +194,11 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 			doc.Find("script").Remove()
 			for _, s := range doc.Find("img").EachIter() {
 				if _, exists := s.Attr("src"); !exists {
-					var src string
-					if src, exists = s.Attr("data-src"); !exists {
-						src, _ = s.Attr("data-original")
+					src, exists := s.Attr("data-src")
+					if !exists {
+						src, exists = s.Attr("data-original")
 					}
-					if src != "" {
+					if exists {
 						s.SetAttr("src", src)
 					}
 				}
@@ -256,7 +256,7 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 	feed.Description = utils.FirstNonEmpty(data.Description, data.Title)
 	feed.Icon = data.Image
 	if data.Author != nil {
-		feed.Authors = append(feed.Authors, author{Name: fmt.Sprintf("%v", data.Author)})
+		feed.Authors = []author{{Name: fmt.Sprintf("%v", data.Author)}}
 	}
 	feed.Language = data.Language
 	feed.Items = make([]jsonFeedItem, len(data.Item))
@@ -275,24 +275,21 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 		dst.Tags = toStringArray(src.Category)
 		dst.Language = src.Language
 		if src.EnclosureUrl != "" {
-			dst.Attachments = append(dst.Attachments, attachment{
+			dst.Attachments = []attachment{{
 				Url:               src.EnclosureUrl,
 				MimeType:          src.EnclosureType,
 				Title:             src.EnclosureTitle,
 				SizeInBytes:       src.EnclosureLength,
 				DurationInSeconds: src.ItunesDuration,
-			})
+			}}
 		}
 	}
 	return
 }
 
-func toStringArray(v any) []string {
-	if v == nil {
-		return nil
-	}
-	var a []string
+func toStringArray(v any) (a []string) {
 	switch v := v.(type) {
+	case nil:
 	case []any:
 		for _, v := range v {
 			if v != nil {
@@ -302,30 +299,35 @@ func toStringArray(v any) []string {
 	default:
 		a = append(a, fmt.Sprintf("%v", v))
 	}
-	return a
+	return
 }
 
-func toAuthorArray(v any) []author {
-	if v == nil {
-		return nil
-	}
-	var a []author
+func toAuthorArray(v any) (a []author) {
 	switch v := v.(type) {
+	case nil:
 	case []any:
 		for _, v := range v {
 			switch v := v.(type) {
 			case string:
 				a = append(a, author{Name: v})
 			case map[string]any:
-				if v := v["name"]; v != nil {
-					a = append(a, author{Name: fmt.Sprintf("%v", v)})
+				var author author
+				if name, ok := v["name"]; ok && name != nil {
+					author.Name = fmt.Sprintf("%v", name)
 				}
+				if url, ok := v["url"]; ok && url != nil {
+					author.URL = fmt.Sprintf("%v", url)
+				}
+				if avatar, ok := v["avatar"]; ok && avatar != nil {
+					author.Avatar = fmt.Sprintf("%v", avatar)
+				}
+				a = append(a, author)
 			}
 		}
 	default:
 		a = append(a, author{Name: fmt.Sprintf("%v", v)})
 	}
-	return a
+	return
 }
 
 var whitespaces = regexp.MustCompile(`\s+`)

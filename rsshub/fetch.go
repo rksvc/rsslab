@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -16,12 +15,12 @@ import (
 )
 
 var (
-	ErrInvalidQueryParameter   = errors.New("invalid query parameter")
-	ErrInvalidMethod           = errors.New("invalid method")
-	ErrInvalidHeaders          = errors.New("invalid headers")
-	ErrInvalidFormData         = errors.New("invalid form data")
-	ErrUnsupportedResponseType = errors.New("unsupported response type")
-	ErrUnknownResponseType     = errors.New("unknown response type")
+	errInvalidQueryParameter   = errors.New("invalid query parameter")
+	errInvalidMethod           = errors.New("invalid method")
+	errInvalidHeaders          = errors.New("invalid headers")
+	errInvalidFormData         = errors.New("invalid form data")
+	errUnsupportedResponseType = errors.New("unsupported response type")
+	errUnknownResponseType     = errors.New("unknown response type")
 )
 
 type response struct {
@@ -33,22 +32,11 @@ type response struct {
 }
 
 type headers struct {
-	h  http.Header
-	vm *goja.Runtime
+	m map[string]goja.Value
 }
 
 func (h *headers) Get(key string) goja.Value {
-	switch key {
-	case "getSetCookie":
-		return h.vm.ToValue(func() []string {
-			return h.h.Values("Set-Cookie")
-		})
-	case "get":
-		return h.vm.ToValue(func(key string) string {
-			return h.h.Get(key)
-		})
-	}
-	return nil
+	return h.m[key]
 }
 
 func (h *headers) Set(key string, val goja.Value) bool {
@@ -56,7 +44,8 @@ func (h *headers) Set(key string, val goja.Value) bool {
 }
 
 func (h *headers) Has(key string) bool {
-	return len(h.h.Values(key)) > 0
+	_, ok := h.m[key]
+	return ok
 }
 
 func (h *headers) Delete(key string) bool {
@@ -64,24 +53,24 @@ func (h *headers) Delete(key string) bool {
 }
 
 func (h *headers) Keys() []string {
-	return slices.Collect(maps.Keys(h.h))
+	return slices.Collect(maps.Keys(h.m))
 }
 
 func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	rawUrl := toString(opts["url"])
 	req := r.client.NewRequest()
 
-	if queryParams, ok := opts["query"]; ok {
-		switch queryParams := queryParams.(type) {
+	if query, ok := opts["query"]; ok {
+		switch query := query.(type) {
 		case map[string]any:
-			for param, value := range queryParams {
+			for param, value := range query {
 				req.SetQueryParam(param, toString(value))
 			}
 		case string:
-			req.SetQueryString(queryParams)
+			req.SetQueryString(query)
 		case nil:
 		default:
-			return nil, ErrInvalidQueryParameter
+			return nil, errInvalidQueryParameter
 		}
 	}
 
@@ -106,7 +95,7 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 			resty.MethodDelete, resty.MethodOptions, resty.MethodPatch:
 			method = m
 		default:
-			return nil, fmt.Errorf("%w %s", ErrInvalidMethod, m)
+			return nil, fmt.Errorf("%w %s", errInvalidMethod, m)
 		}
 	}
 
@@ -127,22 +116,22 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	}
 
 	if headers, ok := opts["headers"]; ok {
-		if headers, ok := headers.(map[string]any); ok {
-			for header, value := range headers {
-				req.SetHeader(header, toString(value))
-			}
-		} else {
-			return nil, ErrInvalidHeaders
+		headers, ok := headers.(map[string]any)
+		if !ok {
+			return nil, errInvalidHeaders
+		}
+		for header, value := range headers {
+			req.SetHeader(header, toString(value))
 		}
 	}
 
 	if form, ok := opts["form"]; ok {
-		if form, ok := form.(map[string]any); ok {
-			for key, value := range form {
-				req.FormData.Set(key, toString(value))
-			}
-		} else {
-			return nil, ErrInvalidFormData
+		form, ok := form.(map[string]any)
+		if !ok {
+			return nil, errInvalidFormData
+		}
+		for key, value := range form {
+			req.FormData.Set(key, toString(value))
 		}
 	}
 
@@ -155,12 +144,12 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	response := new(response)
 	switch toString(opts["responseType"]) {
 	case "blob", "stream":
-		return nil, ErrUnsupportedResponseType
+		return nil, errUnsupportedResponseType
 	case "buffer":
 		response.Body = body
 		response.Data = body
 	case "text":
-		if err = decode(&body, opts); err != nil {
+		if body, err = tryDecode(body, opts); err != nil {
 			return nil, err
 		}
 		response.Body = string(body)
@@ -170,26 +159,24 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 			response.Body = ""
 			response.Data = ""
 		} else {
-			if err = decode(&body, opts); err != nil {
+			if body, err = tryDecode(body, opts); err != nil {
 				return nil, err
-			} else if err = json.Unmarshal(body, &response.Body); err != nil {
+			}
+			if err = json.Unmarshal(body, &response.Body); err != nil {
 				return nil, err
 			}
 			response.Data = response.Body
 		}
 	case "":
-		if err = decode(&body, opts); err != nil {
+		if body, err = tryDecode(body, opts); err != nil {
 			return nil, err
 		}
 		response.Body = string(body)
-		var data any
-		if json.Unmarshal(body, &data) == nil {
-			response.Data = data
-		} else {
+		if json.Unmarshal(body, &response.Data) != nil {
 			response.Data = response.Body
 		}
 	default:
-		return nil, ErrUnknownResponseType
+		return nil, errUnknownResponseType
 	}
 
 	response.URL = resp.Request.URL
@@ -198,15 +185,11 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	return response, nil
 }
 
-func decode(body *[]byte, opts map[string]any) error {
+func tryDecode(body []byte, opts map[string]any) ([]byte, error) {
 	if e, _ := charset.Lookup(toString(opts["encoding"])); e != nil {
-		b, err := e.NewDecoder().Bytes(*body)
-		if err != nil {
-			return err
-		}
-		*body = b
+		return e.NewDecoder().Bytes(body)
 	}
-	return nil
+	return body, nil
 }
 
 func toString(v any) string {
