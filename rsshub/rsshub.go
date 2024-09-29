@@ -65,10 +65,7 @@ func init() {
 		}
 	})
 	require.RegisterNativeModule("@/utils/cache", func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("tryGet", func(args ...goja.Value) (goja.Value, error) {
-			tryGet, _ := goja.AssertFunction(vm.Get("$tryGet"))
-			return tryGet(goja.Undefined(), args...)
-		})
+		module.Get("exports").ToObject(vm).Set("tryGet", vm.Get("$tryGet"))
 	})
 	for _, words := range [][]string{
 		{"config", "not", "found"},
