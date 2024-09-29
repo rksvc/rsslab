@@ -45,17 +45,6 @@ func main() {
 	flag.StringVar(&routesUrl, "routes", "https://raw.githubusercontent.com/DIYgod/RSSHub/gh-pages/build/routes.json", "routes `url`")
 	flag.StringVar(&srcUrl, "src", "https://unpkg.com/rsshub", "source code `url` prefix")
 	flag.Parse()
-	if database == "" {
-		dir, err := os.UserConfigDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		dir = filepath.Join(dir, "rsslab")
-		if err = os.MkdirAll(dir, 0755); err != nil {
-			log.Fatal(err)
-		}
-		database = filepath.Join(dir, "storage.db")
-	}
 
 	var c cache.ICache
 	if noCache {
@@ -67,19 +56,29 @@ func main() {
 	}
 	cc = cache.NewCache(c)
 
+	if database == "" {
+		dir, err := os.UserConfigDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		dir = filepath.Join(dir, "rsslab")
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			log.Fatal(err)
+		}
+		database = filepath.Join(dir, "storage.db")
+	}
 	var err error
 	db, err = storage.New(database)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	app := engine()
-	app.Use("/", static.New("", static.Config{FS: assets}))
 	api = server.New(db)
-	api.App.Store(app)
-	srv.Store(app)
 	rssHub = rsshub.NewRSSHub(cc, routesUrl, srcUrl)
 
+	app := engine()
+	app.Use("/", static.New("", static.Config{FS: assets}))
+	srv.Store(app)
 	go func() {
 		if err := app.Listen(addr); err != nil {
 			log.Fatal(err)
