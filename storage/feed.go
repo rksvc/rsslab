@@ -7,8 +7,8 @@ import (
 )
 
 type Feed struct {
-	Id            int64      `json:"id"`
-	FolderId      *int64     `json:"folder_id"`
+	Id            int        `json:"id"`
+	FolderId      *int       `json:"folder_id"`
 	Title         string     `json:"title"`
 	Description   string     `json:"description,omitempty"`
 	Link          string     `json:"link,omitempty"`
@@ -23,11 +23,11 @@ type HTTPState struct {
 	Etag         *string
 }
 
-func (s *Storage) CreateFeed(title, description, link, feedLink string, folderId *int64) (*Feed, error) {
+func (s *Storage) CreateFeed(title, description, link, feedLink string, folderId *int) (*Feed, error) {
 	if title == "" {
 		title = feedLink
 	}
-	var id int64
+	var id int
 	err := s.db.QueryRow(`
 		insert into feeds (title, description, link, feed_link, folder_id) 
 		values (?, ?, ?, ?, ?)
@@ -50,7 +50,7 @@ func (s *Storage) CreateFeed(title, description, link, feedLink string, folderId
 	}, nil
 }
 
-func (s *Storage) DeleteFeed(feedId int64) error {
+func (s *Storage) DeleteFeed(feedId int) error {
 	_, err := s.db.Exec(`delete from feeds where id = ?`, feedId)
 	if err != nil {
 		log.Print(err)
@@ -58,7 +58,7 @@ func (s *Storage) DeleteFeed(feedId int64) error {
 	return err
 }
 
-func (s *Storage) RenameFeed(feedId int64, newTitle string) error {
+func (s *Storage) RenameFeed(feedId int, newTitle string) error {
 	_, err := s.db.Exec(`update feeds set title = ? where id = ?`, newTitle, feedId)
 	if err != nil {
 		log.Print(err)
@@ -66,7 +66,7 @@ func (s *Storage) RenameFeed(feedId int64, newTitle string) error {
 	return err
 }
 
-func (s *Storage) EditFeedLink(feedId int64, newFeedLink string) error {
+func (s *Storage) EditFeedLink(feedId int, newFeedLink string) error {
 	_, err := s.db.Exec(`update feeds set feed_link = ? where id = ?`, newFeedLink, feedId)
 	if err != nil {
 		log.Print(err)
@@ -74,7 +74,7 @@ func (s *Storage) EditFeedLink(feedId int64, newFeedLink string) error {
 	return err
 }
 
-func (s *Storage) UpdateFeedFolder(feedId int64, newFolderId *int64) error {
+func (s *Storage) UpdateFeedFolder(feedId int, newFolderId *int) error {
 	_, err := s.db.Exec(`update feeds set folder_id = ? where id = ?`, newFolderId, feedId)
 	if err != nil {
 		log.Print(err)
@@ -82,7 +82,7 @@ func (s *Storage) UpdateFeedFolder(feedId int64, newFolderId *int64) error {
 	return err
 }
 
-func (s *Storage) UpdateFeedIcon(feedId int64, icon []byte) {
+func (s *Storage) UpdateFeedIcon(feedId int, icon []byte) {
 	_, err := s.db.Exec(`update feeds set icon = ? where id = ?`, icon, feedId)
 	if err != nil {
 		log.Print(err)
@@ -157,7 +157,7 @@ func (s *Storage) ListFeedsMissingIcons() []Feed {
 	return result
 }
 
-func (s *Storage) GetFeed(id int64) (*Feed, error) {
+func (s *Storage) GetFeed(id int) (*Feed, error) {
 	var f Feed
 	err := s.db.QueryRow(`
 		select id, link, feed_link, icon
@@ -173,7 +173,7 @@ func (s *Storage) GetFeed(id int64) (*Feed, error) {
 	return &f, nil
 }
 
-func (s *Storage) GetFeeds(folderId int64) ([]Feed, error) {
+func (s *Storage) GetFeeds(folderId int) ([]Feed, error) {
 	rows, err := s.db.Query(`
 		select id, feed_link
 		from feeds
@@ -201,7 +201,7 @@ func (s *Storage) GetFeeds(folderId int64) ([]Feed, error) {
 	return result, nil
 }
 
-func (s *Storage) ResetFeedError(feedId int64) {
+func (s *Storage) ResetFeedError(feedId int) {
 	_, err := s.db.Exec(`
 		update feeds set error = null where id = ?`, feedId,
 	)
@@ -210,7 +210,7 @@ func (s *Storage) ResetFeedError(feedId int64) {
 	}
 }
 
-func (s *Storage) SetFeedError(feedId int64, lastError error) {
+func (s *Storage) SetFeedError(feedId int, lastError error) {
 	_, err := s.db.Exec(`
 		update feeds set error = ? where id = ?`,
 		lastError.Error(), feedId,
@@ -220,7 +220,7 @@ func (s *Storage) SetFeedError(feedId int64, lastError error) {
 	}
 }
 
-func (s *Storage) GetFeedErrors() (map[int64]string, error) {
+func (s *Storage) GetFeedErrors() (map[int]string, error) {
 	rows, err := s.db.Query(`
 		select id, error from feeds where error is not null`,
 	)
@@ -229,9 +229,9 @@ func (s *Storage) GetFeedErrors() (map[int64]string, error) {
 		return nil, err
 	}
 
-	errors := make(map[int64]string)
+	errors := make(map[int]string)
 	for rows.Next() {
-		var id int64
+		var id int
 		var error string
 		if err = rows.Scan(&id, &error); err != nil {
 			log.Print(err)
@@ -273,7 +273,7 @@ func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
 	return result, nil
 }
 
-func (s *Storage) GetHTTPState(feedId int64) (*HTTPState, error) {
+func (s *Storage) GetHTTPState(feedId int) (*HTTPState, error) {
 	var state HTTPState
 	err := s.db.QueryRow(`
 		select last_modified, etag
@@ -292,7 +292,7 @@ func (s *Storage) GetHTTPState(feedId int64) (*HTTPState, error) {
 	return &state, nil
 }
 
-func (s *Storage) SetHTTPState(feedId int64, lastModified, etag string) error {
+func (s *Storage) SetHTTPState(feedId int, lastModified, etag string) error {
 	_, err := s.db.Exec(`
 		update feeds set last_modified = ?, etag = ?
 		where id = ?`,
@@ -304,7 +304,7 @@ func (s *Storage) SetHTTPState(feedId int64, lastModified, etag string) error {
 	return err
 }
 
-func (s *Storage) SetFeedLastRefreshed(feedId int64, lastRefreshed time.Time) error {
+func (s *Storage) SetFeedLastRefreshed(feedId int, lastRefreshed time.Time) error {
 	_, err := s.db.Exec(`
 		update feeds set last_refreshed = ? where id = ?`,
 		lastRefreshed.UTC(), feedId,

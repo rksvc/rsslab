@@ -39,13 +39,13 @@ func (s *Storage) GetSettingsValue(key string) (any, error) {
 	return valDecoded, nil
 }
 
-func (s *Storage) GetSettingsValueInt64(key string) (int64, error) {
+func (s *Storage) GetSettingsValueInt(key string) (int, error) {
 	val, err := s.GetSettingsValue(key)
 	if err != nil {
 		log.Print(err)
 		return 0, err
 	} else if fval, ok := val.(float64); ok {
-		return int64(fval), nil
+		return int(fval), nil
 	}
 	return 0, nil
 }

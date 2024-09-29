@@ -31,6 +31,8 @@ var StatusValues = map[string]ItemStatus{
 	"starred": STARRED,
 }
 
+var errInvalidValue = fmt.Errorf("invalid value for %T", ItemStatus(0))
+
 func (s ItemStatus) MarshalJSON() ([]byte, error) {
 	return json.Marshal(StatusRepresentations[s])
 }
@@ -40,14 +42,27 @@ func (s *ItemStatus) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &str); err != nil {
 		return err
 	}
-	*s = StatusValues[str]
+	v, ok := StatusValues[str]
+	if !ok {
+		return errInvalidValue
+	}
+	*s = v
+	return nil
+}
+
+func (s *ItemStatus) UnmarshalText(text []byte) error {
+	v, ok := StatusValues[string(text)]
+	if !ok {
+		return errInvalidValue
+	}
+	*s = v
 	return nil
 }
 
 type Item struct {
-	Id       int64      `json:"id"`
+	Id       int        `json:"id"`
 	GUID     string     `json:"guid"`
-	FeedId   int64      `json:"feed_id"`
+	FeedId   int        `json:"feed_id"`
 	Title    string     `json:"title"`
 	Link     string     `json:"link"`
 	Content  string     `json:"content"`
@@ -58,16 +73,16 @@ type Item struct {
 }
 
 type ItemFilter struct {
-	FolderId *int64
-	FeedId   *int64
-	Status   *ItemStatus
-	Search   *string
-	After    *int64
+	FolderId *int        `json:"folder_id" query:"folder_id"`
+	FeedId   *int        `json:"feed_id" query:"feed_id"`
+	Status   *ItemStatus `json:"status" query:"status"`
+	Search   *string     `json:"search" query:"search"`
+	After    *int        `json:"after" query:"after"`
 }
 
 type MarkFilter struct {
-	FolderId *int64
-	FeedId   *int64
+	FolderId *int
+	FeedId   *int
 }
 
 func (s *Storage) CreateItems(items []Item) error {
@@ -230,7 +245,7 @@ func (s *Storage) ListItems(filter ItemFilter, limit int, newestFirst bool) ([]I
 	return result, nil
 }
 
-func (s *Storage) GetItem(id int64) (*Item, error) {
+func (s *Storage) GetItem(id int) (*Item, error) {
 	i := new(Item)
 	err := s.db.QueryRow(`
 		select
@@ -248,8 +263,8 @@ func (s *Storage) GetItem(id int64) (*Item, error) {
 	return i, err
 }
 
-func (s *Storage) UpdateItemStatus(item_id int64, status ItemStatus) error {
-	_, err := s.db.Exec(`update items set status = ? where id = ?`, status, item_id)
+func (s *Storage) UpdateItemStatus(itemId int, status ItemStatus) error {
+	_, err := s.db.Exec(`update items set status = ? where id = ?`, status, itemId)
 	if err != nil {
 		log.Print(err)
 	}
@@ -273,9 +288,9 @@ func (s *Storage) MarkItemsRead(filter MarkFilter) error {
 }
 
 type FeedStat struct {
-	FeedId       int64 `json:"feed_id"`
-	UnreadCount  int64 `json:"unread"`
-	StarredCount int64 `json:"starred"`
+	FeedId       int `json:"feed_id"`
+	UnreadCount  int `json:"unread"`
+	StarredCount int `json:"starred"`
 }
 
 func (s *Storage) FeedStats() ([]FeedStat, error) {
@@ -330,9 +345,9 @@ func (s *Storage) DeleteOldItems() {
 		log.Print(err)
 		return
 	}
-	feedLimits := make(map[int64]int64)
+	feedLimits := make(map[int]int)
 	for rows.Next() {
-		var feedId, limit int64
+		var feedId, limit int
 		err = rows.Scan(&feedId, &limit)
 		if err != nil {
 			log.Print(err)

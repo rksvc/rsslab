@@ -137,7 +137,7 @@ export default function ItemList({
   ) => {
     await xfetch(`./api/feeds/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ [attrName]: value }),
+      body: JSON.stringify({ [attrName]: value ?? -1 }),
     })
     setFeeds(feeds =>
       feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)),

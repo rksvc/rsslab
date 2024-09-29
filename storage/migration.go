@@ -6,10 +6,9 @@ import (
 	"log"
 )
 
-var maxVersion = int64(len(migrations))
-
 func migrate(db *sql.DB) error {
-	var version int64
+	var maxVersion = len(migrations)
+	var version int
 	err := db.QueryRow("pragma user_version").Scan(&version)
 	if err != nil {
 		return err

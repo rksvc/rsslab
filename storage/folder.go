@@ -3,14 +3,14 @@ package storage
 import "log"
 
 type Folder struct {
-	Id         int64  `json:"id"`
+	Id         int    `json:"id"`
 	Title      string `json:"title"`
 	IsExpanded bool   `json:"is_expanded"`
 }
 
 func (s *Storage) CreateFolder(title string) (*Folder, error) {
 	expanded := true
-	var id int64
+	var id int
 	err := s.db.QueryRow(`
 		insert into folders (title, is_expanded) values (?, ?)
 		on conflict (title) do update set title = ?
@@ -26,7 +26,7 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 	return &Folder{Id: id, Title: title, IsExpanded: expanded}, nil
 }
 
-func (s *Storage) DeleteFolder(folderId int64) error {
+func (s *Storage) DeleteFolder(folderId int) error {
 	_, err := s.db.Exec(`delete from folders where id = ?`, folderId)
 	if err != nil {
 		log.Print(err)
@@ -34,7 +34,7 @@ func (s *Storage) DeleteFolder(folderId int64) error {
 	return err
 }
 
-func (s *Storage) RenameFolder(folderId int64, newTitle string) error {
+func (s *Storage) RenameFolder(folderId int, newTitle string) error {
 	_, err := s.db.Exec(`update folders set title = ? where id = ?`, newTitle, folderId)
 	if err != nil {
 		log.Print(err)
@@ -42,7 +42,7 @@ func (s *Storage) RenameFolder(folderId int64, newTitle string) error {
 	return err
 }
 
-func (s *Storage) ToggleFolderExpanded(folderId int64, isExpanded bool) error {
+func (s *Storage) ToggleFolderExpanded(folderId int, isExpanded bool) error {
 	_, err := s.db.Exec(`update folders set is_expanded = ? where id = ?`, isExpanded, folderId)
 	if err != nil {
 		log.Print(err)

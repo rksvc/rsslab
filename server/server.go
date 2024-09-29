@@ -16,6 +16,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/mmcdole/gofeed"
+	"github.com/nkanaev/yarr/src/content/htmlutil"
 )
 
 type Server struct {
@@ -57,7 +58,7 @@ func (s *Server) Start() {
 		}
 	}()
 
-	refreshRate, _ := s.db.GetSettingsValueInt64("refresh_rate")
+	refreshRate, _ := s.db.GetSettingsValueInt("refresh_rate")
 	go s.FindFavicons()
 	go s.SetRefreshRate(refreshRate)
 	if refreshRate > 0 {
@@ -98,7 +99,7 @@ func (s *Server) FindFeedFavicon(feed storage.Feed) {
 	}
 }
 
-func (s *Server) SetRefreshRate(minute int64) {
+func (s *Server) SetRefreshRate(minute int) {
 	s.mu.Lock()
 	s.cancel()
 	s.context, s.cancel = context.WithCancel(context.Background())
@@ -226,11 +227,15 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 	now := time.Now()
 	for i, item := range items {
 		links := append([]string{item.Link}, item.Links...)
+		link := utils.FirstNonEmpty(links...)
+		if !htmlutil.IsAPossibleLink(link) {
+			link = htmlutil.AbsoluteUrl(link, feed.Link)
+		}
 		result[i] = storage.Item{
 			GUID:    utils.FirstNonEmpty(item.GUID, item.Link),
 			FeedId:  feed.Id,
 			Title:   item.Title,
-			Link:    utils.FirstNonEmpty(links...),
+			Link:    link,
 			Content: utils.FirstNonEmpty(item.Content, item.Description),
 			Status:  storage.UNREAD,
 		}

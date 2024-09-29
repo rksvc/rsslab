@@ -14,7 +14,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/mmcdole/gofeed"
-	"github.com/nkanaev/yarr/src/content/htmlutil"
 	"github.com/nkanaev/yarr/src/content/sanitizer"
 	"github.com/nkanaev/yarr/src/server/opml"
 )
@@ -79,7 +78,7 @@ func (s *Server) handleFolderCreate(c fiber.Ctx) error {
 }
 
 func (s *Server) handleFolderUpdate(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -104,7 +103,7 @@ func (s *Server) handleFolderUpdate(c fiber.Ctx) error {
 }
 
 func (s *Server) handleFolderDelete(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -115,7 +114,7 @@ func (s *Server) handleFolderDelete(c fiber.Ctx) error {
 }
 
 func (s *Server) handleFolderRefresh(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -138,7 +137,7 @@ func (s *Server) handleFeedList(c fiber.Ctx) error {
 func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 	var body struct {
 		Url      string `json:"url"`
-		FolderId *int64 `json:"folder_id"`
+		FolderId *int   `json:"folder_id"`
 	}
 	if err := c.Bind().JSON(&body); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
@@ -172,8 +171,8 @@ func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
-	items := convertItems(rawFeed.Items, *feed)
-	if len(items) > 0 {
+	if len(rawFeed.Items) > 0 {
+		items := convertItems(rawFeed.Items, *feed)
 		if err = s.db.CreateItems(items); err != nil {
 			return c.Status(http.StatusInternalServerError).SendString(err.Error())
 		}
@@ -217,12 +216,12 @@ type icon struct {
 }
 
 func (s *Server) handleFeedIcon(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	dat, err := s.cache.TryGet(strconv.FormatInt(id, 10), time.Hour, true, func() (any, error) {
+	data, err := s.cache.TryGet(strconv.Itoa(id), time.Hour, true, func() (any, error) {
 		feed, err := s.db.GetFeed(id)
 		if err != nil {
 			return nil, err
@@ -238,11 +237,11 @@ func (s *Server) handleFeedIcon(c fiber.Ctx) error {
 	if err != nil {
 		log.Print(err)
 		return c.SendStatus(http.StatusInternalServerError)
-	} else if dat == nil {
+	} else if data == nil {
 		return c.SendStatus(http.StatusNotFound)
 	}
 
-	icon := dat.(*icon)
+	icon := data.(*icon)
 	if string(c.Request().Header.Peek("If-None-Match")) == icon.etag {
 		return c.SendStatus(http.StatusNotModified)
 	}
@@ -253,7 +252,7 @@ func (s *Server) handleFeedIcon(c fiber.Ctx) error {
 }
 
 func (s *Server) handleFeedRefresh(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -261,43 +260,40 @@ func (s *Server) handleFeedRefresh(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	} else if feed == nil {
-		return c.Status(http.StatusBadRequest).SendString("no such feed")
+		return c.Status(http.StatusNotFound).SendString("no such feed")
 	}
 	go s.RefreshFeeds(*feed)
 	return c.SendStatus(http.StatusOK)
 }
 
 func (s *Server) handleFeedUpdate(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-	var body map[string]any
+	var body struct {
+		Title    *string `json:"title"`
+		FeedLink *string `json:"feed_link"`
+		FolderId *int    `json:"folder_id"`
+	}
 	if err = c.Bind().JSON(&body); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-	if title, ok := body["title"]; ok {
-		if title, ok := title.(string); ok {
-			if err = s.db.RenameFeed(id, title); err != nil {
-				return c.Status(http.StatusInternalServerError).SendString(err.Error())
-			}
+	if body.Title != nil {
+		if err = s.db.RenameFeed(id, *body.Title); err != nil {
+			return c.Status(http.StatusInternalServerError).SendString(err.Error())
 		}
 	}
-	if feedLink, ok := body["feed_link"]; ok {
-		if feedLink, ok := feedLink.(string); ok {
-			if err = s.db.EditFeedLink(id, feedLink); err != nil {
-				return c.Status(http.StatusInternalServerError).SendString(err.Error())
-			}
+	if body.FeedLink != nil {
+		if err = s.db.EditFeedLink(id, *body.FeedLink); err != nil {
+			return c.Status(http.StatusInternalServerError).SendString(err.Error())
 		}
 	}
-	if folderId, ok := body["folder_id"]; ok {
-		if folderId == nil {
-			err = s.db.UpdateFeedFolder(id, nil)
-		} else if folderId, ok := folderId.(float64); ok {
-			folderId := int64(folderId)
-			err = s.db.UpdateFeedFolder(id, &folderId)
+	if body.FolderId != nil {
+		if *body.FolderId < 0 {
+			body.FolderId = nil
 		}
-		if err != nil {
+		if err = s.db.UpdateFeedFolder(id, body.FolderId); err != nil {
 			return c.Status(http.StatusInternalServerError).SendString(err.Error())
 		}
 	}
@@ -305,7 +301,7 @@ func (s *Server) handleFeedUpdate(c fiber.Ctx) error {
 }
 
 func (s *Server) handleFeedDelete(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -318,33 +314,8 @@ func (s *Server) handleFeedDelete(c fiber.Ctx) error {
 
 func (s *Server) handleItemList(c fiber.Ctx) error {
 	var filter storage.ItemFilter
-	if folderId := c.Query("folder_id"); folderId != "" {
-		folderId, err := strconv.ParseInt(folderId, 10, 64)
-		if err != nil {
-			return c.Status(http.StatusBadRequest).SendString(err.Error())
-		}
-		filter.FolderId = &folderId
-	}
-	if feedId := c.Query("feed_id"); feedId != "" {
-		feedId, err := strconv.ParseInt(feedId, 10, 64)
-		if err != nil {
-			return c.Status(http.StatusBadRequest).SendString(err.Error())
-		}
-		filter.FeedId = &feedId
-	}
-	if after := c.Query("after"); after != "" {
-		after, err := strconv.ParseInt(after, 10, 64)
-		if err != nil {
-			return c.Status(http.StatusBadRequest).SendString(err.Error())
-		}
-		filter.After = &after
-	}
-	if status := c.Query("status"); status != "" {
-		status := storage.StatusValues[status]
-		filter.Status = &status
-	}
-	if search := c.Query("search"); search != "" {
-		filter.Search = &search
+	if err := c.Bind().Query(&filter); err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	newestFirst := c.Query("oldest_first") != "true"
 
@@ -354,7 +325,7 @@ func (s *Server) handleItemList(c fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
 	hasMore := false
-	if len(items) == PER_PAGE+1 {
+	if len(items) > PER_PAGE {
 		hasMore = true
 		items = items[:PER_PAGE]
 	}
@@ -366,19 +337,8 @@ func (s *Server) handleItemList(c fiber.Ctx) error {
 
 func (s *Server) handleItemRead(c fiber.Ctx) error {
 	var filter storage.MarkFilter
-	if folderId := c.Query("folder_id"); folderId != "" {
-		folderId, err := strconv.ParseInt(folderId, 10, 64)
-		if err != nil {
-			return c.Status(http.StatusBadRequest).SendString(err.Error())
-		}
-		filter.FolderId = &folderId
-	}
-	if feedId := c.Query("feed_id"); feedId != "" {
-		feedId, err := strconv.ParseInt(feedId, 10, 64)
-		if err != nil {
-			return c.Status(http.StatusBadRequest).SendString(err.Error())
-		}
-		filter.FeedId = &feedId
+	if err := c.Bind().Query(&filter); err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	err := s.db.MarkItemsRead(filter)
 	if err != nil {
@@ -388,7 +348,7 @@ func (s *Server) handleItemRead(c fiber.Ctx) error {
 }
 
 func (s *Server) handleItem(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -396,26 +356,14 @@ func (s *Server) handleItem(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	} else if item == nil {
-		return c.Status(http.StatusBadRequest).SendString("no such item")
+		return c.Status(http.StatusNotFound).SendString("no such item")
 	}
-
-	// runtime fix for relative links
-	if !htmlutil.IsAPossibleLink(item.Link) {
-		feed, err := s.db.GetFeed(item.FeedId)
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).SendString(err.Error())
-		}
-		if feed != nil {
-			item.Link = htmlutil.AbsoluteUrl(item.Link, feed.Link)
-		}
-	}
-
 	item.Content = sanitizer.Sanitize(item.Link, item.Content)
 	return c.JSON(item)
 }
 
 func (s *Server) handleItemUpdate(c fiber.Ctx) error {
-	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -452,7 +400,7 @@ func (s *Server) handleSettingsUpdate(c fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
 	if _, ok := settings["refresh_rate"]; ok {
-		refreshRate, err := s.db.GetSettingsValueInt64("refresh_rate")
+		refreshRate, err := s.db.GetSettingsValueInt("refresh_rate")
 		if err != nil {
 			return c.Status(http.StatusInternalServerError).SendString(err.Error())
 		}
@@ -507,12 +455,9 @@ func (s *Server) handleOPMLImport(c fiber.Ctx) error {
 }
 
 func (s *Server) handleOPMLExport(c fiber.Ctx) error {
-	c.Response().Header.SetContentType("application/xml; charset=utf-8")
-	c.Response().Header.Set("Content-Disposition", `attachment; filename="subscriptions.opml"`)
-
 	var f opml.Folder
 
-	feedsByFolderId := make(map[int64][]*storage.Feed)
+	feedsByFolderId := make(map[int][]*storage.Feed)
 	feeds, err := s.db.ListFeeds()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
@@ -550,6 +495,8 @@ func (s *Server) handleOPMLExport(c fiber.Ctx) error {
 		f.Folders = append(f.Folders, folder)
 	}
 
+	c.Response().Header.SetContentType("application/xml; charset=utf-8")
+	c.Response().Header.Set("Content-Disposition", `attachment; filename="subscriptions.opml"`)
 	_, err = c.WriteString(f.OPML())
 	return err
 }
