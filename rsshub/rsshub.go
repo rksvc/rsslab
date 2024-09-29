@@ -141,7 +141,7 @@ func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 				return err != nil
 			}).
 			AddRetryHook(func(r *resty.Response, err error) {
-				log.Printf(`%s, retry attempt %d`, err, r.Request.Attempt)
+				log.Printf("%s, retry attempt %d", err, r.Request.Attempt)
 			}),
 	}
 	r.ResetRegistry()
