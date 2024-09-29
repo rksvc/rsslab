@@ -73,15 +73,12 @@ func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 		w.Value = value.Export()
 		w.Done()
 	}), vm.ToValue(func(reason *goja.Object) {
-		stack := reason.Get("stack")
-		if goja.IsUndefined(stack) {
-			if err, ok := reason.Export().(error); ok {
-				w.Err = err
-			} else {
-				w.Err = errors.New(reason.String())
-			}
-		} else {
+		if stack := reason.Get("stack"); stack != nil && !goja.IsUndefined(stack) {
 			w.Err = errors.New(stack.String())
+		} else if err, ok := reason.Export().(error); ok {
+			w.Err = err
+		} else {
+			w.Err = errors.New(reason.String())
 		}
 		w.Done()
 	}))
