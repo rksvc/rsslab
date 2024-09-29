@@ -62,6 +62,7 @@ func (r *RSSHub) Register(app *fiber.App) error {
 						if e, ok := err.(*goja.Exception); ok {
 							err = errors.New(e.String())
 						}
+						log.Print(err)
 						return c.Status(http.StatusInternalServerError).SendString(err.Error())
 					}
 					feed, err := toJSONFeed(data)
