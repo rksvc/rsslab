@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"rsslab/utils"
@@ -11,7 +10,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func bundle() bool {
+func main() {
 	opts := api.BuildOptions{
 		Platform:          api.PlatformNode,
 		Sourcemap:         api.SourceMapInline,
@@ -42,7 +41,7 @@ func bundle() bool {
 		opts.Outfile = path.Join("third_party", pkg.outfile)
 		opts.External = pkg.external
 		if len(api.Build(opts).Errors) > 0 {
-			return false
+			os.Exit(1)
 		}
 	}
 
@@ -74,35 +73,28 @@ func bundle() bool {
 	wg.Wait()
 	f, err := os.CreateTemp(".", "*.ts")
 	if err != nil {
-		fmt.Println(err)
-		return false
+		panic(err)
 	}
-	defer os.Remove(f.Name())
-	defer f.Close()
+	cleanup := func() {
+		f.Close()
+		os.Remove(f.Name())
+	}
+	defer cleanup()
 	for _, file := range files {
 		err := f.Truncate(0)
 		if err != nil {
-			fmt.Println(err)
-			return false
+			panic(err)
 		}
 		_, err = f.WriteAt(file.content, 0)
 		if err != nil {
-			fmt.Println(err)
-			return false
+			panic(err)
 		}
 		opts := opts
 		opts.EntryPoints = []string{f.Name()}
 		opts.Outfile = file.outfile
 		if len(api.Build(opts).Errors) > 0 {
-			return false
+			cleanup()
+			os.Exit(1)
 		}
-	}
-
-	return true
-}
-
-func main() {
-	if !bundle() {
-		os.Exit(1)
 	}
 }
