@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -67,6 +68,7 @@ func init() {
 	require.RegisterNativeModule("@/utils/cache", func(vm *goja.Runtime, module *goja.Object) {
 		module.Get("exports").ToObject(vm).Set("tryGet", vm.Get("$tryGet"))
 	})
+
 	for _, words := range [][]string{
 		{"config", "not", "found"},
 		{"invalid", "parameter"},
@@ -90,6 +92,41 @@ func init() {
 				panic(err)
 			}
 			module.Set("exports", result)
+		})
+	}
+
+	fs.WalkDir(lib, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		name := rootPrefix + strings.TrimSuffix(path, ".js")
+		require.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
+			src, err := fs.ReadFile(lib, path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			loadModule(src, name, vm, module)
+		})
+		return nil
+	})
+	entries, err := third_party.ReadDir("third_party")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := strings.TrimSuffix(entry.Name(), ".js")
+		require.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
+			src, err := third_party.ReadFile(path.Join("third_party", entry.Name()))
+			if err != nil {
+				log.Fatal(err)
+			}
+			loadModule(src, name, vm, module)
 		})
 	}
 }
@@ -163,31 +200,28 @@ func (r *RSSHub) ResetRegistry() {
 		render.Set("defaults", art.Get("defaults"))
 		module.Get("exports").ToObject(vm).Set("art", render)
 	})
+	name := rootPrefix + "config"
+	registry.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
+		src, err := r.route("lib/config.ts")
+		if err != nil {
+			panic(err)
+		}
+		loadModule(src, name, vm, module)
+		module.
+			Get("exports").ToObject(vm).
+			Get("config").ToObject(vm).
+			Get("feature").ToObject(vm).
+			Set("allow_user_supply_unsafe_domain", true)
+	})
+
 	r.registry.Store(registry)
 }
 
 func (r *RSSHub) sourceLoader(p string) ([]byte, error) {
 	name := strings.ReplaceAll(p, nodeModulesPrefix, "")
-
 	if i := strings.LastIndex(name, rootPrefix); i != -1 {
-		name := name[i+len(rootPrefix):]
-		if name == "config" {
-			return r.route("lib/config.ts")
-		}
-		data, err := lib.ReadFile(name + ".js")
-		if err != nil {
-			return nil, fmt.Errorf("require %s: %s", rootPrefix+name, require.ModuleFileDoesNotExistError)
-		}
-		return data, nil
+		return nil, fmt.Errorf("require %s: %s", name[i:], require.ModuleFileDoesNotExistError)
 	}
-
-	if i := strings.LastIndex(p, nodeModulesPrefix); i != -1 {
-		data, err := third_party.ReadFile(path.Join("third_party", p[i+len(nodeModulesPrefix):]+".js"))
-		if err == nil {
-			return data, nil
-		}
-	}
-
 	return r.route(path.Join("lib/routes", name+".ts"))
 }
 
@@ -245,4 +279,28 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 		return nil, err
 	}
 	return data.([]byte), nil
+}
+
+func loadModule(src []byte, name string, vm *goja.Runtime, module *goja.Object) {
+	const PREFIX = "(function(exports,require,module){"
+	const SUFFIX = "})"
+	var b strings.Builder
+	b.Grow(len(PREFIX) + len(SUFFIX) + len(src))
+	b.WriteString(PREFIX)
+	b.Write(src)
+	b.WriteString(SUFFIX)
+	prg, err := goja.Compile(name, b.String(), false)
+	if err != nil {
+		log.Fatal(err)
+	}
+	f, err := vm.RunProgram(prg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	call, _ := goja.AssertFunction(f)
+	exports := module.Get("exports")
+	_, err = call(exports, exports, vm.Get("require"), module)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
