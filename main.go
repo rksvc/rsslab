@@ -20,7 +20,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/static"
 )
 
-var noCache bool
 var addr, redisUrl, database, routesUrl, srcUrl string
 var cc *cache.Cache
 var db *storage.Storage
@@ -38,7 +37,6 @@ func init() {
 }
 
 func main() {
-	flag.BoolVar(&noCache, "no-cache", false, "do not use cache")
 	flag.StringVar(&addr, "addr", "127.0.0.1:9854", "address to run server on")
 	flag.StringVar(&redisUrl, "redis", "", "redis `url` like redis://127.0.0.1:6379, omit to use in-memory cache")
 	flag.StringVar(&database, "db", "", "storage file `path`")
@@ -46,15 +44,11 @@ func main() {
 	flag.StringVar(&srcUrl, "src", "https://unpkg.com/rsshub", "source code `url` prefix")
 	flag.Parse()
 
-	var c cache.ICache
-	if noCache {
-		c = cache.NewDisabled()
-	} else if redisUrl == "" {
-		c = cache.NewLRU()
+	if redisUrl == "" {
+		cc = cache.NewCache(cache.NewLRU())
 	} else {
-		c = cache.NewRedis(redisUrl)
+		cc = cache.NewCache(cache.NewRedis(redisUrl))
 	}
-	cc = cache.NewCache(c)
 
 	if database == "" {
 		dir, err := os.UserConfigDir()
