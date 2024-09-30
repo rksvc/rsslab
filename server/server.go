@@ -149,8 +149,12 @@ func (s *Server) RefreshFeeds(feeds ...storage.Feed) {
 
 func (s *Server) do(req *http.Request) (resp *http.Response, err error) {
 	if req.URL.Scheme == "rsshub" {
-		req.URL.Path = "/" + req.URL.Opaque
+		req.URL.RawPath = "/" + req.URL.Opaque
 		req.URL.Opaque = ""
+		req.URL.Path, err = url.PathUnescape(req.URL.RawPath)
+		if err != nil {
+			return
+		}
 		resp, err = s.App.Load().(*fiber.App).Test(req, -1)
 	} else {
 		resp, err = s.client.Do(req)

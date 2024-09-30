@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	pathpkg "path"
 	"strings"
 
@@ -42,14 +43,21 @@ func (r *RSSHub) Register(app *fiber.App) error {
 			register := func(path, extraParam, key string) {
 				group.Get(path, func(c fiber.Ctx) error {
 					params := make(map[string]string)
+					var err error
 					for _, param := range c.Route().Params {
 						if value := c.Params(param); value != "" {
-							params[param] = value
+							params[param], err = url.PathUnescape(value)
+							if err != nil {
+								return c.Status(http.StatusBadRequest).SendString(err.Error())
+							}
 						}
 					}
 					if extraParam != "" {
 						if value := c.Params(key); value != "" {
-							params[extraParam] = value
+							params[extraParam], err = url.PathUnescape(value)
+							if err != nil {
+								return c.Status(http.StatusBadRequest).SendString(err.Error())
+							}
 						}
 					}
 					sourcePath := pathpkg.Join(namespace, strings.TrimSuffix(route.Location, ".ts"))
