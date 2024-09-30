@@ -136,7 +136,7 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 		vm.Set("$tryGet", func(key string, f func() *goja.Promise, maxAge *int, ex *bool) *goja.Promise {
 			promise, resolve, reject := vm.NewPromise()
 			go func() {
-				ttl := r.contentCacheTTL
+				ttl := contentExpire
 				if maxAge != nil {
 					ttl = time.Duration(*maxAge) * time.Second
 				}

@@ -14,7 +14,7 @@ import (
 )
 
 func (r *RSSHub) Register(app *fiber.App) error {
-	v, err := r.cache.TryGet(r.routesUrl, routeCacheTTL, false, func() (any, error) {
+	v, err := r.cache.TryGet(r.routesUrl, srcExpire, false, func() (any, error) {
 		resp, err := r.client.NewRequest().Get(r.routesUrl)
 		if err != nil {
 			return nil, err

@@ -29,7 +29,9 @@ var lib embed.FS
 //go:embed third_party
 var third_party embed.FS
 
-const routeCacheTTL = 6 * time.Hour
+const srcExpire = 6 * time.Hour
+const routeExpire = 5 * time.Second
+const contentExpire = time.Hour
 
 const nodeModulesPrefix = "node_modules/"
 const rootPrefix = "@/"
@@ -144,7 +146,6 @@ var retryStatusCodes = map[int]struct{}{
 
 type RSSHub struct {
 	srcUrl, routesUrl string
-	contentCacheTTL   time.Duration
 	cache             *cache.Cache
 	client            *resty.Client
 	registry          atomic.Value
@@ -152,10 +153,9 @@ type RSSHub struct {
 
 func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 	r := &RSSHub{
-		srcUrl:          srcUrl,
-		routesUrl:       routesUrl,
-		contentCacheTTL: time.Hour,
-		cache:           cache,
+		srcUrl:    srcUrl,
+		routesUrl: routesUrl,
+		cache:     cache,
 		client: resty.
 			New().
 			SetHeader("User-Agent", utils.UserAgent).
@@ -207,11 +207,15 @@ func (r *RSSHub) ResetRegistry() {
 			panic(err)
 		}
 		loadModule(src, name, vm, module)
-		module.
-			Get("exports").ToObject(vm).
-			Get("config").ToObject(vm).
-			Get("feature").ToObject(vm).
-			Set("allow_user_supply_unsafe_domain", true)
+
+		config := module.Get("exports").ToObject(vm).Get("config").ToObject(vm)
+
+		cache := config.Get("cache").ToObject(vm)
+		cache.Set("routeExpire", routeExpire/time.Second)
+		cache.Set("contentExpire", contentExpire/time.Second)
+
+		config.Get("feature").ToObject(vm).Set("allow_user_supply_unsafe_domain", true)
+		config.Set("ua", utils.UserAgent)
 	})
 
 	r.registry.Store(registry)
@@ -232,7 +236,7 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.cache.TryGet(url, routeCacheTTL, false, func() (any, error) {
+	data, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
 		resp, err := r.client.NewRequest().Get(url)
 		if err != nil {
 			return nil, err
@@ -271,7 +275,7 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := r.cache.TryGet(url, routeCacheTTL, false, func() (any, error) {
+	data, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
 		resp, err := r.client.NewRequest().Get(url)
 		if err != nil {
 			return nil, err
