@@ -168,7 +168,7 @@ func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 				return nil
 			}).
 			AddRetryCondition(func(r *resty.Response, err error) bool {
-				if r != nil {
+				if r != nil && r.StatusCode() > 0 {
 					_, ok := retryStatusCodes[r.StatusCode()]
 					return ok
 				}
