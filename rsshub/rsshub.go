@@ -243,12 +243,15 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 			code = dynamicImport.ReplaceAllLiteralString(code, "{}")
 		}
 		result := api.Transform(code, api.TransformOptions{
-			Sourcefile:     path,
-			Format:         api.FormatCommonJS,
-			Loader:         api.LoaderTS,
-			Sourcemap:      api.SourceMapInline,
-			SourcesContent: api.SourcesContentExclude,
-			Target:         api.ES2017,
+			Sourcefile:        path,
+			Format:            api.FormatCommonJS,
+			Loader:            api.LoaderTS,
+			Sourcemap:         api.SourceMapInline,
+			SourcesContent:    api.SourcesContentExclude,
+			Target:            api.ES2017,
+			MinifyWhitespace:  true,
+			MinifySyntax:      true,
+			MinifyIdentifiers: true,
 		})
 		if len(result.Errors) > 0 {
 			return nil, utils.Errorf(result.Errors)
