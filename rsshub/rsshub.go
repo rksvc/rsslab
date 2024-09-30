@@ -30,7 +30,7 @@ var lib embed.FS
 var third_party embed.FS
 
 const srcExpire = 6 * time.Hour
-const routeExpire = 5 * time.Second
+const routeExpire = 5 * time.Minute
 const contentExpire = time.Hour
 
 const nodeModulesPrefix = "node_modules/"
