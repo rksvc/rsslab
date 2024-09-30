@@ -33,9 +33,6 @@ const srcExpire = 6 * time.Hour
 const routeExpire = 5 * time.Minute
 const contentExpire = time.Hour
 
-const nodeModulesPrefix = "node_modules/"
-const rootPrefix = "@/"
-
 func init() {
 	require.RegisterCoreModule("assert", func(vm *goja.Runtime, module *goja.Object) {
 		module.Get("exports").ToObject(vm).Set("strict", func(value goja.Value, message goja.Value) error {
@@ -78,20 +75,20 @@ func init() {
 		{"reject"},
 		{"request", "in", "progress"},
 	} {
-		var name string
-		for _, word := range words {
-			name += strings.ToUpper(word[:1]) + word[1:]
-		}
-		name += "Error"
-		path := rootPrefix + "errors/types/" + strings.Join(words, "-")
-		prg, err := goja.Compile(path, fmt.Sprintf("(class extends Error{name='%s'})", name), true)
-		if err != nil {
-			log.Fatal(err)
-		}
+		path := "@/errors/types/" + strings.Join(words, "-")
 		require.RegisterNativeModule(path, func(vm *goja.Runtime, module *goja.Object) {
+			var name string
+			for _, word := range words {
+				name += strings.ToUpper(word[:1]) + word[1:]
+			}
+			name += "Error"
+			prg, err := goja.Compile(path, fmt.Sprintf("(class extends Error{name='%s'})", name), false)
+			if err != nil {
+				log.Fatal(err)
+			}
 			result, err := vm.RunProgram(prg)
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 			module.Set("exports", result)
 		})
@@ -104,7 +101,7 @@ func init() {
 		if d.IsDir() {
 			return nil
 		}
-		name := rootPrefix + strings.TrimSuffix(path, ".js")
+		name := "@/" + strings.TrimSuffix(path, ".js")
 		require.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
 			src, err := fs.ReadFile(lib, path)
 			if err != nil {
@@ -200,7 +197,7 @@ func (r *RSSHub) ResetRegistry() {
 		render.Set("defaults", art.Get("defaults"))
 		module.Get("exports").ToObject(vm).Set("art", render)
 	})
-	name := rootPrefix + "config"
+	name := "@/config"
 	registry.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
 		src, err := r.route("lib/config.ts")
 		if err != nil {
@@ -222,8 +219,8 @@ func (r *RSSHub) ResetRegistry() {
 }
 
 func (r *RSSHub) sourceLoader(p string) ([]byte, error) {
-	name := strings.ReplaceAll(p, nodeModulesPrefix, "")
-	if i := strings.LastIndex(name, rootPrefix); i != -1 {
+	name := strings.ReplaceAll(p, "node_modules/", "")
+	if i := strings.LastIndex(name, "@/"); i != -1 {
 		return nil, fmt.Errorf("require %s: %s", name[i:], require.ModuleFileDoesNotExistError)
 	}
 	return r.route(path.Join("lib/routes", name+".ts"))
