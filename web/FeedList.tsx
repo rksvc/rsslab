@@ -235,17 +235,6 @@ export default function FeedList({
                 onClick={() => setNewFolderDialogOpen(true)}
               />
               <MenuDivider />
-              {errors && errors.size > 0 && (
-                <MenuItem
-                  text={`Resolve Errors (${errors.size})`}
-                  icon={<RotateCw {...menuIconProps} />}
-                  disabled={loadingFeeds > 0}
-                  onClick={async () => {
-                    await xfetch('./api/feeds/errors/refresh', { method: 'POST' })
-                    await refreshStats()
-                  }}
-                />
-              )}
               <MenuItem
                 text="Refresh Feeds"
                 icon={<RotateCw {...menuIconProps} />}

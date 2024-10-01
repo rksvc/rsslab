@@ -29,7 +29,6 @@ func (s *Server) Register(api fiber.Router) {
 	api.Post("/feeds", s.handleFeedCreate)
 	api.Post("/feeds/refresh", s.handleFeedsRefresh)
 	api.Get("/feeds/errors", s.handleFeedErrorsList)
-	api.Post("/feeds/errors/refresh", s.handleErrorsRefresh)
 	api.Get("/feeds/:id/icon", s.handleFeedIcon)
 	api.Post("/feeds/:id/refresh", s.handleFeedRefresh)
 	api.Put("/feeds/:id", s.handleFeedUpdate)
@@ -183,15 +182,6 @@ func (s *Server) handleFeedErrorsList(c fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).SendString(errString(err))
 	}
 	return c.JSON(errors)
-}
-
-func (s *Server) handleErrorsRefresh(c fiber.Ctx) error {
-	feeds, err := s.db.GetFeedsWithErrors()
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).SendString(errString(err))
-	}
-	go s.RefreshFeeds(feeds...)
-	return c.SendStatus(http.StatusOK)
 }
 
 type icon struct {

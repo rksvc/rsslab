@@ -232,30 +232,6 @@ func (s *Storage) GetFeedErrors() (map[int]string, error) {
 	return errs, nil
 }
 
-func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
-	rows, err := s.db.Query(`
-		select id, feed_link
-		from feeds where error is not null
-		order by title collate nocase
-	`)
-	if err != nil {
-		return nil, errors.New(err)
-	}
-	result := make([]Feed, 0)
-	for rows.Next() {
-		var f Feed
-		err = rows.Scan(&f.Id, &f.FeedLink)
-		if err != nil {
-			return nil, errors.New(err)
-		}
-		result = append(result, f)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, errors.New(err)
-	}
-	return result, nil
-}
-
 type HTTPState struct {
 	LastModified *string
 	Etag         *string
