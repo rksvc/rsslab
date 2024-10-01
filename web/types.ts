@@ -18,7 +18,6 @@ export type Feed = {
   id: number
   folder_id: number | null
   title: string
-  description?: string
   link?: string
   feed_link: string
   last_refreshed?: string

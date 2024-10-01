@@ -1,11 +1,21 @@
 package storage
 
-import "log"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/go-errors/errors"
+)
 
 type Folder struct {
 	Id         int    `json:"id"`
 	Title      string `json:"title"`
 	IsExpanded bool   `json:"is_expanded"`
+}
+
+type FolderEditor struct {
+	Title      *string `json:"title"`
+	IsExpanded *bool   `json:"is_expanded"`
 }
 
 func (s *Storage) CreateFolder(title string) (*Folder, error) {
@@ -20,8 +30,7 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 		title,
 	).Scan(&id)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return &Folder{Id: id, Title: title, IsExpanded: expanded}, nil
 }
@@ -29,25 +38,31 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 func (s *Storage) DeleteFolder(folderId int) error {
 	_, err := s.db.Exec(`delete from folders where id = ?`, folderId)
 	if err != nil {
-		log.Print(err)
+		return errors.New(err)
 	}
-	return err
+	return nil
 }
 
-func (s *Storage) RenameFolder(folderId int, newTitle string) error {
-	_, err := s.db.Exec(`update folders set title = ? where id = ?`, newTitle, folderId)
-	if err != nil {
-		log.Print(err)
+func (s *Storage) EditFolder(folderId int, editor FolderEditor) error {
+	var acts []string
+	var args []any
+	if editor.Title != nil {
+		acts = append(acts, "title = ?")
+		args = append(args, *editor.Title)
 	}
-	return err
-}
-
-func (s *Storage) ToggleFolderExpanded(folderId int, isExpanded bool) error {
-	_, err := s.db.Exec(`update folders set is_expanded = ? where id = ?`, isExpanded, folderId)
-	if err != nil {
-		log.Print(err)
+	if editor.IsExpanded != nil {
+		acts = append(acts, "is_expanded = ?")
+		args = append(args, *editor.IsExpanded)
 	}
-	return err
+	if len(acts) == 0 {
+		return nil
+	}
+	args = append(args, folderId)
+	_, err := s.db.Exec(fmt.Sprintf(`update folders set %s where id = ?`, strings.Join(acts, ", ")), args...)
+	if err != nil {
+		return errors.New(err)
+	}
+	return nil
 }
 
 func (s *Storage) ListFolders() ([]Folder, error) {
@@ -57,22 +72,19 @@ func (s *Storage) ListFolders() ([]Folder, error) {
 		order by title collate nocase
 	`)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	result := make([]Folder, 0)
 	for rows.Next() {
 		var f Folder
 		err = rows.Scan(&f.Id, &f.Title, &f.IsExpanded)
 		if err != nil {
-			log.Print(err)
-			return nil, err
+			return nil, errors.New(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return result, nil
 }

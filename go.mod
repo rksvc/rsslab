@@ -7,6 +7,7 @@ require (
 	github.com/dop251/goja v0.0.0-20240926214742-e37b27fbbace
 	github.com/dop251/goja_nodejs v0.0.0-20240728170619-29b559befffc
 	github.com/evanw/esbuild v0.23.1
+	github.com/go-errors/errors v1.5.1
 	github.com/go-resty/resty/v2 v2.14.0
 	github.com/gofiber/fiber/v3 v3.0.0-beta.3
 	github.com/karlseguin/ccache/v3 v3.0.5

@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/go-errors/errors"
 	"github.com/gofiber/fiber/v3"
 	"github.com/mmcdole/gofeed"
 	"github.com/nkanaev/yarr/src/content/htmlutil"
@@ -58,10 +59,14 @@ func (s *Server) Start() {
 		}
 	}()
 
-	refreshRate, _ := s.db.GetSettingsValueInt("refresh_rate")
 	go s.FindFavicons()
-	go s.SetRefreshRate(refreshRate)
-	if refreshRate > 0 {
+	settings, err := s.db.GetSettings()
+	if err != nil {
+		log.Print(errString(err))
+		return
+	}
+	go s.SetRefreshRate(settings.RefreshRate)
+	if settings.RefreshRate > 0 {
 		go s.RefreshAllFeeds()
 	}
 }
@@ -134,6 +139,7 @@ func (s *Server) SetRefreshRate(minute int) {
 func (s *Server) RefreshAllFeeds() {
 	feeds, err := s.db.ListFeeds()
 	if err != nil {
+		log.Print(errString(err))
 		return
 	}
 	s.RefreshFeeds(feeds...)
@@ -168,28 +174,26 @@ func (s *Server) do(req *http.Request) (resp *http.Response, err error) {
 
 func (s *Server) worker() {
 	for feed := range s.refresh {
-		items, err := s.listItems(feed)
+		items, state, err := s.listItems(feed)
+		if err == nil {
+			err = s.db.CreateItems(items, feed.Id, time.Now(), state)
+		}
 		if err != nil {
-			s.db.SetFeedError(feed.Id, err)
-		} else {
-			s.db.SetFeedLastRefreshed(feed.Id, time.Now())
-			s.db.ResetFeedError(feed.Id)
+			log.Print(errString(err))
 		}
-		if len(items) > 0 {
-			s.db.CreateItems(items)
-		}
+		s.db.SetFeedError(feed.Id, err)
 		s.pending.Add(-1)
 	}
 }
 
-func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
+func (s *Server) listItems(f storage.Feed) ([]storage.Item, *storage.HTTPState, error) {
 	req, err := http.NewRequest("GET", f.FeedLink, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	state, err := s.db.GetHTTPState(f.Id)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if state.LastModified != nil {
 		req.Header.Set("If-Modified-Since", *state.LastModified)
@@ -199,11 +203,11 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
 	}
 	resp, err := s.do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotModified {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	var body io.Reader = resp.Body
@@ -212,18 +216,10 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, error) {
 	}
 	feed, err := gofeed.NewParser().Parse(body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	lmod := resp.Header.Get("Last-Modified")
-	etag := resp.Header.Get("Etag")
-	if lmod != "" || etag != "" {
-		err = s.db.SetHTTPState(f.Id, lmod, etag)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return convertItems(feed.Items, f), nil
+	return convertItems(feed.Items, f), getHTTPState(resp), nil
 }
 
 func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
@@ -255,4 +251,23 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 		}
 	}
 	return result
+}
+
+func getHTTPState(resp *http.Response) *storage.HTTPState {
+	lmod := resp.Header.Get("Last-Modified")
+	etag := resp.Header.Get("Etag")
+	if lmod != "" || etag != "" {
+		return &storage.HTTPState{
+			LastModified: &lmod,
+			Etag:         &etag,
+		}
+	}
+	return nil
+}
+
+func errString(err error) string {
+	if err, ok := err.(*errors.Error); ok {
+		return err.ErrorStack()
+	}
+	return err.Error()
 }

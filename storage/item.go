@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-errors/errors"
 	"github.com/nkanaev/yarr/src/content/htmlutil"
 )
 
@@ -72,97 +74,75 @@ type Item struct {
 	AudioURL *string    `json:"podcast_url,omitempty"`
 }
 
-type ItemFilter struct {
-	FolderId *int        `json:"folder_id" query:"folder_id"`
-	FeedId   *int        `json:"feed_id" query:"feed_id"`
-	Status   *ItemStatus `json:"status" query:"status"`
-	Search   *string     `json:"search" query:"search"`
-	After    *int        `json:"after" query:"after"`
-}
+func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time, state *HTTPState) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.New(err)
+	}
 
-type MarkFilter struct {
-	FolderId *int
-	FeedId   *int
-}
-
-func (s *Storage) CreateItems(items []Item) error {
 	slices.SortStableFunc(items, func(a, b Item) int {
 		return b.Date.Compare(a.Date)
 	})
-
-	tx, err := s.db.Begin()
-	if err != nil {
-		log.Print(err)
-		return err
+	lastRefreshed = lastRefreshed.UTC()
+	for i := len(items) - 1; i >= 0; i-- {
+		item := items[i]
+		_, err := tx.Exec(`
+			insert into items (
+				guid, feed_id, title, link, date,
+				content, content_text, image,
+				podcast_url, date_arrived, status
+			)
+			values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			on conflict (feed_id, guid) do nothing`,
+			item.GUID, item.FeedId, item.Title, item.Link, item.Date.UTC(),
+			item.Content, htmlutil.ExtractText(item.Content), item.ImageURL,
+			item.AudioURL, lastRefreshed, UNREAD,
+		)
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				log.Print(err)
+			}
+			return errors.New(err)
+		}
 	}
-	onError := func(err error) error {
-		log.Output(2, err.Error())
+
+	acts := []string{"last_refreshed = ?"}
+	args := []any{lastRefreshed}
+	if len(items) > 0 {
+		acts = append(acts, "size = max(ifnull(size, 0), ?)")
+		args = append(args, len(items))
+	}
+	if state != nil {
+		acts = append(acts, "last_modified = ?")
+		args = append(args, state.LastModified)
+		acts = append(acts, "etag = ?")
+		args = append(args, state.Etag)
+	}
+	args = append(args, feedId)
+	_, err = tx.Exec(fmt.Sprintf(`
+		update feeds set %s
+		where id = ?
+	`, strings.Join(acts, ", ")), args...)
+	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			log.Print(err)
 		}
-		return err
+		return errors.New(err)
 	}
-	now := time.Now().UTC()
-	for i := len(items) - 1; i >= 0; i-- {
-		item := items[i]
-		result, err := tx.Exec(`
-			insert into items (
-				guid, feed_id, title, link, date,
-				content, image, podcast_url,
-				date_arrived, status
-			)
-			values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-			on conflict (feed_id, guid) do nothing`,
-			item.GUID, item.FeedId, item.Title, item.Link, item.Date.UTC(),
-			item.Content, item.ImageURL, item.AudioURL,
-			now, UNREAD,
-		)
-		if err != nil {
-			return onError(err)
-		}
-		n, err := result.RowsAffected()
-		if err != nil {
-			return onError(err)
-		}
-		if n > 0 {
-			itemId, err := result.LastInsertId()
-			if err != nil {
-				return onError(err)
-			}
-			result, err := tx.Exec(`
-				insert into search (title, description, content) values (?, "", ?)`,
-				item.Title, htmlutil.ExtractText(item.Content),
-			)
-			if err != nil {
-				return onError(err)
-			}
-			rowId, err := result.LastInsertId()
-			if err != nil {
-				return onError(err)
-			}
-			_, err = tx.Exec(
-				`update items set search_rowid = ? where id = ?`,
-				rowId, itemId,
-			)
-			if err != nil {
-				return onError(err)
-			}
-		}
-	}
-	if len(items) > 0 {
-		_, err = tx.Exec(`
-			update feeds set size = ? where id = ?`,
-			len(items), items[0].FeedId,
-		)
-		if err != nil {
-			return onError(err)
-		}
-	}
+
 	err = tx.Commit()
 	if err != nil {
-		log.Print(err)
+		return errors.New(err)
 	}
-	return err
+	return nil
+}
+
+type ItemFilter struct {
+	FolderId *int        `query:"folder_id"`
+	FeedId   *int        `query:"feed_id"`
+	Status   *ItemStatus `query:"status"`
+	Search   *string     `query:"search"`
+	After    *int        `query:"after"`
 }
 
 func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
@@ -181,14 +161,11 @@ func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
 		args = append(args, *filter.Status)
 	}
 	if filter.Search != nil {
-		words := strings.Fields(*filter.Search)
-		terms := make([]string, len(words))
-		for i, word := range words {
-			terms[i] = word + "*"
+		for _, word := range strings.Fields(*filter.Search) {
+			word = "%" + word + "%"
+			cond = append(cond, "(title like ? or content_text like ?)")
+			args = append(args, word, word)
 		}
-
-		cond = append(cond, "search_rowid in (select rowid from search where search match ?)")
-		args = append(args, strings.Join(terms, " "))
 	}
 	if filter.After != nil {
 		compare := ">"
@@ -203,30 +180,26 @@ func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
 	if len(cond) > 0 {
 		predicate = strings.Join(cond, " and ")
 	}
-
 	return predicate, args
 }
 
 func (s *Storage) ListItems(filter ItemFilter, limit int, newestFirst bool) ([]Item, error) {
 	predicate, args := listQueryPredicate(filter, newestFirst)
-
 	order := "date asc, id asc"
 	if newestFirst {
 		order = "date desc, id desc"
 	}
-
-	selectCols := "id, guid, feed_id, title, link, date, status, image, podcast_url"
-	query := fmt.Sprintf(`
-		select %s
+	rows, err := s.db.Query(fmt.Sprintf(`
+		select
+			id, guid, feed_id, title, link,
+			date, status, image, podcast_url
 		from items
 		where %s
 		order by %s
 		limit %d
-		`, selectCols, predicate, order, limit)
-	rows, err := s.db.Query(query, args...)
+	`, predicate, order, limit), args...)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	result := make([]Item, 0)
 	for rows.Next() {
@@ -237,8 +210,7 @@ func (s *Storage) ListItems(filter ItemFilter, limit int, newestFirst bool) ([]I
 			&i.Status, &i.ImageURL, &i.AudioURL,
 		)
 		if err != nil {
-			log.Print(err)
-			return nil, err
+			return nil, errors.New(err)
 		}
 		result = append(result, i)
 	}
@@ -246,7 +218,7 @@ func (s *Storage) ListItems(filter ItemFilter, limit int, newestFirst bool) ([]I
 }
 
 func (s *Storage) GetItem(id int) (*Item, error) {
-	i := new(Item)
+	var i Item
 	err := s.db.QueryRow(`
 		select
 			id, guid, feed_id, title, link, content,
@@ -258,33 +230,37 @@ func (s *Storage) GetItem(id int) (*Item, error) {
 		&i.Date, &i.Status, &i.ImageURL, &i.AudioURL,
 	)
 	if err != nil {
-		log.Print(err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, errors.New(err)
 	}
-	return i, err
+	return &i, nil
 }
 
 func (s *Storage) UpdateItemStatus(itemId int, status ItemStatus) error {
 	_, err := s.db.Exec(`update items set status = ? where id = ?`, status, itemId)
 	if err != nil {
-		log.Print(err)
+		return errors.New(err)
 	}
-	return err
+	return nil
 }
 
-func (s *Storage) MarkItemsRead(filter MarkFilter) error {
-	predicate, args := listQueryPredicate(ItemFilter{
-		FolderId: filter.FolderId,
-		FeedId:   filter.FeedId,
-	}, false)
-	query := fmt.Sprintf(`
+type MarkFilter struct {
+	FolderId *int
+	FeedId   *int
+}
+
+func (s *Storage) MarkItemsRead(filter ItemFilter) error {
+	predicate, args := listQueryPredicate(filter, false)
+	_, err := s.db.Exec(fmt.Sprintf(`
 		update items set status = %d
 		where %s and status != %d
-		`, READ, predicate, STARRED)
-	_, err := s.db.Exec(query, args...)
+	`, READ, predicate, STARRED), args...)
 	if err != nil {
-		log.Print(err)
+		return errors.New(err)
 	}
-	return err
+	return nil
 }
 
 type FeedStat struct {
@@ -297,28 +273,25 @@ func (s *Storage) FeedStats() ([]FeedStat, error) {
 	rows, err := s.db.Query(fmt.Sprintf(`
 		select
 			feed_id,
-			sum(case status when %d then 1 else 0 end),
-			sum(case status when %d then 1 else 0 end)
+			sum(iif(status = %d, 1, 0)),
+			sum(iif(status = %d, 1, 0))
 		from items
 		group by feed_id
 	`, UNREAD, STARRED))
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	result := make([]FeedStat, 0)
 	for rows.Next() {
-		var stat FeedStat
-		err = rows.Scan(&stat.FeedId, &stat.UnreadCount, &stat.StarredCount)
+		var s FeedStat
+		err = rows.Scan(&s.FeedId, &s.UnreadCount, &s.StarredCount)
 		if err != nil {
-			log.Print(err)
-			return nil, err
+			return nil, errors.New(err)
 		}
-		result = append(result, stat)
+		result = append(result, s)
 	}
 	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return result, nil
 }
@@ -338,7 +311,7 @@ const (
 //   - Keep entries for a certain period (default: 90 days).
 func (s *Storage) DeleteOldItems() {
 	rows, err := s.db.Query(`
-		select id, max(coalesce(size, 0), ?)
+		select id, max(ifnull(size, 0), ?)
 		from feeds
 	`, ITEMS_KEEP_SIZE)
 	if err != nil {
@@ -360,6 +333,7 @@ func (s *Storage) DeleteOldItems() {
 		return
 	}
 
+	dateArrived := time.Now().Add(-time.Duration(ITEMS_KEEP_DAYS) * 24 * time.Hour).UTC()
 	for feedId, limit := range feedLimits {
 		result, err := s.db.Exec(`
 			delete from items
@@ -374,7 +348,7 @@ func (s *Storage) DeleteOldItems() {
 			feedId,
 			READ,
 			limit,
-			time.Now().UTC().Add(-time.Duration(ITEMS_KEEP_DAYS)*24*time.Hour),
+			dateArrived,
 		)
 		if err != nil {
 			log.Print(err)

@@ -22,16 +22,13 @@ Alternatives for some command line argument values:
 
 ## Build
 
-Install `libsqlite3-dev`. Run:
-
 ```bash
 pnpm install
 pnpm build
 go generate ./...
-go build -ldflags='-s -w' -tags='sqlite_foreign_keys sqlite_fts5' -trimpath
+go build -ldflags='-s -w' -tags='sqlite_foreign_keys' -trimpath
 ```
 
 ## Credits
 
-- [yarr](https://github.com/nkanaev/yarr/) for RSS reader.
-- [simple](https://github.com/wangfenjin/simple) for SQLite FTS5 tokenizer.
+[yarr](https://github.com/nkanaev/yarr/) for RSS reader.

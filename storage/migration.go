@@ -48,87 +48,57 @@ var migrations = []func(*sql.Tx) error{
 		sql := `
 			pragma auto_vacuum = incremental;
 
-			create table if not exists folders (
+			create table folders (
 			 id             integer primary key autoincrement,
 			 title          text not null,
 			 is_expanded    boolean not null default false
 			);
 
-			create unique index if not exists idx_folder_title on folders(title);
+			create unique index idx_folder_title on folders(title);
 
-			create table if not exists feeds (
+			create table feeds (
 			 id             integer primary key autoincrement,
 			 folder_id      references folders(id) on delete cascade,
 			 title          text not null,
-			 description    text,
 			 link           text,
 			 feed_link      text not null,
 			 icon           blob,
 
 			 error          text,
 			 size           integer,
+			 last_refreshed datetime,
 
 			 -- http header fields --
 			 last_modified  text,
 			 etag           text
 			);
 
-			create index if not exists idx_feed_folder_id on feeds(folder_id);
-			create unique index if not exists idx_feed_feed_link on feeds(feed_link);
+			create index idx_feed_folder_id on feeds(folder_id);
+			create unique index idx_feed_feed_link on feeds(feed_link);
 
-			create table if not exists items (
+			create table items (
 			 id             integer primary key autoincrement,
 			 guid           text not null,
 			 feed_id        references feeds(id) on delete cascade,
 			 title          text,
 			 link           text,
-			 description    text,
 			 content        text,
-			 author         text,
+			 content_text   text,
 			 date           datetime,
-			 date_updated   datetime,
 			 date_arrived   datetime,
 			 status         integer,
 			 image          text,
-			 podcast_url    text,
-			 search_rowid   integer
+			 podcast_url    text
 			);
 
-			create index if not exists idx_item_feed_id on items(feed_id);
-			create index if not exists idx_item_status  on items(status);
-			create index if not exists idx_item_search_rowid on items(search_rowid);
-			create unique index if not exists idx_item_guid on items(feed_id, guid);
+			create unique index idx_item_guid on items(feed_id, guid);
+			create index idx_item_feed_id on items(feed_id);
+			create index idx_item_date_id_status on items(date, id, status);
 
-			create table if not exists settings (
+			create table settings (
 			 key            text primary key,
 			 val            blob
 			);
-
-			create virtual table if not exists search using fts5(
-			 title,
-			 description,
-			 content,
-			 tokenize="simple"
-			);
-
-			create trigger if not exists del_item_search after delete on items begin
-			 delete from search where rowid = old.search_rowid;
-			end;
-		`
-		_, err := tx.Exec(sql)
-		return err
-	},
-	func(tx *sql.Tx) error {
-		sql := `
-			drop index if exists idx_item_status;
-			create index if not exists idx_item_date_id_status on items(date, id, status);
-		`
-		_, err := tx.Exec(sql)
-		return err
-	},
-	func(tx *sql.Tx) error {
-		sql := `
-			alter table feeds add column last_refreshed datetime;
 		`
 		_, err := tx.Exec(sql)
 		return err

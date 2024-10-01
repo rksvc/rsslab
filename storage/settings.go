@@ -2,101 +2,39 @@ package storage
 
 import (
 	"database/sql"
-	"encoding/json"
-	"log"
+
+	"github.com/go-errors/errors"
 )
 
-func defaultSettings() map[string]any {
-	return map[string]any{
-		"filter":            "",
-		"feed":              "",
-		"feed_list_width":   300,
-		"item_list_width":   300,
-		"sort_newest_first": true,
-		"theme_name":        "light",
-		"theme_font":        "",
-		"theme_size":        1,
-		"refresh_rate":      0,
-	}
+type Settings struct {
+	RefreshRate int `json:"refresh_rate"`
 }
 
-func (s *Storage) GetSettingsValue(key string) (any, error) {
-	var val []byte
-	err := s.db.QueryRow(`select val from settings where key = ?`, key).Scan(&val)
+type SettingsEditor struct {
+	RefreshRate *int `json:"refresh_rate"`
+}
+
+func (s *Storage) GetSettings() (settings Settings, err error) {
+	err = s.db.QueryRow(`
+		select val from settings where key = 'refresh_rate'
+	`).Scan(&settings.RefreshRate)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return defaultSettings()[key], nil
+			err = nil
+		} else {
+			err = errors.New(err)
 		}
-		return nil, err
 	}
-	if len(val) == 0 {
-		return nil, nil
-	}
-	var valDecoded any
-	if err := json.Unmarshal(val, &valDecoded); err != nil {
-		return nil, err
-	}
-	return valDecoded, nil
+	return
 }
 
-func (s *Storage) GetSettingsValueInt(key string) (int, error) {
-	val, err := s.GetSettingsValue(key)
-	if err != nil {
-		log.Print(err)
-		return 0, err
-	} else if fval, ok := val.(float64); ok {
-		return int(fval), nil
-	}
-	return 0, nil
-}
-
-func (s *Storage) GetSettings() (map[string]any, error) {
-	result := defaultSettings()
-	rows, err := s.db.Query(`select key, val from settings`)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	for rows.Next() {
-		var key string
-		var val []byte
-		var valDecoded any
-
-		if err = rows.Scan(&key, &val); err != nil {
-			log.Print(err)
-			return nil, err
-		} else if err = json.Unmarshal(val, &valDecoded); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-		result[key] = valDecoded
-	}
-	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	return result, nil
-}
-
-func (s *Storage) UpdateSettings(kv map[string]any) error {
-	defaults := defaultSettings()
-	for key, val := range kv {
-		if _, ok := defaults[key]; !ok {
-			continue
-		}
-		valEncoded, err := json.Marshal(val)
+func (s *Storage) UpdateSettings(settings SettingsEditor) error {
+	if settings.RefreshRate != nil {
+		_, err := s.db.Exec(`
+			insert or replace into settings (key, val) values ('refresh_rate', ?)
+		`, *settings.RefreshRate)
 		if err != nil {
-			log.Print(err)
-			return err
-		}
-		_, err = s.db.Exec(`
-			insert into settings (key, val) values (?, ?)
-			on conflict (key) do update set val = ?`,
-			key, valEncoded, valEncoded,
-		)
-		if err != nil {
-			log.Print(err)
-			return err
+			return errors.New(err)
 		}
 	}
 	return nil

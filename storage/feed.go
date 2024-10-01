@@ -2,15 +2,18 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"strings"
 	"time"
+
+	"github.com/go-errors/errors"
 )
 
 type Feed struct {
 	Id            int        `json:"id"`
 	FolderId      *int       `json:"folder_id"`
 	Title         string     `json:"title"`
-	Description   string     `json:"description,omitempty"`
 	Link          string     `json:"link,omitempty"`
 	FeedLink      string     `json:"feed_link"`
 	Icon          *[]byte    `json:"icon,omitempty"`
@@ -18,68 +21,68 @@ type Feed struct {
 	LastRefreshed *time.Time `json:"last_refreshed,omitempty"`
 }
 
-type HTTPState struct {
-	LastModified *string
-	Etag         *string
-}
-
-func (s *Storage) CreateFeed(title, description, link, feedLink string, folderId *int) (*Feed, error) {
+func (s *Storage) CreateFeed(title, link, feedLink string, folderId *int) (*Feed, error) {
 	if title == "" {
 		title = feedLink
 	}
 	var id int
 	err := s.db.QueryRow(`
-		insert into feeds (title, description, link, feed_link, folder_id) 
-		values (?, ?, ?, ?, ?)
+		insert into feeds (title, link, feed_link, folder_id) 
+		values (?, ?, ?, ?)
 		on conflict (feed_link) do update set folder_id = ?
         returning id`,
-		title, description, link, feedLink, folderId,
-		folderId,
+		title, link, feedLink, folderId, folderId,
 	).Scan(&id)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return &Feed{
-		Id:          id,
-		Title:       title,
-		Description: description,
-		Link:        link,
-		FeedLink:    feedLink,
-		FolderId:    folderId,
+		Id:       id,
+		Title:    title,
+		Link:     link,
+		FeedLink: feedLink,
+		FolderId: folderId,
 	}, nil
 }
 
 func (s *Storage) DeleteFeed(feedId int) error {
 	_, err := s.db.Exec(`delete from feeds where id = ?`, feedId)
 	if err != nil {
-		log.Print(err)
+		return errors.New(err)
 	}
-	return err
+	return nil
 }
 
-func (s *Storage) RenameFeed(feedId int, newTitle string) error {
-	_, err := s.db.Exec(`update feeds set title = ? where id = ?`, newTitle, feedId)
-	if err != nil {
-		log.Print(err)
-	}
-	return err
+type FeedEditor struct {
+	Title    *string `json:"title"`
+	FeedLink *string `json:"feed_link"`
+	FolderId **int   `json:"folder_id"`
 }
 
-func (s *Storage) EditFeedLink(feedId int, newFeedLink string) error {
-	_, err := s.db.Exec(`update feeds set feed_link = ? where id = ?`, newFeedLink, feedId)
-	if err != nil {
-		log.Print(err)
+func (s *Storage) EditFeed(feedId int, editor FeedEditor) error {
+	var acts []string
+	var args []any
+	if editor.Title != nil {
+		acts = append(acts, "title = ?")
+		args = append(args, *editor.Title)
 	}
-	return err
-}
-
-func (s *Storage) UpdateFeedFolder(feedId int, newFolderId *int) error {
-	_, err := s.db.Exec(`update feeds set folder_id = ? where id = ?`, newFolderId, feedId)
-	if err != nil {
-		log.Print(err)
+	if editor.FeedLink != nil {
+		acts = append(acts, "feed_link = ?")
+		args = append(args, *editor.FeedLink)
 	}
-	return err
+	if editor.FolderId != nil {
+		acts = append(acts, "folder_id = ?")
+		args = append(args, *editor.FolderId)
+	}
+	if len(acts) == 0 {
+		return nil
+	}
+	args = append(args, feedId)
+	_, err := s.db.Exec(fmt.Sprintf(`update feeds set %s where id = ?`, strings.Join(acts, ", ")), args...)
+	if err != nil {
+		return errors.New(err)
+	}
+	return nil
 }
 
 func (s *Storage) UpdateFeedIcon(feedId int, icon []byte) {
@@ -91,14 +94,13 @@ func (s *Storage) UpdateFeedIcon(feedId int, icon []byte) {
 
 func (s *Storage) ListFeeds() ([]Feed, error) {
 	rows, err := s.db.Query(`
-		select id, folder_id, title, description, link, feed_link,
-		       last_refreshed, ifnull(length(icon), 0) > 0 as has_icon
+		select id, folder_id, title, link, feed_link,
+		       last_refreshed, icon is not null as has_icon
 		from feeds
 		order by title collate nocase
 	`)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	result := make([]Feed, 0)
 	for rows.Next() {
@@ -107,26 +109,23 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 			&f.Id,
 			&f.FolderId,
 			&f.Title,
-			&f.Description,
 			&f.Link,
 			&f.FeedLink,
 			&f.LastRefreshed,
 			&f.HasIcon,
 		)
 		if err != nil {
-			log.Print(err)
-			return nil, err
+			return nil, errors.New(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return result, nil
 }
 
-func (s *Storage) ListFeedsMissingIcons() []Feed {
+func (s *Storage) ListFeedsMissingIcons() (result []Feed) {
 	rows, err := s.db.Query(`
 		select id, link, feed_link
 		from feeds
@@ -134,9 +133,8 @@ func (s *Storage) ListFeedsMissingIcons() []Feed {
 	`)
 	if err != nil {
 		log.Print(err)
-		return nil
+		return
 	}
-	var result []Feed
 	for rows.Next() {
 		var f Feed
 		err = rows.Scan(
@@ -146,15 +144,15 @@ func (s *Storage) ListFeedsMissingIcons() []Feed {
 		)
 		if err != nil {
 			log.Print(err)
-			return nil
+			return
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
 		log.Print(err)
-		return nil
+		return
 	}
-	return result
+	return
 }
 
 func (s *Storage) GetFeed(id int) (*Feed, error) {
@@ -167,8 +165,7 @@ func (s *Storage) GetFeed(id int) (*Feed, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return &f, nil
 }
@@ -181,39 +178,31 @@ func (s *Storage) GetFeeds(folderId int) ([]Feed, error) {
 		order by title collate nocase
 	`, folderId)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	result := make([]Feed, 0)
 	for rows.Next() {
 		var f Feed
 		err = rows.Scan(&f.Id, &f.FeedLink)
 		if err != nil {
-			log.Print(err)
-			return nil, err
+			return nil, errors.New(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return result, nil
 }
 
-func (s *Storage) ResetFeedError(feedId int) {
-	_, err := s.db.Exec(`
-		update feeds set error = null where id = ?`, feedId,
-	)
-	if err != nil {
-		log.Print(err)
-	}
-}
-
 func (s *Storage) SetFeedError(feedId int, lastError error) {
+	var val any
+	if lastError != nil {
+		val = lastError.Error()
+	}
 	_, err := s.db.Exec(`
 		update feeds set error = ? where id = ?`,
-		lastError.Error(), feedId,
+		val, feedId,
 	)
 	if err != nil {
 		log.Print(err)
@@ -225,25 +214,22 @@ func (s *Storage) GetFeedErrors() (map[int]string, error) {
 		select id, error from feeds where error is not null`,
 	)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 
-	errors := make(map[int]string)
+	errs := make(map[int]string)
 	for rows.Next() {
 		var id int
-		var error string
-		if err = rows.Scan(&id, &error); err != nil {
-			log.Print(err)
-			return nil, err
+		var err string
+		if err := rows.Scan(&id, &err); err != nil {
+			return nil, errors.New(err)
 		}
-		errors[id] = error
+		errs[id] = err
 	}
 	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
-	return errors, nil
+	return errs, nil
 }
 
 func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
@@ -253,29 +239,30 @@ func (s *Storage) GetFeedsWithErrors() ([]Feed, error) {
 		order by title collate nocase
 	`)
 	if err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	result := make([]Feed, 0)
 	for rows.Next() {
 		var f Feed
 		err = rows.Scan(&f.Id, &f.FeedLink)
 		if err != nil {
-			log.Print(err)
-			return nil, err
+			return nil, errors.New(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return nil, err
+		return nil, errors.New(err)
 	}
 	return result, nil
 }
 
-func (s *Storage) GetHTTPState(feedId int) (*HTTPState, error) {
-	var state HTTPState
-	err := s.db.QueryRow(`
+type HTTPState struct {
+	LastModified *string
+	Etag         *string
+}
+
+func (s *Storage) GetHTTPState(feedId int) (state HTTPState, err error) {
+	err = s.db.QueryRow(`
 		select last_modified, etag
 		from feeds where id = ?
 	`, feedId).Scan(
@@ -283,34 +270,7 @@ func (s *Storage) GetHTTPState(feedId int) (*HTTPState, error) {
 		&state.Etag,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		log.Print(err)
-		return nil, err
+		err = errors.New(err)
 	}
-	return &state, nil
-}
-
-func (s *Storage) SetHTTPState(feedId int, lastModified, etag string) error {
-	_, err := s.db.Exec(`
-		update feeds set last_modified = ?, etag = ?
-		where id = ?`,
-		lastModified, etag, feedId,
-	)
-	if err != nil {
-		log.Print(err)
-	}
-	return err
-}
-
-func (s *Storage) SetFeedLastRefreshed(feedId int, lastRefreshed time.Time) error {
-	_, err := s.db.Exec(`
-		update feeds set last_refreshed = ? where id = ?`,
-		lastRefreshed.UTC(), feedId,
-	)
-	if err != nil {
-		log.Print(err)
-	}
-	return err
+	return
 }
