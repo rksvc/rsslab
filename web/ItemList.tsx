@@ -160,7 +160,7 @@ export default function ItemList({
     setItems(result.list)
     setHasMore(result.has_more)
     loaded.current = Array.from({ length: result.list.length })
-  }, 500)
+  }, 200)
 
   useEffect(() => {
     ;(async () => {
