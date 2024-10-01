@@ -273,6 +273,8 @@ export default function FeedList({
                       body: new FormData(opmlFormRef.current),
                     })
                     menuRef.current?.parentElement?.click()
+                    refreshFeeds()
+                    refreshStats()
                   }}
                 />
                 <label htmlFor="opml-import">
