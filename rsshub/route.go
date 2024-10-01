@@ -133,7 +133,7 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 			}()
 			return promise
 		})
-		vm.Set("$tryGet", func(key string, f func() *goja.Promise, maxAge *int, ex *bool) *goja.Promise {
+		vm.Set("$tryGet", func(key string, f func() goja.Value, maxAge *int, ex *bool) *goja.Promise {
 			promise, resolve, reject := vm.NewPromise()
 			go func() {
 				ttl := contentExpire
@@ -142,7 +142,7 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 				}
 				v, err := r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
 					w := newWait()
-					loop.RunOnLoop(func(vm *goja.Runtime) { w.Await(vm, vm.ToValue(f())) })
+					loop.RunOnLoop(func(vm *goja.Runtime) { w.Await(vm, f()) })
 					w.Wait()
 					return w.Value, w.Err
 				})
