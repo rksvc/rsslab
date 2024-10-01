@@ -118,7 +118,7 @@ export default function ItemList({
       setLoading(true)
       try {
         const result = await xfetch<Items>(
-          `./api/items${param({ ...query(), after: items.at(-1)?.id })}`,
+          `api/items${param({ ...query(), after: items.at(-1)?.id })}`,
         )
         setItems([...items, ...result.list])
         setHasMore(result.has_more)
@@ -135,7 +135,7 @@ export default function ItemList({
     attrName: T,
     value: Feed[T],
   ) => {
-    await xfetch(`./api/feeds/${id}`, {
+    await xfetch(`api/feeds/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ [attrName]: value ?? -1 }),
     })
@@ -156,7 +156,7 @@ export default function ItemList({
     return query
   }, [selected, filter])
   const onSearch = useDebouncedCallback(async () => {
-    const result = await xfetch<Items>(`./api/items${param(query())}`)
+    const result = await xfetch<Items>(`api/items${param(query())}`)
     setItems(result.list)
     setHasMore(result.has_more)
     loaded.current = Array.from({ length: result.list.length })
@@ -164,7 +164,7 @@ export default function ItemList({
 
   useEffect(() => {
     ;(async () => {
-      const result = await xfetch<Items>(`./api/items${param(query())}`)
+      const result = await xfetch<Items>(`api/items${param(query())}`)
       setItems(result.list)
       setSelectedItemId(undefined)
       setSelectedItemDetails(undefined)
@@ -200,14 +200,14 @@ export default function ItemList({
               const [type, id] = selected.split(':')
               query[`${type}_id`] = id
             }
-            await xfetch(`./api/items${param(query)}`, { method: 'PUT' })
+            await xfetch(`api/items${param(query)}`, { method: 'PUT' })
             setItems(items =>
               items?.map(item => ({
                 ...item,
                 status: item.status === 'starred' ? 'starred' : 'read',
               })),
             )
-            const status = await xfetch<Status>('./api/status')
+            const status = await xfetch<Status>('api/status')
             setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])))
           }}
         />
@@ -253,7 +253,7 @@ export default function ItemList({
                     icon={<RotateCw {...menuIconProps} />}
                     disabled={loadingFeeds > 0}
                     onClick={async () => {
-                      await xfetch(`./api/feeds/${id}/refresh`, { method: 'POST' })
+                      await xfetch(`api/feeds/${id}/refresh`, { method: 'POST' })
                       await refreshStats()
                     }}
                   />
@@ -299,7 +299,7 @@ export default function ItemList({
                     icon={<RotateCw {...menuIconProps} />}
                     disabled={loadingFeeds > 0}
                     onClick={async () => {
-                      await xfetch(`./api/folders/${id}/refresh`, { method: 'POST' })
+                      await xfetch(`api/folders/${id}/refresh`, { method: 'POST' })
                       await refreshStats()
                     }}
                   />
@@ -391,7 +391,7 @@ export default function ItemList({
         setOpen={setDeleteFeedDialogOpen}
         title="Delete Feed"
         callback={async () => {
-          await xfetch(`./api/feeds/${id}`, { method: 'DELETE' })
+          await xfetch(`api/feeds/${id}`, { method: 'DELETE' })
           const folderId = feedsById.get(id)?.folder_id
           await Promise.all([refreshFeeds(), refreshStats(false)])
           setSelected(folderId === null ? '' : `folder:${folderId}`)
@@ -407,7 +407,7 @@ export default function ItemList({
         callback={async () => {
           const title = folderTitleRef.current?.value
           if (title && title !== foldersById.get(id)?.title) {
-            await xfetch(`./api/folders/${id}`, {
+            await xfetch(`api/folders/${id}`, {
               method: 'PUT',
               body: JSON.stringify({ title }),
             })
@@ -424,7 +424,7 @@ export default function ItemList({
         setOpen={setDeleteFolderDialogOpen}
         title="Delete Folder"
         callback={async () => {
-          await xfetch(`./api/folders/${id}`, { method: 'DELETE' })
+          await xfetch(`api/folders/${id}`, { method: 'DELETE' })
           await Promise.all([refreshFeeds(), refreshStats(false)])
           setSelected('')
         }}
@@ -478,10 +478,10 @@ function CardItem({
       onClick={async () => {
         if (selected) return
         setSelectedItemId(item.id)
-        setSelectedItemDetails(await xfetch<Item>(`./api/items/${item.id}`))
+        setSelectedItemDetails(await xfetch<Item>(`api/items/${item.id}`))
         contentRef.current?.scrollTo(0, 0)
         if (item.status === 'unread') {
-          await xfetch(`./api/items/${item.id}`, {
+          await xfetch(`api/items/${item.id}`, {
             method: 'PUT',
             body: JSON.stringify({ status: 'read' }),
           })

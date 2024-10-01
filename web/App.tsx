@@ -35,9 +35,9 @@ export default function App() {
 
   const refreshFeeds = useCallback(async () => {
     const [folders, feeds, settings] = await Promise.all([
-      xfetch<Folder[]>('./api/folders'),
-      xfetch<Feed[]>('./api/feeds'),
-      xfetch<Settings>('./api/settings'),
+      xfetch<Folder[]>('api/folders'),
+      xfetch<Feed[]>('api/feeds'),
+      xfetch<Settings>('api/settings'),
     ])
     setFolders(folders)
     setFeeds(feeds)
@@ -45,8 +45,8 @@ export default function App() {
   }, [])
   const refreshStats = useCallback(async (loop = true) => {
     const [errors, status] = await Promise.all([
-      xfetch<Record<number, string>>('./api/feeds/errors'),
-      xfetch<Status>('./api/status'),
+      xfetch<Record<number, string>>('api/feeds/errors'),
+      xfetch<Status>('api/status'),
     ])
     setErrors(
       new Map(Object.entries(errors).map(([id, error]) => [Number.parseInt(id), error])),

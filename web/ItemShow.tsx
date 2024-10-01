@@ -30,7 +30,7 @@ export default function ItemShow({
 }) {
   const toggleStatus = (targetStatus: string) => async () => {
     const status = targetStatus === selectedItemDetails.status ? 'read' : targetStatus
-    await xfetch(`./api/items/${selectedItemDetails.id}`, {
+    await xfetch(`api/items/${selectedItemDetails.id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     })

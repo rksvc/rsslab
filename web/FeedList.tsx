@@ -118,7 +118,7 @@ export default function FeedList({
     id: `feed:${feed.id}`,
     label: <span title={feed.title}>{feed.title}</span>,
     icon: feed.has_icon ? (
-      <img className="w-4 mr-[7px]" src={`./api/feeds/${feed.id}/icon`} />
+      <img className="w-4 mr-[7px]" src={`api/feeds/${feed.id}/icon`} />
     ) : (
       <Rss className="mr-[6px]" {...iconProps} />
     ),
@@ -136,7 +136,7 @@ export default function FeedList({
         folder.id === id ? { ...folder, is_expanded: isExpanded } : folder,
       ),
     )
-    await xfetch(`./api/folders/${id}`, {
+    await xfetch(`api/folders/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ is_expanded: isExpanded }),
     })
@@ -240,7 +240,7 @@ export default function FeedList({
                 icon={<RotateCw {...menuIconProps} />}
                 disabled={loadingFeeds > 0}
                 onClick={async () => {
-                  await xfetch('./api/feeds/refresh', { method: 'POST' })
+                  await xfetch('api/feeds/refresh', { method: 'POST' })
                   await refreshStats()
                 }}
               />
@@ -257,7 +257,7 @@ export default function FeedList({
                   inputProps={{ name: 'opml', id: 'opml-import' }}
                   onInputChange={async () => {
                     if (!opmlFormRef.current) return
-                    await xfetch('./api/opml/import', {
+                    await xfetch('api/opml/import', {
                       method: 'POST',
                       body: new FormData(opmlFormRef.current),
                     })
@@ -276,7 +276,7 @@ export default function FeedList({
               </form>
               <MenuItem
                 text="Export OPML File"
-                href="./api/opml/export"
+                href="api/opml/export"
                 icon={<Upload {...menuIconProps} />}
               />
             </Menu>
@@ -332,7 +332,7 @@ export default function FeedList({
           if (!url) return
           setCreatingNewFeed(true)
           try {
-            const feed = await xfetch<Feed>('./api/feeds', {
+            const feed = await xfetch<Feed>('api/feeds', {
               method: 'POST',
               body: JSON.stringify({
                 url,
@@ -377,7 +377,7 @@ export default function FeedList({
           if (!title) return
           setCreatingNewFolder(true)
           try {
-            const folder = await xfetch<Folder>('./api/folders', {
+            const folder = await xfetch<Folder>('api/folders', {
               method: 'POST',
               body: JSON.stringify({ title }),
             })
@@ -404,7 +404,7 @@ export default function FeedList({
           if (!refreshRateRef.current) return
           const refreshRate = Number.parseInt(refreshRateRef.current.value)
           setSettings(settings => settings && { ...settings, refresh_rate: refreshRate })
-          await xfetch('./api/settings', {
+          await xfetch('api/settings', {
             method: 'PUT',
             body: JSON.stringify({ refresh_rate: refreshRate }),
           })
