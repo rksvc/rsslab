@@ -287,7 +287,7 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 
 func loadModule(src []byte, name string, vm *goja.Runtime, module *goja.Object) {
 	const PREFIX = "(function(exports,require,module){"
-	const SUFFIX = "})"
+	const SUFFIX = "\n})"
 	var b strings.Builder
 	b.Grow(len(PREFIX) + len(SUFFIX) + len(src))
 	b.WriteString(PREFIX)
