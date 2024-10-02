@@ -4,12 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"net/url"
-	"slices"
 	"strings"
 
-	"github.com/dop251/goja"
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/net/html/charset"
 )
@@ -29,31 +26,6 @@ type response struct {
 	Data    any    `json:"data"`
 	Data2   any    `json:"_data"`
 	Headers any    `json:"headers"`
-}
-
-type headers struct {
-	m map[string]goja.Value
-}
-
-func (h *headers) Get(key string) goja.Value {
-	return h.m[key]
-}
-
-func (h *headers) Set(key string, val goja.Value) bool {
-	return false
-}
-
-func (h *headers) Has(key string) bool {
-	_, ok := h.m[key]
-	return ok
-}
-
-func (h *headers) Delete(key string) bool {
-	return false
-}
-
-func (h *headers) Keys() []string {
-	return slices.Collect(maps.Keys(h.m))
 }
 
 func (r *RSSHub) fetch(opts map[string]any) (*response, error) {

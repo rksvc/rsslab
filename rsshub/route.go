@@ -120,14 +120,14 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 						resp.Data2 = resp.Body
 					}
 					h := resp.Headers.(http.Header)
-					resp.Headers = vm.NewDynamicObject(&headers{map[string]goja.Value{
-						"getSetCookie": vm.ToValue(func() []string {
+					resp.Headers = map[string]any{
+						"getSetCookie": func() []string {
 							return h.Values("Set-Cookie")
-						}),
-						"get": vm.ToValue(func(key string) string {
+						},
+						"get": func(key string) string {
 							return h.Get(key)
-						}),
-					}})
+						},
+					}
 					resolve(resp)
 				})
 			}()
