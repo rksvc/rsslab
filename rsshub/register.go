@@ -85,9 +85,10 @@ func (r *RSSHub) Register(app *fiber.App) error {
 
 			if strings.ContainsRune(path, '{') {
 				for _, pk := range []struct{ pattern, key string }{
+					{"{.+}", "+"},
+					{"{.*}", "*"},
 					{"{.+}?", "*"},
 					{"{.*}?", "*"},
-					{"{.+}", "+"},
 				} {
 					if before, found := strings.CutSuffix(path, pk.pattern); found {
 						if strings.ContainsRune(before, '{') {
