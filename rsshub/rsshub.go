@@ -82,11 +82,7 @@ func init() {
 				name += strings.ToUpper(word[:1]) + word[1:]
 			}
 			name += "Error"
-			prg, err := goja.Compile(path, fmt.Sprintf("(class extends Error{name='%s'})", name), false)
-			if err != nil {
-				log.Fatal(err)
-			}
-			result, err := vm.RunProgram(prg)
+			result, err := vm.RunScript(path, fmt.Sprintf("(class extends Error{name='%s'})", name))
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -293,11 +289,7 @@ func loadModule(src []byte, name string, vm *goja.Runtime, module *goja.Object) 
 	b.WriteString(PREFIX)
 	b.Write(src)
 	b.WriteString(SUFFIX)
-	prg, err := goja.Compile(name, b.String(), false)
-	if err != nil {
-		log.Fatal(err)
-	}
-	f, err := vm.RunProgram(prg)
+	f, err := vm.RunScript(name, b.String())
 	if err != nil {
 		log.Fatal(err)
 	}
