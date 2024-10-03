@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"regexp"
 	"rsslab/cache"
 	"rsslab/utils"
 	"strings"
@@ -222,8 +221,6 @@ func (r *RSSHub) sourceLoader(p string) ([]byte, error) {
 	return r.route(path.Join("lib/routes", name+".ts"))
 }
 
-var dynamicImport = regexp.MustCompile(`await import\(.+?\)`)
-
 func (r *RSSHub) route(path string) ([]byte, error) {
 	url, err := url.JoinPath(r.srcUrl, path)
 	if err != nil {
@@ -237,7 +234,7 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 
 		code := string(resp.Body())
 		if path == "lib/config.ts" {
-			code = dynamicImport.ReplaceAllLiteralString(code, "{}")
+			code = strings.Replace(code, "await import('@/utils/logger')", "{}", 1)
 		}
 		result := api.Transform(code, api.TransformOptions{
 			Sourcefile:        path,
