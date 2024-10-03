@@ -1,16 +1,55 @@
 package main
 
 import (
+	"io"
+	"net/http"
 	"os"
-	"path"
 	"rsslab/utils"
 	"sync"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/go-resty/resty/v2"
 )
 
 func main() {
+	files := []string{
+		"helpers",
+		"parse-date",
+		"readable-social",
+		"timezone",
+		"valid-host",
+	}
+	cleanup := func() {
+		for _, file := range files {
+			os.RemoveAll(file + ".ts")
+		}
+	}
+	defer cleanup()
+	var wg sync.WaitGroup
+	wg.Add(len(files))
+	for _, file := range files {
+		go func() {
+			defer wg.Done()
+			resp, err := http.Get("https://raw.githubusercontent.com/DIYgod/RSSHub/master/lib/utils/" + file + ".ts")
+			if err != nil {
+				panic(err)
+			}
+			defer resp.Body.Close()
+			if utils.IsErrorResponse(resp.StatusCode) {
+				panic(utils.ResponseError(resp))
+			}
+			f, err := os.Create(file + ".ts")
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+			_, err = io.Copy(f, resp.Body)
+			if err != nil {
+				panic(err)
+			}
+		}()
+	}
+	wg.Wait()
+
 	opts := api.BuildOptions{
 		Platform:          api.PlatformNode,
 		Sourcemap:         api.SourceMapInline,
@@ -22,79 +61,27 @@ func main() {
 		MinifyWhitespace:  true,
 		MinifySyntax:      true,
 		MinifyIdentifiers: true,
+		EntryPointsAdvanced: []api.EntryPoint{
+			{InputPath: "../node_modules/art-template/lib", OutputPath: "third_party/art-template"},
+			{InputPath: "../node_modules/cheerio/dist/browser", OutputPath: "third_party/cheerio"},
+			{InputPath: "../node_modules/crypto-js", OutputPath: "third_party/crypto-js"},
+			{InputPath: "../node_modules/lz-string", OutputPath: "third_party/lz-string"},
+			{InputPath: "../node_modules/markdown-it", OutputPath: "third_party/markdown-it"},
+			{InputPath: "../node_modules/query-string", OutputPath: "third_party/query-string"},
+			{InputPath: "../node_modules/query-string", OutputPath: "third_party/querystring"},
+		},
+		Outdir:   ".",
+		External: []string{"html-minifier"},
 	}
-
-	for _, pkg := range []struct {
-		path, outfile string
-		external      []string
-	}{
-		{"art-template/lib", "art-template.js", []string{"html-minifier"}},
-		{"cheerio/dist/browser", "cheerio.js", nil},
-		{"crypto-js", "crypto-js.js", nil},
-		{"lz-string", "lz-string.js", nil},
-		{"markdown-it", "markdown-it.js", nil},
-		{"query-string", "query-string.js", nil},
-		{"query-string", "querystring.js", nil},
-	} {
-		opts := opts
-		opts.EntryPoints = []string{path.Join("../node_modules", pkg.path)}
-		opts.Outfile = path.Join("third_party", pkg.outfile)
-		opts.External = pkg.external
-		if len(api.Build(opts).Errors) > 0 {
-			os.Exit(1)
-		}
-	}
-
-	files := []struct {
-		path, outfile string
-		content       []byte
-	}{
-		{"utils/helpers.ts", "utils/helpers.js", nil},
-		{"utils/parse-date.ts", "utils/parse-date.js", nil},
-		{"utils/readable-social.ts", "utils/readable-social.js", nil},
-		{"utils/timezone.ts", "utils/timezone.js", nil},
-		{"utils/valid-host.ts", "utils/valid-host.js", nil},
-	}
-	var wg sync.WaitGroup
-	wg.Add(len(files))
-	client := resty.New()
-	for i, file := range files {
-		go func() {
-			defer wg.Done()
-			resp, err := client.R().Get("https://raw.githubusercontent.com/DIYgod/RSSHub/master/lib/" + file.path)
-			if err != nil {
-				panic(err)
-			} else if resp.IsError() {
-				panic(utils.ResponseError(resp.RawResponse))
-			}
-			files[i].content = resp.Body()
-		}()
-	}
-	wg.Wait()
-	f, err := os.CreateTemp(".", "*.ts")
-	if err != nil {
-		panic(err)
-	}
-	cleanup := func() {
-		f.Close()
-		os.Remove(f.Name())
-	}
-	defer cleanup()
 	for _, file := range files {
-		err := f.Truncate(0)
-		if err != nil {
-			panic(err)
-		}
-		_, err = f.WriteAt(file.content, 0)
-		if err != nil {
-			panic(err)
-		}
-		opts := opts
-		opts.EntryPoints = []string{f.Name()}
-		opts.Outfile = file.outfile
-		if len(api.Build(opts).Errors) > 0 {
-			cleanup()
-			os.Exit(1)
-		}
+		opts.EntryPointsAdvanced = append(opts.EntryPointsAdvanced, api.EntryPoint{
+			InputPath:  file + ".ts",
+			OutputPath: "utils/" + file,
+		})
+	}
+	result := api.Build(opts)
+	if len(result.Errors) > 0 {
+		cleanup()
+		os.Exit(1)
 	}
 }
