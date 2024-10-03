@@ -14,6 +14,13 @@ import (
 
 var UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
+var SupportedSyntaxFeatures = map[string]bool{
+	"async-generator":      false,
+	"for-await":            false,
+	"logical-assignment":   false,
+	"regexp-match-indices": false,
+}
+
 func FirstNonEmpty(vals ...string) string {
 	for _, val := range vals {
 		if val = strings.TrimSpace(val); val != "" {
