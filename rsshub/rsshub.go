@@ -235,7 +235,7 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 			return nil, err
 		}
 
-		code := strings.ReplaceAll(resp.String(), "import.meta.url", `"`+path+`"`)
+		code := string(resp.Body())
 		if path == "lib/config.ts" {
 			code = dynamicImport.ReplaceAllLiteralString(code, "{}")
 		}
@@ -247,6 +247,7 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 			SourcesContent:    api.SourcesContentExclude,
 			Target:            api.ES2023,
 			Supported:         utils.SupportedSyntaxFeatures,
+			Define:            map[string]string{"import.meta.url": `"` + path + `"`},
 			MinifyWhitespace:  true,
 			MinifySyntax:      true,
 			MinifyIdentifiers: true,
