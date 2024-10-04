@@ -1,13 +1,9 @@
-function parseArgs(request, options = {}) {
+function raw(request, options = {}) {
   if (typeof request === 'string' || request instanceof URL) {
     options.url = request.toString()
-    return options
+    return $fetch(options)
   }
-  return request
-}
-
-function raw(request, options) {
-  return $fetch(parseArgs(request, options))
+  return $fetch(request)
 }
 
 async function ofetch(request, options) {

@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -20,15 +19,7 @@ import (
 
 //go:embed handler.js
 var handler string
-var handlerPrg *goja.Program
-
-func init() {
-	prg, err := goja.Compile("", handler, true)
-	if err != nil {
-		log.Fatal(err)
-	}
-	handlerPrg = prg
-}
+var handlerPrg = goja.MustCompile("", handler, false)
 
 type ctx struct {
 	Req req `json:"req"`

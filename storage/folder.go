@@ -24,7 +24,7 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 	err := s.db.QueryRow(`
 		insert into folders (title, is_expanded) values (?, ?)
 		on conflict (title) do update set title = ?
-        returning id`,
+		returning id`,
 		title, expanded,
 		// provide title again so that we can extract row id
 		title,

@@ -106,23 +106,23 @@ func init() {
 		})
 		return nil
 	})
-	entries, err := third_party.ReadDir("third_party")
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+	fs.WalkDir(third_party, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
-		name := strings.TrimSuffix(entry.Name(), ".js")
+		if d.IsDir() {
+			return nil
+		}
+		name := strings.TrimSuffix(d.Name(), ".js")
 		require.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
-			src, err := third_party.ReadFile(path.Join("third_party", entry.Name()))
+			src, err := fs.ReadFile(third_party, path)
 			if err != nil {
 				log.Fatal(err)
 			}
 			loadModule(src, name, vm, module)
 		})
-	}
+		return nil
+	})
 }
 
 var retryStatusCodes = map[int]struct{}{

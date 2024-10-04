@@ -246,11 +246,6 @@ func (s *Storage) UpdateItemStatus(itemId int, status ItemStatus) error {
 	return nil
 }
 
-type MarkFilter struct {
-	FolderId *int
-	FeedId   *int
-}
-
 func (s *Storage) MarkItemsRead(filter ItemFilter) error {
 	predicate, args := listQueryPredicate(filter, false)
 	_, err := s.db.Exec(fmt.Sprintf(`
