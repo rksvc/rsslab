@@ -369,7 +369,6 @@ export default function FeedList({
                   await refreshStats()
                 }}
               />
-              <MenuDivider className="select-none" />
               <MenuItem
                 text="Change Refresh Rate"
                 icon={<Edit {...menuIconProps} />}
