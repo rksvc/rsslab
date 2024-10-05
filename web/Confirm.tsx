@@ -37,7 +37,12 @@ export function Confirm<T>({
       onOpening={node => node.getElementsByTagName('input')[0]?.focus()}
     >
       <DialogBody>
-        <div onKeyDown={evt => evt.key === 'Enter' && onConfirm()}>{children}</div>
+        <div
+          style={{ userSelect: 'none' }}
+          onKeyDown={evt => evt.key === 'Enter' && onConfirm()}
+        >
+          {children}
+        </div>
       </DialogBody>
       <DialogFooter
         actions={
