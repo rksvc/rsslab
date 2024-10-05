@@ -6,7 +6,6 @@ import {
   Divider,
   FileInput,
   HTMLSelect,
-  InputGroup,
   Intent,
   Menu,
   MenuDivider,
@@ -14,6 +13,7 @@ import {
   NumericInput,
   Popover,
   Spinner,
+  TextArea,
   Tree,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
@@ -47,6 +47,12 @@ import {
 import { Confirm } from './Confirm'
 import type { Feed, Folder, FolderWithFeeds, Settings, Stats } from './types'
 import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils'
+
+const textAreaProps = {
+  style: { fontFamily: 'inherit' },
+  autoResize: true,
+  fill: true,
+} as const
 
 export default function FeedList({
   filter,
@@ -106,13 +112,13 @@ export default function FeedList({
   const [renameFolder, setRenameFolder] = useState<Folder>()
   const [deleteFolder, setDeleteFolder] = useState<Folder>()
   const menuRef = useRef<HTMLButtonElement>(null)
-  const newFeedLinkRef = useRef<HTMLInputElement>(null)
-  const newFolderTitleRef = useRef<HTMLInputElement>(null)
+  const newFeedLinkRef = useRef<HTMLTextAreaElement>(null)
+  const newFolderTitleRef = useRef<HTMLTextAreaElement>(null)
   const refreshRateRef = useRef<HTMLInputElement>(null)
   const opmlFormRef = useRef<HTMLFormElement>(null)
-  const feedTitleRef = useRef<HTMLInputElement>(null)
-  const feedLinkRef = useRef<HTMLInputElement>(null)
-  const folderTitleRef = useRef<HTMLInputElement>(null)
+  const feedTitleRef = useRef<HTMLTextAreaElement>(null)
+  const feedLinkRef = useRef<HTMLTextAreaElement>(null)
+  const folderTitleRef = useRef<HTMLTextAreaElement>(null)
 
   const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
     id: number,
@@ -518,11 +524,11 @@ export default function FeedList({
         }}
       >
         <div className="flex flex-row">
-          <InputGroup
+          <TextArea
             placeholder="https://example.com/feed"
             inputRef={newFeedLinkRef}
             spellCheck={false}
-            fill
+            {...textAreaProps}
           />
           <HTMLSelect
             className="ml-2"
@@ -565,7 +571,7 @@ export default function FeedList({
           }
         }}
       >
-        <InputGroup className="ml-1" inputRef={newFolderTitleRef} />
+        <TextArea inputRef={newFolderTitleRef} {...textAreaProps} />
       </Confirm>
       <Confirm
         isOpen={changeRefreshRateDialogOpen}
@@ -602,7 +608,11 @@ export default function FeedList({
             await updateFeedAttr(renameFeed.id, 'title', title)
         }}
       >
-        <InputGroup defaultValue={renameFeed?.title} inputRef={feedTitleRef} />
+        <TextArea
+          defaultValue={renameFeed?.title}
+          inputRef={feedTitleRef}
+          {...textAreaProps}
+        />
       </Confirm>
       <Confirm
         isOpen={changeLink}
@@ -615,10 +625,11 @@ export default function FeedList({
             await updateFeedAttr(changeLink.id, 'feed_link', feedLink)
         }}
       >
-        <InputGroup
+        <TextArea
           defaultValue={changeLink?.feed_link}
           inputRef={feedLinkRef}
           spellCheck={false}
+          {...textAreaProps}
         />
       </Confirm>
       <Confirm
@@ -657,7 +668,11 @@ export default function FeedList({
           }
         }}
       >
-        <InputGroup defaultValue={renameFolder?.title} inputRef={folderTitleRef} />
+        <TextArea
+          defaultValue={renameFolder?.title}
+          inputRef={folderTitleRef}
+          {...textAreaProps}
+        />
       </Confirm>
       <Confirm
         isOpen={deleteFolder}
