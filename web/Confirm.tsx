@@ -1,28 +1,27 @@
 import { Button, Dialog, DialogBody, DialogFooter, Intent } from '@blueprintjs/core'
-import { type Dispatch, type ReactNode, type SetStateAction, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 
-export function Confirm({
-  open,
-  setOpen,
+export function Confirm<T>({
+  isOpen,
+  close,
   title,
   callback,
   children,
   intent = Intent.PRIMARY,
 }: {
-  open: boolean
-  setOpen: Dispatch<SetStateAction<boolean>>
+  isOpen: T
+  close: () => void
   title: string
   callback: () => Promise<void>
   children: ReactNode
   intent?: Intent
 }) {
   const [loading, setLoading] = useState(false)
-  const onClose = () => setOpen(false)
   const onConfirm = async () => {
     setLoading(true)
     try {
       await callback()
-      onClose()
+      close()
     } finally {
       setLoading(false)
     }
@@ -30,9 +29,9 @@ export function Confirm({
   return (
     <Dialog
       title={title}
-      isOpen={open}
+      isOpen={!!isOpen}
       isCloseButtonShown={false}
-      onClose={onClose}
+      onClose={close}
       canEscapeKeyClose
       canOutsideClickClose
       onOpening={node => node.getElementsByTagName('input')[0]?.focus()}
@@ -43,7 +42,7 @@ export function Confirm({
       <DialogFooter
         actions={
           <>
-            <Button className="select-none" text="Cancel" onClick={onClose} />
+            <Button className="select-none" text="Cancel" onClick={close} />
             <Button
               className="select-none"
               intent={intent}

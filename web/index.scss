@@ -39,6 +39,10 @@
 	cursor: pointer;
 }
 
+.bp5-tree-node-content:has(.context-menu-open) {
+	background-color: rgba($gray3, 30%);
+}
+
 .bp5-tree-node-content * {
 	user-select: none;
 }

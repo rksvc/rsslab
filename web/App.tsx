@@ -62,7 +62,7 @@ export default function App() {
     refreshStats()
   }, [refreshFeeds, refreshStats])
 
-  const [foldersWithFeeds, feedsWithoutFolders, foldersById, feedsById] = useMemo(() => {
+  const [foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
     const foldersById = new Map<number, FolderWithFeeds>()
     for (const folder of folders ?? [])
       foldersById.set(folder.id, { ...folder, feeds: [] })
@@ -73,7 +73,7 @@ export default function App() {
       else foldersById.get(feed.folder_id)?.feeds.push(feed)
       feedsById.set(feed.id, feed)
     }
-    return [[...foldersById.values()], feedsWithoutFolders, foldersById, feedsById]
+    return [[...foldersById.values()], feedsWithoutFolders, feedsById]
   }, [feeds, folders])
 
   const props = {
@@ -103,7 +103,6 @@ export default function App() {
     refreshStats,
     foldersWithFeeds,
     feedsWithoutFolders,
-    foldersById,
     feedsById,
   }
 

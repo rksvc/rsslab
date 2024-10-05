@@ -1,6 +1,8 @@
 import {
   Button,
   ButtonGroup,
+  ContextMenu,
+  type ContextMenuChildrenProps,
   Divider,
   FileInput,
   HTMLSelect,
@@ -28,24 +30,30 @@ import {
   Circle,
   Download,
   Edit,
+  Folder as FolderIcon,
+  FolderMinus,
+  Link,
   Menu as MenuIcon,
   MoreHorizontal,
+  Move,
   Plus,
   RotateCw,
   Rss,
   Star,
+  Trash,
   Upload,
   Wind,
 } from 'react-feather'
 import { Confirm } from './Confirm'
 import type { Feed, Folder, FolderWithFeeds, Settings, Stats } from './types'
-import { iconProps, menuIconProps, popoverProps, xfetch } from './utils'
+import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils'
 
 export default function FeedList({
   filter,
   setFilter,
   folders,
   setFolders,
+  setFeeds,
   stats,
   errors,
   selected,
@@ -64,6 +72,7 @@ export default function FeedList({
   setFilter: Dispatch<SetStateAction<string>>
   folders?: Folder[]
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
+  setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   stats?: Map<number, Stats>
   errors?: Map<number, string>
   selected: string
@@ -91,12 +100,33 @@ export default function FeedList({
   const [newFeedDialogOpen, setNewFeedDialogOpen] = useState(false)
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
   const [changeRefreshRateDialogOpen, setChangeRefreshRateDialogOpen] = useState(false)
+  const [renameFeed, setRenameFeed] = useState<Feed>()
+  const [changeLink, setChangeLink] = useState<Feed>()
+  const [deleteFeed, setDeleteFeed] = useState<Feed>()
+  const [renameFolder, setRenameFolder] = useState<Folder>()
+  const [deleteFolder, setDeleteFolder] = useState<Folder>()
   const menuRef = useRef<HTMLButtonElement>(null)
   const newFeedLinkRef = useRef<HTMLInputElement>(null)
   const newFolderTitleRef = useRef<HTMLInputElement>(null)
   const refreshRateRef = useRef<HTMLInputElement>(null)
   const opmlFormRef = useRef<HTMLFormElement>(null)
+  const feedTitleRef = useRef<HTMLInputElement>(null)
+  const feedLinkRef = useRef<HTMLInputElement>(null)
+  const folderTitleRef = useRef<HTMLInputElement>(null)
 
+  const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
+    id: number,
+    attrName: T,
+    value: Feed[T],
+  ) => {
+    await xfetch(`api/feeds/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ [attrName]: value ?? -1 }),
+    })
+    setFeeds(feeds =>
+      feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)),
+    )
+  }
   const secondaryLabel = (stats?: Stats, error?: boolean, lastRefreshed?: string) =>
     filter === 'Unread' ? (
       `${stats?.unread ?? ''}`
@@ -116,7 +146,96 @@ export default function FeedList({
     )
   const feed = (feed: Feed) => ({
     id: `feed:${feed.id}`,
-    label: <span title={feed.title}>{feed.title}</span>,
+    label: (
+      <ContextMenu
+        content={
+          <Menu>
+            {feed.link && (
+              <MenuItem
+                text="Website"
+                icon={<Link {...menuIconProps} />}
+                target="_blank"
+                href={feed.link}
+              />
+            )}
+            <MenuItem
+              text="Feed Link"
+              icon={<Rss {...menuIconProps} />}
+              target="_blank"
+              href={(() => {
+                const feedLink = feed.feed_link
+                return feedLink?.startsWith('rsshub:')
+                  ? `/${feedLink.slice('rsshub:'.length)}`
+                  : feedLink
+              })()}
+            />
+            <MenuDivider />
+            <MenuItem
+              text="Rename"
+              icon={<Edit {...menuIconProps} />}
+              onClick={() => setRenameFeed(feed)}
+            />
+            <MenuItem
+              text="Change Link"
+              icon={<Edit {...menuIconProps} />}
+              onClick={() => setChangeLink(feed)}
+            />
+            <MenuItem
+              text="Refresh"
+              icon={<RotateCw {...menuIconProps} />}
+              disabled={loadingFeeds > 0}
+              onClick={async () => {
+                await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
+                await refreshStats()
+              }}
+            />
+            <MenuItem
+              text="Move to..."
+              icon={<Move {...menuIconProps} />}
+              disabled={!folders?.length}
+            >
+              {folders
+                ?.filter(folder => folder.id !== feed.folder_id)
+                .map(folder => (
+                  <MenuItem
+                    key={folder.id}
+                    text={folder.title}
+                    icon={<FolderIcon {...menuIconProps} />}
+                    onClick={() => updateFeedAttr(feed.id, 'folder_id', folder.id)}
+                  />
+                ))}
+              {feed.folder_id != null && (
+                <MenuItem
+                  text="--"
+                  icon={<FolderMinus {...menuIconProps} />}
+                  onClick={() => updateFeedAttr(feed.id, 'folder_id', null)}
+                />
+              )}
+            </MenuItem>
+            <MenuItem
+              text="Delete"
+              icon={<Trash {...menuIconProps} />}
+              intent={Intent.DANGER}
+              onClick={() => setDeleteFeed(feed)}
+            />
+          </Menu>
+        }
+      >
+        {(ctxMenuProps: ContextMenuChildrenProps) => (
+          <div
+            className={cn(
+              ctxMenuProps.className,
+              ctxMenuProps.contentProps.isOpen && 'context-menu-open',
+            )}
+            onContextMenu={ctxMenuProps.onContextMenu}
+            ref={ctxMenuProps.ref}
+          >
+            {ctxMenuProps.popover}
+            <span title={feed.title}>{feed.title}</span>
+          </div>
+        )}
+      </ContextMenu>
+    ),
     icon: feed.has_icon ? (
       <img className="w-4 mr-[7px]" src={`api/feeds/${feed.id}/icon`} />
     ) : (
@@ -303,7 +422,52 @@ export default function FeedList({
           ...(visibleFeeds ?? []).map(f => feed(f)),
           ...(visibleFolders ?? []).map(folder => ({
             id: `folder:${folder.id}`,
-            label: <span title={folder.title}>{folder.title}</span>,
+            label: (
+              <>
+                <ContextMenu
+                  content={
+                    <Menu>
+                      <MenuItem
+                        text="Rename"
+                        icon={<Edit {...menuIconProps} />}
+                        onClick={() => setRenameFolder(folder)}
+                      />
+                      <MenuItem
+                        text="Refresh"
+                        icon={<RotateCw {...menuIconProps} />}
+                        disabled={loadingFeeds > 0}
+                        onClick={async () => {
+                          await xfetch(`api/folders/${folder.id}/refresh`, {
+                            method: 'POST',
+                          })
+                          await refreshStats()
+                        }}
+                      />
+                      <MenuItem
+                        text="Delete"
+                        icon={<Trash {...menuIconProps} />}
+                        intent={Intent.DANGER}
+                        onClick={() => setDeleteFolder(folder)}
+                      />
+                    </Menu>
+                  }
+                >
+                  {(ctxMenuProps: ContextMenuChildrenProps) => (
+                    <div
+                      className={cn(
+                        ctxMenuProps.className,
+                        ctxMenuProps.contentProps.isOpen && 'context-menu-open',
+                      )}
+                      onContextMenu={ctxMenuProps.onContextMenu}
+                      ref={ctxMenuProps.ref}
+                    >
+                      {ctxMenuProps.popover}
+                      <span title={folder.title}>{folder.title}</span>
+                    </div>
+                  )}
+                </ContextMenu>
+              </>
+            ),
             isExpanded: folder.is_expanded,
             isSelected: selected === `folder:${folder.id}`,
             childNodes: folder.feeds.map(f => feed(f)),
@@ -331,8 +495,8 @@ export default function FeedList({
         )}
       </div>
       <Confirm
-        open={newFeedDialogOpen}
-        setOpen={setNewFeedDialogOpen}
+        isOpen={newFeedDialogOpen}
+        close={() => setNewFeedDialogOpen(false)}
         title="New Feed"
         callback={async () => {
           const url = newFeedLinkRef.current?.value
@@ -376,8 +540,8 @@ export default function FeedList({
         </div>
       </Confirm>
       <Confirm
-        open={newFolderDialogOpen}
-        setOpen={setNewFolderDialogOpen}
+        isOpen={newFolderDialogOpen}
+        close={() => setNewFolderDialogOpen(false)}
         title="New Folder"
         callback={async () => {
           const title = newFolderTitleRef.current?.value
@@ -404,8 +568,8 @@ export default function FeedList({
         <InputGroup className="ml-1" inputRef={newFolderTitleRef} />
       </Confirm>
       <Confirm
-        open={changeRefreshRateDialogOpen}
-        setOpen={setChangeRefreshRateDialogOpen}
+        isOpen={changeRefreshRateDialogOpen}
+        close={() => setChangeRefreshRateDialogOpen(false)}
         title="Change Auto Refresh Rate (min)"
         callback={async () => {
           if (!refreshRateRef.current) return
@@ -426,6 +590,88 @@ export default function FeedList({
           majorStepSize={60}
           fill
         />
+      </Confirm>
+      <Confirm
+        isOpen={renameFeed}
+        close={() => setRenameFeed(undefined)}
+        title="Rename Feed"
+        callback={async () => {
+          if (!renameFeed) return
+          const title = feedTitleRef.current?.value
+          if (title && title !== renameFeed.title)
+            await updateFeedAttr(renameFeed.id, 'title', title)
+        }}
+      >
+        <InputGroup defaultValue={renameFeed?.title} inputRef={feedTitleRef} />
+      </Confirm>
+      <Confirm
+        isOpen={changeLink}
+        close={() => setChangeLink(undefined)}
+        title="Change Feed Link"
+        callback={async () => {
+          if (!changeLink) return
+          const feedLink = feedLinkRef.current?.value
+          if (feedLink && feedLink !== changeLink.feed_link)
+            await updateFeedAttr(changeLink.id, 'feed_link', feedLink)
+        }}
+      >
+        <InputGroup
+          defaultValue={changeLink?.feed_link}
+          inputRef={feedLinkRef}
+          spellCheck={false}
+        />
+      </Confirm>
+      <Confirm
+        isOpen={deleteFeed}
+        close={() => setDeleteFeed(undefined)}
+        title="Delete Feed"
+        callback={async () => {
+          if (!deleteFeed) return
+          await xfetch(`api/feeds/${deleteFeed.id}`, { method: 'DELETE' })
+          await Promise.all([refreshFeeds(), refreshStats(false)])
+          setSelected(
+            deleteFeed.folder_id === null ? '' : `folder:${deleteFeed.folder_id}`,
+          )
+        }}
+        intent={Intent.DANGER}
+      >
+        Are you sure you want to delete {deleteFeed?.title ?? 'untitled'}?
+      </Confirm>
+      <Confirm
+        isOpen={renameFolder}
+        close={() => setRenameFolder(undefined)}
+        title="Rename Folder"
+        callback={async () => {
+          if (!renameFolder) return
+          const title = folderTitleRef.current?.value
+          if (title && title !== renameFolder.title) {
+            await xfetch(`api/folders/${renameFolder.id}`, {
+              method: 'PUT',
+              body: JSON.stringify({ title }),
+            })
+            setFolders(folders =>
+              folders?.map(folder =>
+                folder.id === renameFolder.id ? { ...folder, title } : folder,
+              ),
+            )
+          }
+        }}
+      >
+        <InputGroup defaultValue={renameFolder?.title} inputRef={folderTitleRef} />
+      </Confirm>
+      <Confirm
+        isOpen={deleteFolder}
+        close={() => setDeleteFolder(undefined)}
+        title="Delete Folder"
+        callback={async () => {
+          if (!deleteFolder) return
+          await xfetch(`api/folders/${deleteFolder.id}`, { method: 'DELETE' })
+          await Promise.all([refreshFeeds(), refreshStats(false)])
+          setSelected('')
+        }}
+        intent={Intent.DANGER}
+      >
+        Are you sure you want to delete {deleteFolder?.title || 'untitled'}?
       </Confirm>
     </div>
   )
