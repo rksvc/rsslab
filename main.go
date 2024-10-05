@@ -11,7 +11,6 @@ import (
 	"rsslab/rsshub"
 	"rsslab/server"
 	"rsslab/storage"
-	"sync/atomic"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -25,7 +24,6 @@ var cc *cache.Cache
 var db *storage.Storage
 var api *server.Server
 var rssHub *rsshub.RSSHub
-var srv atomic.Value
 
 //go:embed dist
 var dist embed.FS
@@ -72,7 +70,7 @@ func main() {
 
 	app := engine()
 	app.Use("/", static.New("", static.Config{FS: assets}))
-	srv.Store(app)
+	api.App.Store(app)
 	go func() {
 		if err := app.Listen(addr); err != nil {
 			log.Fatal(err)
@@ -108,12 +106,11 @@ func reload() bool {
 	rssHub.ResetRegistry()
 	app.Use("/", static.New("", static.Config{FS: assets}))
 
-	api.App.Store(app)
-	err = srv.Swap(app).(*fiber.App).ShutdownWithTimeout(5 * time.Second)
-	if err != nil {
-		log.Print(err)
-	}
+	oldApp := api.App.Swap(app).(*fiber.App)
 	go func() {
+		if err := oldApp.Shutdown(); err != nil {
+			log.Print(err)
+		}
 		if err := app.Listen(addr); err != nil {
 			log.Fatal(err)
 		}
