@@ -30,6 +30,7 @@ import {
   Circle,
   Download,
   Edit,
+  ExternalLink,
   Folder as FolderIcon,
   FolderMinus,
   Link,
@@ -159,6 +160,8 @@ export default function FeedList({
             {feed.link && (
               <MenuItem
                 text="Website"
+                intent={Intent.PRIMARY}
+                labelElement={<ExternalLink {...menuIconProps} />}
                 icon={<Link {...menuIconProps} />}
                 target="_blank"
                 href={feed.link}
@@ -166,6 +169,8 @@ export default function FeedList({
             )}
             <MenuItem
               text="Feed Link"
+              intent={Intent.PRIMARY}
+              labelElement={<ExternalLink {...menuIconProps} />}
               icon={<Rss {...menuIconProps} />}
               target="_blank"
               href={(() => {
