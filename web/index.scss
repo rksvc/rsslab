@@ -47,10 +47,6 @@
 	user-select: none;
 }
 
-.bp5-tree-node-secondary-label {
-	display: flex;
-}
-
 .bp5-card-list.bp5-compact {
 	padding-top: 0.25rem;
 	padding-bottom: 0.5rem;
@@ -82,12 +78,4 @@
 
 .bp5-html-select select {
 	width: auto;
-}
-
-.bp5-alert-body .bp5-icon {
-	margin-right: 0;
-}
-
-.bp5-alert-contents {
-	width: 100%;
 }
