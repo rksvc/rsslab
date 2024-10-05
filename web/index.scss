@@ -2,8 +2,10 @@
 @tailwind utilities;
 @import '@blueprintjs/core/lib/scss/variables';
 
+$border-radius: 0.25rem;
+
 .bp5-button {
-	border-radius: 0.25rem;
+	border-radius: $border-radius;
 }
 
 .bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary:hover {
@@ -25,13 +27,12 @@
 }
 
 .bp5-tree-node {
-	border-radius: 0.5rem;
 	margin-top: 0.25rem;
 }
 
 .bp5-tree-node-content {
 	padding-left: 0;
-	border-radius: 0.25rem;
+	border-radius: $border-radius;
 	height: 2.1rem;
 }
 
@@ -72,7 +73,7 @@
 	margin-left: auto;
 	margin-right: auto;
 	padding: 0.25rem 0.5rem;
-	border-radius: 0.25rem;
+	border-radius: $border-radius;
 	user-select: none;
 }
 
