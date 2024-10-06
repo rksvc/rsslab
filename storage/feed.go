@@ -16,7 +16,6 @@ type Feed struct {
 	Title         string     `json:"title"`
 	Link          string     `json:"link,omitempty"`
 	FeedLink      string     `json:"feed_link"`
-	Icon          *[]byte    `json:"icon,omitempty"`
 	HasIcon       bool       `json:"has_icon"`
 	LastRefreshed *time.Time `json:"last_refreshed,omitempty"`
 }
@@ -158,9 +157,9 @@ func (s *Storage) ListFeedsMissingIcons() (result []Feed) {
 func (s *Storage) GetFeed(id int) (*Feed, error) {
 	var f Feed
 	err := s.db.QueryRow(`
-		select id, link, feed_link, icon
+		select id, link, feed_link
 		from feeds where id = ?
-	`, id).Scan(&f.Id, &f.Link, &f.FeedLink, &f.Icon)
+	`, id).Scan(&f.Id, &f.Link, &f.FeedLink)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -168,6 +167,20 @@ func (s *Storage) GetFeed(id int) (*Feed, error) {
 		return nil, errors.New(err)
 	}
 	return &f, nil
+}
+
+func (s *Storage) GetFeedIcon(id int) ([]byte, error) {
+	var icon []byte
+	err := s.db.QueryRow(`
+		select icon from feeds where id = ?
+	`, id).Scan(&icon)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, errors.New(err)
+	}
+	return icon, nil
 }
 
 func (s *Storage) GetFeeds(folderId int) ([]Feed, error) {

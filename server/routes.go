@@ -196,27 +196,27 @@ func (s *Server) handleFeedIcon(c fiber.Ctx) error {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	data, err := s.cache.TryGet(strconv.Itoa(id), time.Hour, true, func() (any, error) {
-		feed, err := s.db.GetFeed(id)
+	val, err := s.cache.TryGet(strconv.Itoa(id), time.Hour, true, func() (any, error) {
+		bytes, err := s.db.GetFeedIcon(id)
 		if err != nil {
 			return nil, err
-		} else if feed == nil || feed.Icon == nil {
+		} else if bytes == nil {
 			return nil, nil
 		}
 		return &icon{
-			ctype: http.DetectContentType(*feed.Icon),
-			bytes: *feed.Icon,
-			etag:  fmt.Sprintf("%x", md5.Sum(*feed.Icon)),
+			bytes: bytes,
+			ctype: http.DetectContentType(bytes),
+			etag:  fmt.Sprintf("%x", md5.Sum(bytes)),
 		}, nil
 	})
 	if err != nil {
 		log.Print(err)
 		return c.SendStatus(http.StatusInternalServerError)
-	} else if data == nil {
+	} else if val == nil {
 		return c.SendStatus(http.StatusNotFound)
 	}
 
-	icon := data.(*icon)
+	icon := val.(*icon)
 	if string(c.Request().Header.Peek("If-None-Match")) == icon.etag {
 		return c.SendStatus(http.StatusNotModified)
 	}
