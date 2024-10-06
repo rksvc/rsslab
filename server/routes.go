@@ -132,7 +132,7 @@ func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	req, err := http.NewRequest("GET", body.Url, nil)
+	req, err := http.NewRequest(http.MethodGet, body.Url, nil)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}

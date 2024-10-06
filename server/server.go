@@ -187,7 +187,7 @@ func (s *Server) worker() {
 }
 
 func (s *Server) listItems(f storage.Feed) ([]storage.Item, *storage.HTTPState, error) {
-	req, err := http.NewRequest("GET", f.FeedLink, nil)
+	req, err := http.NewRequest(http.MethodGet, f.FeedLink, nil)
 	if err != nil {
 		return nil, nil, err
 	}
