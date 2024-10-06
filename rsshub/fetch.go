@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
+	"rsslab/utils"
 	"strings"
 
-	"github.com/go-resty/resty/v2"
 	"golang.org/x/net/html/charset"
 )
 
@@ -30,22 +31,6 @@ type response struct {
 
 func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	rawUrl := toString(opts["url"])
-	req := r.client.NewRequest()
-
-	if query, ok := opts["query"]; ok {
-		switch query := query.(type) {
-		case map[string]any:
-			for param, value := range query {
-				req.SetQueryParam(param, toString(value))
-			}
-		case string:
-			req.SetQueryString(query)
-		case nil:
-		default:
-			return nil, errInvalidQueryParameter
-		}
-	}
-
 	if baseUrl, ok := opts["baseURL"]; ok {
 		base, err := url.Parse(toString(baseUrl))
 		if err != nil {
@@ -57,61 +42,76 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 		}
 		rawUrl = base.ResolveReference(ref).String()
 	}
-
-	method := resty.MethodGet
+	method := http.MethodGet
 	if m, ok := opts["method"]; ok {
 		m := strings.ToUpper(toString(m))
 		switch m {
 		case "":
-		case resty.MethodGet, resty.MethodHead, resty.MethodPost, resty.MethodPut,
-			resty.MethodDelete, resty.MethodOptions, resty.MethodPatch:
+		case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
+			http.MethodDelete, http.MethodOptions, http.MethodPatch:
 			method = m
 		default:
 			return nil, fmt.Errorf("%w %s", errInvalidMethod, m)
 		}
 	}
-
-	if url, err := url.Parse(rawUrl); err == nil {
-		url.Path = ""
-		url.RawQuery = ""
-		url.Fragment = ""
-		req.SetHeader("Referer", url.String())
+	req, err := http.NewRequest(method, rawUrl, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	if body, ok := opts["body"]; ok {
-		req.SetBody(body)
+	if query, ok := opts["query"]; ok {
+		switch query := query.(type) {
+		case map[string]any:
+			values := url.Values{}
+			for param, value := range query {
+				values.Set(param, toString(value))
+			}
+			req.URL.RawQuery = values.Encode()
+		case string:
+			req.URL.RawQuery = query
+		case nil:
+		default:
+			return nil, errInvalidQueryParameter
+		}
 	}
 
-	if json, ok := opts["json"]; ok {
-		req.SetHeader("Content-Type", "application/json")
-		req.SetBody(json)
-	}
-
+	req.Header.Set("User-Agent", utils.UserAgent)
+	req.Header.Set("Referer", req.URL.Scheme+"://"+req.URL.Host)
 	if headers, ok := opts["headers"]; ok {
 		headers, ok := headers.(map[string]any)
 		if !ok {
 			return nil, errInvalidHeaders
 		}
 		for header, value := range headers {
-			req.SetHeader(header, toString(value))
+			req.Header.Set(header, toString(value))
 		}
 	}
 
+	var reqBody any
 	if form, ok := opts["form"]; ok {
 		form, ok := form.(map[string]any)
 		if !ok {
 			return nil, errInvalidFormData
 		}
+		values := url.Values{}
 		for key, value := range form {
-			req.FormData.Set(key, toString(value))
+			values.Set(key, toString(value))
 		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		reqBody = values.Encode()
+	}
+	if json, ok := opts["json"]; ok {
+		req.Header.Set("Content-Type", "application/json")
+		reqBody = json
+	}
+	if body, ok := opts["body"]; ok {
+		reqBody = body
 	}
 
-	resp, err := req.Execute(method, rawUrl)
+	resp, body, err := r.do(req, reqBody)
 	if err != nil {
 		return nil, err
 	}
-	body := resp.Body()
 
 	response := new(response)
 	switch toString(opts["responseType"]) {
@@ -151,9 +151,9 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 		return nil, errUnknownResponseType
 	}
 
-	response.URL = resp.Request.URL
+	response.URL = req.URL.String()
 	response.Data2 = response.Data
-	response.Headers = resp.Header()
+	response.Headers = resp.Header
 	return response, nil
 }
 

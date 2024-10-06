@@ -1,10 +1,13 @@
 package rsshub
 
 import (
+	"bytes"
 	"crypto/md5"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -19,7 +22,6 @@ import (
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/go-resty/resty/v2"
 )
 
 //go:embed utils
@@ -139,7 +141,7 @@ var retryStatusCodes = map[int]struct{}{
 type RSSHub struct {
 	srcUrl, routesUrl string
 	cache             *cache.Cache
-	client            *resty.Client
+	client            http.Client
 	registry          atomic.Value
 }
 
@@ -148,27 +150,7 @@ func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 		srcUrl:    srcUrl,
 		routesUrl: routesUrl,
 		cache:     cache,
-		client: resty.
-			New().
-			SetHeader("User-Agent", utils.UserAgent).
-			SetTimeout(30 * time.Second).
-			SetRetryCount(2).
-			OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
-				if r.IsError() {
-					return utils.ResponseError(r.RawResponse)
-				}
-				return nil
-			}).
-			AddRetryCondition(func(r *resty.Response, err error) bool {
-				if r != nil && r.StatusCode() > 0 {
-					_, ok := retryStatusCodes[r.StatusCode()]
-					return ok
-				}
-				return err != nil
-			}).
-			AddRetryHook(func(r *resty.Response, err error) {
-				log.Printf("%s, retry attempt %d", err, r.Request.Attempt)
-			}),
+		client:    http.Client{Timeout: 30 * time.Second},
 	}
 	r.ResetRegistry()
 	return r
@@ -213,6 +195,47 @@ func (r *RSSHub) ResetRegistry() {
 	r.registry.Store(registry)
 }
 
+func (r *RSSHub) do(req *http.Request, body any) (resp *http.Response, respBody []byte, err error) {
+	switch body := body.(type) {
+	case nil, string, []byte:
+	default:
+		body, err = json.Marshal(body)
+		if err != nil {
+			return
+		}
+	}
+	const maxTry = 3
+	for attempt := 1; attempt <= maxTry; attempt++ {
+		switch body := body.(type) {
+		case nil:
+		case string:
+			req.Body = io.NopCloser(strings.NewReader(body))
+		case []byte:
+			req.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		resp, err = r.client.Do(req)
+		if err == nil {
+			if utils.IsErrorResponse(resp.StatusCode) {
+				resp.Body.Close()
+				err = utils.ResponseError(resp)
+				if _, ok := retryStatusCodes[resp.StatusCode]; !ok {
+					return
+				}
+			} else {
+				respBody, err = io.ReadAll(resp.Body)
+				resp.Body.Close()
+				if err == nil {
+					return
+				}
+			}
+		}
+		if attempt < maxTry {
+			log.Printf("%s, retry attempt %d", err, attempt)
+		}
+	}
+	return
+}
+
 func (r *RSSHub) sourceLoader(p string) ([]byte, error) {
 	name := strings.ReplaceAll(p, "node_modules/", "")
 	if i := strings.LastIndex(name, "@/"); i != -1 {
@@ -227,12 +250,16 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 		return nil, err
 	}
 	data, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
-		resp, err := r.client.NewRequest().Get(url)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		_, body, err := r.do(req, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		code := string(resp.Body())
+		code := string(body)
 		if path == "lib/config.ts" {
 			code = strings.Replace(code, "await import('@/utils/logger')", "{}", 1)
 		}
@@ -268,11 +295,12 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 		return nil, err
 	}
 	data, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
-		resp, err := r.client.NewRequest().Get(url)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
 		}
-		return resp.Body(), nil
+		_, body, err := r.do(req, nil)
+		return body, err
 	})
 	if err != nil {
 		return nil, err

@@ -15,11 +15,12 @@ import (
 
 func (r *RSSHub) Register(app *fiber.App) error {
 	v, err := r.cache.TryGet(r.routesUrl, srcExpire, false, func() (any, error) {
-		resp, err := r.client.NewRequest().Get(r.routesUrl)
+		req, err := http.NewRequest(http.MethodGet, r.routesUrl, nil)
 		if err != nil {
 			return nil, err
 		}
-		return resp.Body(), nil
+		_, body, err := r.do(req, nil)
+		return body, err
 	})
 	if err != nil {
 		return err
