@@ -6,6 +6,7 @@ import {
   Intent,
 } from '@blueprintjs/core'
 import { type ReactNode, useState } from 'react'
+import { alert } from './utils'
 
 export function Dialog<T>({
   isOpen,
@@ -28,6 +29,8 @@ export function Dialog<T>({
     try {
       await callback()
       close()
+    } catch (error: any) {
+      alert(error.toString())
     } finally {
       setLoading(false)
     }

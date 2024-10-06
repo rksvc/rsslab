@@ -35,7 +35,7 @@ export async function xfetch<T>(
   }
 }
 
-function alert(error: string): never {
+export function alert(error: string): never {
   const container = document.body.appendChild(document.createElement('div'))
   const root = ReactDOM.createRoot(container)
   root.render(

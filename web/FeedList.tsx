@@ -19,6 +19,7 @@ import {
 } from '@blueprintjs/core'
 import {
   type Dispatch,
+  type KeyboardEvent,
   type SetStateAction,
   useEffect,
   useMemo,
@@ -53,6 +54,8 @@ const textAreaProps = {
   style: { fontFamily: 'inherit' },
   autoResize: true,
   fill: true,
+  onKeyDown: (evt: KeyboardEvent<HTMLTextAreaElement>) =>
+    evt.key === 'Enter' && evt.preventDefault(),
 } as const
 
 export default function FeedList({
