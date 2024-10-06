@@ -11,6 +11,7 @@ import (
 	"rsslab/rsshub"
 	"rsslab/server"
 	"rsslab/storage"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -71,11 +72,7 @@ func main() {
 	app := engine()
 	app.Use("/", static.New("", static.Config{FS: assets}))
 	api.App.Store(app)
-	go func() {
-		if err := app.Listen(addr); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	go serve(app)
 	for !reload() {
 		time.Sleep(10 * time.Second)
 	}
@@ -111,9 +108,22 @@ func reload() bool {
 		if err := oldApp.Shutdown(); err != nil {
 			log.Print(err)
 		}
-		if err := app.Listen(addr); err != nil {
-			log.Fatal(err)
-		}
+		serve(app)
 	}()
 	return true
+}
+
+func serve(app *fiber.App) {
+	host, port := addr, ""
+	if i := strings.LastIndexByte(addr, ':'); i != -1 {
+		host, port = addr[:i], addr[i+1:]
+	}
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	log.Printf("server started on http://%s:%s (%d handlers)", host, port, app.HandlersCount())
+	err := app.Listen(addr, fiber.ListenConfig{DisableStartupMessage: true})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
