@@ -45,7 +45,7 @@ import {
   Upload,
   Wind,
 } from 'react-feather'
-import { Confirm } from './Confirm'
+import { Dialog } from './Dialog'
 import type { Feed, Folder, FolderWithFeeds, Settings, Stats } from './types'
 import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils'
 
@@ -504,7 +504,7 @@ export default function FeedList({
           <></>
         )}
       </div>
-      <Confirm
+      <Dialog
         isOpen={newFeedDialogOpen}
         close={() => setNewFeedDialogOpen(false)}
         title="New Feed"
@@ -548,8 +548,8 @@ export default function FeedList({
             onChange={evt => setSelectedFolder(evt.currentTarget.value)}
           />
         </div>
-      </Confirm>
-      <Confirm
+      </Dialog>
+      <Dialog
         isOpen={newFolderDialogOpen}
         close={() => setNewFolderDialogOpen(false)}
         title="New Folder"
@@ -576,8 +576,8 @@ export default function FeedList({
         }}
       >
         <TextArea inputRef={newFolderTitleRef} {...textAreaProps} />
-      </Confirm>
-      <Confirm
+      </Dialog>
+      <Dialog
         isOpen={changeRefreshRateDialogOpen}
         close={() => setChangeRefreshRateDialogOpen(false)}
         title="Change Auto Refresh Rate (min)"
@@ -600,8 +600,8 @@ export default function FeedList({
           majorStepSize={60}
           fill
         />
-      </Confirm>
-      <Confirm
+      </Dialog>
+      <Dialog
         isOpen={renameFeed}
         close={() => setRenameFeed(undefined)}
         title="Rename Feed"
@@ -617,8 +617,8 @@ export default function FeedList({
           inputRef={feedTitleRef}
           {...textAreaProps}
         />
-      </Confirm>
-      <Confirm
+      </Dialog>
+      <Dialog
         isOpen={changeLink}
         close={() => setChangeLink(undefined)}
         title="Change Feed Link"
@@ -635,8 +635,8 @@ export default function FeedList({
           spellCheck={false}
           {...textAreaProps}
         />
-      </Confirm>
-      <Confirm
+      </Dialog>
+      <Dialog
         isOpen={deleteFeed}
         close={() => setDeleteFeed(undefined)}
         title="Delete Feed"
@@ -651,8 +651,8 @@ export default function FeedList({
         intent={Intent.DANGER}
       >
         Are you sure you want to delete {deleteFeed?.title ?? 'untitled'}?
-      </Confirm>
-      <Confirm
+      </Dialog>
+      <Dialog
         isOpen={renameFolder}
         close={() => setRenameFolder(undefined)}
         title="Rename Folder"
@@ -677,8 +677,8 @@ export default function FeedList({
           inputRef={folderTitleRef}
           {...textAreaProps}
         />
-      </Confirm>
-      <Confirm
+      </Dialog>
+      <Dialog
         isOpen={deleteFolder}
         close={() => setDeleteFolder(undefined)}
         title="Delete Folder"
@@ -691,7 +691,7 @@ export default function FeedList({
         intent={Intent.DANGER}
       >
         Are you sure you want to delete {deleteFolder?.title || 'untitled'}?
-      </Confirm>
+      </Dialog>
     </div>
   )
 }

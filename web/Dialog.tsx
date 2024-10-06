@@ -1,7 +1,13 @@
-import { Button, Dialog, DialogBody, DialogFooter, Intent } from '@blueprintjs/core'
+import {
+  Dialog as BlueprintDialog,
+  Button,
+  DialogBody,
+  DialogFooter,
+  Intent,
+} from '@blueprintjs/core'
 import { type ReactNode, useState } from 'react'
 
-export function Confirm<T>({
+export function Dialog<T>({
   isOpen,
   close,
   title,
@@ -27,7 +33,7 @@ export function Confirm<T>({
     }
   }
   return (
-    <Dialog
+    <BlueprintDialog
       title={title}
       isOpen={!!isOpen}
       isCloseButtonShown={false}
@@ -58,6 +64,6 @@ export function Confirm<T>({
           </>
         }
       />
-    </Dialog>
+    </BlueprintDialog>
   )
 }
