@@ -236,7 +236,7 @@ export default function FeedList({
         }
       >
         {(ctxMenuProps: ContextMenuChildrenProps) => (
-          <div
+          <span
             className={cn(
               ctxMenuProps.className,
               ctxMenuProps.contentProps.isOpen && 'context-menu-open',
@@ -246,7 +246,7 @@ export default function FeedList({
           >
             {ctxMenuProps.popover}
             <span title={feed.title}>{feed.title}</span>
-          </div>
+          </span>
         )}
       </ContextMenu>
     ),
@@ -466,7 +466,7 @@ export default function FeedList({
                   }
                 >
                   {(ctxMenuProps: ContextMenuChildrenProps) => (
-                    <div
+                    <span
                       className={cn(
                         ctxMenuProps.className,
                         ctxMenuProps.contentProps.isOpen && 'context-menu-open',
@@ -476,7 +476,7 @@ export default function FeedList({
                     >
                       {ctxMenuProps.popover}
                       <span title={folder.title}>{folder.title}</span>
-                    </div>
+                    </span>
                   )}
                 </ContextMenu>
               </>
