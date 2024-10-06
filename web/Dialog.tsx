@@ -40,7 +40,11 @@ export function Dialog<T>({
       onClose={close}
       canEscapeKeyClose
       canOutsideClickClose
-      onOpening={node => node.getElementsByTagName('input')[0]?.focus()}
+      onOpening={node =>
+        (
+          node.getElementsByClassName('bp5-input') as HTMLCollectionOf<HTMLElement>
+        )[0]?.focus()
+      }
     >
       <DialogBody>
         <div
