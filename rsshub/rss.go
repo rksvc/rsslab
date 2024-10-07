@@ -2,7 +2,6 @@ package rsshub
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html"
 	"net/url"
@@ -10,7 +9,6 @@ import (
 	"rsslab/utils"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -93,22 +91,22 @@ type author struct {
 	Avatar string `json:"avatar,omitempty"`
 }
 
-func toJSONFeed(v any) (feed *jsonFeed, err error) {
+func toJSONFeed(v any) (*jsonFeed, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
-		return
+		return nil, err
 	}
 	var data data
 	err = json.Unmarshal(b, &data)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	var baseUrl *url.URL
 	if data.Link != "" {
 		baseUrl, err = url.Parse(data.Link)
 		if err != nil {
-			return
+			return nil, err
 		}
 		if baseUrl.Scheme == "" {
 			baseUrl.Scheme = "http"
@@ -127,77 +125,59 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 		}
 	}
 
+	for i := range data.Item {
+		item := &data.Item[i]
+		if item.Link != "" && baseUrl != nil {
+			ref, err := url.Parse(item.Link)
+			if err != nil {
+				return nil, err
+			}
+			item.Link = baseUrl.ResolveReference(ref).String()
+		}
+
+		doc, err := goquery.NewDocumentFromReader(strings.NewReader(item.Description))
+		if err != nil {
+			return nil, err
+		}
+		doc.Find("script").Remove()
+		for _, s := range doc.Find("img").EachIter() {
+			if _, exists := s.Attr("src"); !exists {
+				src, exists := s.Attr("data-src")
+				if !exists {
+					src, exists = s.Attr("data-original")
+				}
+				if exists {
+					s.SetAttr("src", src)
+				}
+			}
+			for _, attrName := range []string{"onclick", "onerror", "onload"} {
+				s.RemoveAttr(attrName)
+			}
+		}
+		for _, s := range doc.Find("a, area").EachIter() {
+			resolveRelativeLink(s, "href")
+		}
+		for _, s := range doc.Find("img, video, audio, source, iframe, embed, track").EachIter() {
+			resolveRelativeLink(s, "src")
+		}
+		for _, s := range doc.Find("video[poster]").EachIter() {
+			resolveRelativeLink(s, "poster")
+		}
+		for _, s := range doc.Find("img, iframe").EachIter() {
+			s.SetAttr("referrerpolicy", "no-referrer")
+		}
+		description, err := doc.Find("body").Html()
+		if err != nil {
+			return nil, err
+		}
+		item.Description = strings.TrimSpace(description)
+
+		item.Title = collapseWhitespace(html.UnescapeString(item.Title))
+		item.Content.Html = strings.TrimSpace(item.Content.Html)
+		item.Content.Text = strings.TrimSpace(item.Content.Text)
+	}
 	data.Title = collapseWhitespace(data.Title)
 	data.Description = collapseWhitespace(data.Description)
-	var wg sync.WaitGroup
-	wg.Add(len(data.Item))
-	errs := make([]error, len(data.Item))
-	for i := range data.Item {
-		go func() {
-			defer wg.Done()
-			item := &data.Item[i]
-			if item.Link != "" && baseUrl != nil {
-				ref, err := url.Parse(item.Link)
-				if err != nil {
-					errs[i] = err
-					return
-				}
-				item.Link = baseUrl.ResolveReference(ref).String()
-			}
-
-			doc, err := goquery.NewDocumentFromReader(strings.NewReader(html.UnescapeString(item.Description)))
-			if err != nil {
-				errs[i] = err
-				return
-			}
-			doc.Find("script").Remove()
-			for _, s := range doc.Find("img").EachIter() {
-				if _, exists := s.Attr("src"); !exists {
-					src, exists := s.Attr("data-src")
-					if !exists {
-						src, exists = s.Attr("data-original")
-					}
-					if exists {
-						s.SetAttr("src", src)
-					}
-				}
-				for _, attrName := range []string{"onclick", "onerror", "onload"} {
-					s.RemoveAttr(attrName)
-				}
-			}
-			for _, s := range doc.Find("a, area").EachIter() {
-				resolveRelativeLink(s, "href")
-			}
-			for _, s := range doc.Find("img, video, audio, source, iframe, embed, track").EachIter() {
-				resolveRelativeLink(s, "src")
-			}
-			for _, s := range doc.Find("video[poster]").EachIter() {
-				resolveRelativeLink(s, "poster")
-			}
-			for _, s := range doc.Find("img, iframe").EachIter() {
-				s.SetAttr("referrerpolicy", "no-referrer")
-			}
-			var description strings.Builder
-			body := doc.Find("body")
-			for i := range body.Nodes {
-				html, err := body.Eq(i).Html()
-				if err != nil {
-					errs[i] = err
-					return
-				}
-				description.WriteString(html)
-			}
-			item.Description = strings.TrimSpace(description.String())
-
-			item.Title = collapseWhitespace(html.UnescapeString(item.Title))
-			item.Content.Html = strings.TrimSpace(item.Content.Html)
-			item.Content.Text = strings.TrimSpace(item.Content.Text)
-		}()
-	}
-	wg.Wait()
-	if err = errors.Join(errs...); err != nil {
-		return
-	}
 	slices.SortStableFunc(data.Item, func(a, b dataItem) int {
 		if a.PubDate == nil {
 			return 1
@@ -207,7 +187,7 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 		return time.Time(*b.PubDate).Compare(time.Time(*a.PubDate))
 	})
 
-	feed = new(jsonFeed)
+	feed := new(jsonFeed)
 	feed.Version = "https://jsonfeed.org/version/1.1"
 	feed.Title = data.Title
 	feed.HomePageUrl = data.Link
@@ -243,7 +223,7 @@ func toJSONFeed(v any) (feed *jsonFeed, err error) {
 			}}
 		}
 	}
-	return
+	return feed, nil
 }
 
 func toStringArray(v any) (a []string) {
