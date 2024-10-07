@@ -74,6 +74,9 @@ func (r *RSSHub) Register(app *fiber.App) error {
 						log.Print(err)
 						return c.Status(http.StatusInternalServerError).SendString(err.Error())
 					}
+					if c.Query("debug") != "" {
+						return c.JSON(data)
+					}
 					feed, err := toJSONFeed(data)
 					if err != nil {
 						log.Print(err)
