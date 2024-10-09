@@ -13,9 +13,9 @@ Set `https_proxy` environment variable to use the proxy.
 Alternatives for some command line argument values:
 
 - `-src`
-  - `https://unpkg.com/rsshub` (default)
+  - `https://raw.githubusercontent.com/DIYgod/RSSHub/master` (default)
+  - `https://unpkg.com/rsshub`
   - `https://cdn.jsdelivr.net/npm/rsshub`
-  - `https://raw.githubusercontent.com/DIYgod/RSSHub/master`
 - `-routes`
   - `https://raw.githubusercontent.com/DIYgod/RSSHub/gh-pages/build/routes.json` (default)
   - `https://rsshub.app/api/namespace`

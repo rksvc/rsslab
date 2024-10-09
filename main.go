@@ -42,7 +42,7 @@ func main() {
 	flag.StringVar(&redisUrl, "redis", "", "redis `url` like redis://127.0.0.1:6379, omit to use in-memory cache")
 	flag.StringVar(&database, "db", "", "storage file `path`")
 	flag.StringVar(&routesUrl, "routes", "https://raw.githubusercontent.com/DIYgod/RSSHub/gh-pages/build/routes.json", "routes `url`")
-	flag.StringVar(&srcUrl, "src", "https://unpkg.com/rsshub", "source code `url` prefix")
+	flag.StringVar(&srcUrl, "src", "https://raw.githubusercontent.com/DIYgod/RSSHub/master", "source code `url` prefix")
 	flag.Parse()
 
 	if redisUrl == "" {
