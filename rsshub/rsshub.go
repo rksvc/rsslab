@@ -261,7 +261,9 @@ func (r *RSSHub) route(path string) ([]byte, error) {
 
 		code := string(body)
 		if path == "lib/config.ts" {
-			code = strings.Replace(code, "await import('@/utils/logger')", "{}", 1)
+			code = strings.Replace(code,
+				"import('@/utils/logger')",
+				"{                      }", 1)
 		}
 		result := api.Transform(code, api.TransformOptions{
 			Sourcefile:        path,
