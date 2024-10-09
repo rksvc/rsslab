@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/mmcdole/gofeed"
 	"github.com/nkanaev/yarr/src/content/sanitizer"
 	"github.com/nkanaev/yarr/src/server/opml"
@@ -43,7 +43,7 @@ func (s *Server) Register(api fiber.Router) {
 	api.Get("/opml/export", s.handleOPMLExport)
 }
 
-func (s *Server) handleStatus(c fiber.Ctx) error {
+func (s *Server) handleStatus(c *fiber.Ctx) error {
 	stats, err := s.db.FeedStats()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(errString(err))
@@ -54,7 +54,7 @@ func (s *Server) handleStatus(c fiber.Ctx) error {
 	})
 }
 
-func (s *Server) handleFolderList(c fiber.Ctx) error {
+func (s *Server) handleFolderList(c *fiber.Ctx) error {
 	folders, err := s.db.ListFolders()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(errString(err))
@@ -62,11 +62,11 @@ func (s *Server) handleFolderList(c fiber.Ctx) error {
 	return c.JSON(folders)
 }
 
-func (s *Server) handleFolderCreate(c fiber.Ctx) error {
+func (s *Server) handleFolderCreate(c *fiber.Ctx) error {
 	var body struct {
 		Title string `json:"title"`
 	}
-	if err := c.Bind().JSON(&body); err != nil {
+	if err := c.BodyParser(&body); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	folder, err := s.db.CreateFolder(body.Title)
@@ -76,13 +76,13 @@ func (s *Server) handleFolderCreate(c fiber.Ctx) error {
 	return c.Status(http.StatusCreated).JSON(folder)
 }
 
-func (s *Server) handleFolderUpdate(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleFolderUpdate(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	var editor storage.FolderEditor
-	if err = c.Bind().JSON(&editor); err != nil {
+	if err = c.BodyParser(&editor); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	if err = s.db.EditFolder(id, editor); err != nil {
@@ -91,8 +91,8 @@ func (s *Server) handleFolderUpdate(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleFolderDelete(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleFolderDelete(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -102,8 +102,8 @@ func (s *Server) handleFolderDelete(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleFolderRefresh(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleFolderRefresh(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -115,7 +115,7 @@ func (s *Server) handleFolderRefresh(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleFeedList(c fiber.Ctx) error {
+func (s *Server) handleFeedList(c *fiber.Ctx) error {
 	feeds, err := s.db.ListFeeds()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(errString(err))
@@ -123,12 +123,12 @@ func (s *Server) handleFeedList(c fiber.Ctx) error {
 	return c.JSON(feeds)
 }
 
-func (s *Server) handleFeedCreate(c fiber.Ctx) error {
+func (s *Server) handleFeedCreate(c *fiber.Ctx) error {
 	var body struct {
 		Url      string `json:"url"`
 		FolderId *int   `json:"folder_id"`
 	}
-	if err := c.Bind().JSON(&body); err != nil {
+	if err := c.BodyParser(&body); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
@@ -171,12 +171,12 @@ func (s *Server) handleFeedCreate(c fiber.Ctx) error {
 	return c.JSON(feed)
 }
 
-func (s *Server) handleFeedsRefresh(c fiber.Ctx) error {
+func (s *Server) handleFeedsRefresh(c *fiber.Ctx) error {
 	go s.RefreshAllFeeds()
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleFeedErrorsList(c fiber.Ctx) error {
+func (s *Server) handleFeedErrorsList(c *fiber.Ctx) error {
 	errors, err := s.db.GetFeedErrors()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(errString(err))
@@ -190,8 +190,8 @@ type icon struct {
 	etag  string
 }
 
-func (s *Server) handleFeedIcon(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleFeedIcon(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.SendStatus(http.StatusBadRequest)
 	}
@@ -220,14 +220,13 @@ func (s *Server) handleFeedIcon(c fiber.Ctx) error {
 	if string(c.Request().Header.Peek("If-None-Match")) == icon.etag {
 		return c.SendStatus(http.StatusNotModified)
 	}
-	c.Response().Header.SetContentType(icon.ctype)
-	c.Response().Header.Set("Etag", icon.etag)
-	_, err = c.Write(icon.bytes)
-	return err
+	c.Set("Content-Type", icon.ctype)
+	c.Set("Etag", icon.etag)
+	return c.Send(icon.bytes)
 }
 
-func (s *Server) handleFeedRefresh(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleFeedRefresh(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -241,8 +240,8 @@ func (s *Server) handleFeedRefresh(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleFeedUpdate(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleFeedUpdate(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -251,7 +250,7 @@ func (s *Server) handleFeedUpdate(c fiber.Ctx) error {
 		FeedLink *string `json:"feed_link"`
 		FolderId *int    `json:"folder_id"`
 	}
-	if err = c.Bind().JSON(&body); err != nil {
+	if err = c.BodyParser(&body); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	editor := storage.FeedEditor{
@@ -270,8 +269,8 @@ func (s *Server) handleFeedUpdate(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleFeedDelete(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleFeedDelete(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -282,15 +281,15 @@ func (s *Server) handleFeedDelete(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleItemList(c fiber.Ctx) error {
+func (s *Server) handleItemList(c *fiber.Ctx) error {
 	var filter storage.ItemFilter
-	if err := c.Bind().Query(&filter); err != nil {
+	if err := c.QueryParser(&filter); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-	newestFirst := c.Query("oldest_first") != "true"
+	oldestFirst := c.QueryBool("oldest_first")
 
 	const PER_PAGE = 20
-	items, err := s.db.ListItems(filter, PER_PAGE+1, newestFirst)
+	items, err := s.db.ListItems(filter, PER_PAGE+1, oldestFirst)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(errString(err))
 	}
@@ -305,9 +304,9 @@ func (s *Server) handleItemList(c fiber.Ctx) error {
 	})
 }
 
-func (s *Server) handleItemRead(c fiber.Ctx) error {
+func (s *Server) handleItemRead(c *fiber.Ctx) error {
 	var filter storage.ItemFilter
-	if err := c.Bind().Query(&filter); err != nil {
+	if err := c.QueryParser(&filter); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	err := s.db.MarkItemsRead(filter)
@@ -317,8 +316,8 @@ func (s *Server) handleItemRead(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleItem(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleItem(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -332,15 +331,15 @@ func (s *Server) handleItem(c fiber.Ctx) error {
 	return c.JSON(item)
 }
 
-func (s *Server) handleItemUpdate(c fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (s *Server) handleItemUpdate(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	var body struct {
 		Status *storage.ItemStatus `json:"status"`
 	}
-	if err = c.Bind().JSON(&body); err != nil {
+	if err = c.BodyParser(&body); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	if body.Status != nil {
@@ -352,7 +351,7 @@ func (s *Server) handleItemUpdate(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleSettings(c fiber.Ctx) error {
+func (s *Server) handleSettings(c *fiber.Ctx) error {
 	settings, err := s.db.GetSettings()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(errString(err))
@@ -360,9 +359,9 @@ func (s *Server) handleSettings(c fiber.Ctx) error {
 	return c.JSON(settings)
 }
 
-func (s *Server) handleSettingsUpdate(c fiber.Ctx) error {
+func (s *Server) handleSettingsUpdate(c *fiber.Ctx) error {
 	var editor storage.SettingsEditor
-	if err := c.Bind().JSON(&editor); err != nil {
+	if err := c.BodyParser(&editor); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	if editor.RefreshRate != nil {
@@ -374,7 +373,7 @@ func (s *Server) handleSettingsUpdate(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleOPMLImport(c fiber.Ctx) error {
+func (s *Server) handleOPMLImport(c *fiber.Ctx) error {
 	fh, err := c.FormFile("opml")
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
@@ -419,7 +418,7 @@ func (s *Server) handleOPMLImport(c fiber.Ctx) error {
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *Server) handleOPMLExport(c fiber.Ctx) error {
+func (s *Server) handleOPMLExport(c *fiber.Ctx) error {
 	var f opml.Folder
 
 	feedsByFolderId := make(map[int][]*storage.Feed)
@@ -460,8 +459,7 @@ func (s *Server) handleOPMLExport(c fiber.Ctx) error {
 		f.Folders = append(f.Folders, folder)
 	}
 
-	c.Response().Header.SetContentType("application/xml; charset=utf-8")
-	c.Response().Header.Set("Content-Disposition", `attachment; filename="subscriptions.opml"`)
-	_, err = c.WriteString(f.OPML())
-	return err
+	c.Set("Content-Type", "application/xml; charset=utf-8")
+	c.Set("Content-Disposition", `attachment; filename="subscriptions.opml"`)
+	return c.SendString(f.OPML())
 }

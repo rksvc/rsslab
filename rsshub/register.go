@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/dop251/goja"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
 func (r *RSSHub) Register(app *fiber.App) error {
@@ -42,7 +42,7 @@ func (r *RSSHub) Register(app *fiber.App) error {
 	register:
 		for path, route := range routes.Routes {
 			register := func(path, extraParam, key string) {
-				group.Get(path, func(c fiber.Ctx) error {
+				group.Get(path, func(c *fiber.Ctx) error {
 					params := make(map[string]string)
 					var err error
 					for _, param := range c.Route().Params {
@@ -74,7 +74,7 @@ func (r *RSSHub) Register(app *fiber.App) error {
 						log.Print(err)
 						return c.Status(http.StatusInternalServerError).SendString(err.Error())
 					}
-					if c.Query("debug") != "" {
+					if c.QueryBool("debug") {
 						return c.JSON(data)
 					}
 					feed, err := toJSONFeed(data)

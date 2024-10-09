@@ -3,8 +3,8 @@ package main
 import (
 	"embed"
 	"flag"
-	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"rsslab/cache"
@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/compress"
-	"github.com/gofiber/fiber/v3/middleware/recover"
-	"github.com/gofiber/fiber/v3/middleware/static"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 var addr, redisUrl, database, routesUrl, srcUrl string
@@ -27,12 +27,14 @@ var api *server.Server
 var rssHub *rsshub.RSSHub
 
 //go:embed dist
-var dist embed.FS
-var assets fs.FS
+var assets embed.FS
+var fsConfig = filesystem.Config{
+	Root:       http.FS(assets),
+	PathPrefix: "dist",
+}
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	assets, _ = fs.Sub(dist, "dist")
 }
 
 func main() {
@@ -70,7 +72,7 @@ func main() {
 	rssHub = rsshub.NewRSSHub(cc, routesUrl, srcUrl)
 
 	app := engine()
-	app.Use("/", static.New("", static.Config{FS: assets}))
+	app.Use("/", filesystem.New(fsConfig))
 	api.App.Store(app)
 	go serve(app)
 	for !reload() {
@@ -84,7 +86,7 @@ func main() {
 }
 
 func engine() *fiber.App {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	app.Use(compress.New())
 	api.Register(app.Group("/api"))
@@ -101,7 +103,7 @@ func reload() bool {
 		return false
 	}
 	rssHub.ResetRegistry()
-	app.Use("/", static.New("", static.Config{FS: assets}))
+	app.Use("/", filesystem.New(fsConfig))
 
 	oldApp := api.App.Swap(app).(*fiber.App)
 	go func() {
@@ -122,7 +124,7 @@ func serve(app *fiber.App) {
 		host = "0.0.0.0"
 	}
 	log.Printf("server started on http://%s:%s (%d handlers)", host, port, app.HandlersCount())
-	err := app.Listen(addr, fiber.ListenConfig{DisableStartupMessage: true})
+	err := app.Listen(addr)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/mmcdole/gofeed"
 	"github.com/nkanaev/yarr/src/content/htmlutil"
 )

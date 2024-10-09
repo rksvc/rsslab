@@ -25,6 +25,7 @@ export async function xfetch<T>(
   url: string,
   options?: RequestInit,
 ): Promise<T | unknown> {
+  if (options) options.headers = { 'Content-Type': 'application/json' }
   try {
     const response = await fetch(url, options)
     const text = await response.text()

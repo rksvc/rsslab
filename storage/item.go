@@ -145,7 +145,7 @@ type ItemFilter struct {
 	After    *int        `query:"after"`
 }
 
-func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
+func listQueryPredicate(filter ItemFilter, oldestFirst bool) (string, []any) {
 	var cond []string
 	var args []any
 	if filter.FolderId != nil {
@@ -168,9 +168,9 @@ func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
 		}
 	}
 	if filter.After != nil {
-		compare := ">"
-		if newestFirst {
-			compare = "<"
+		compare := "<"
+		if oldestFirst {
+			compare = ">"
 		}
 		cond = append(cond, fmt.Sprintf("(date, id) %s (select date, id from items where id = ?)", compare))
 		args = append(args, *filter.After)
@@ -183,11 +183,11 @@ func listQueryPredicate(filter ItemFilter, newestFirst bool) (string, []any) {
 	return predicate, args
 }
 
-func (s *Storage) ListItems(filter ItemFilter, limit int, newestFirst bool) ([]Item, error) {
-	predicate, args := listQueryPredicate(filter, newestFirst)
-	order := "date asc, id asc"
-	if newestFirst {
-		order = "date desc, id desc"
+func (s *Storage) ListItems(filter ItemFilter, limit int, oldestFirst bool) ([]Item, error) {
+	predicate, args := listQueryPredicate(filter, oldestFirst)
+	order := "date desc, id desc"
+	if oldestFirst {
+		order = "date asc, id asc"
 	}
 	rows, err := s.db.Query(fmt.Sprintf(`
 		select
