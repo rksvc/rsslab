@@ -161,6 +161,7 @@ func (s *Server) do(req *http.Request) (resp *http.Response, err error) {
 		}
 		resp, err = s.App.Load().(*fiber.App).Test(req, -1)
 	} else {
+		req.Header.Add("User-Agent", utils.UserAgent)
 		resp, err = s.client.Do(req)
 	}
 	if err == nil && utils.IsErrorResponse(resp.StatusCode) {
