@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/md5"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
@@ -15,7 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/mmcdole/gofeed"
 	"github.com/nkanaev/yarr/src/content/sanitizer"
-	"github.com/nkanaev/yarr/src/server/opml"
+	"golang.org/x/net/html/charset"
 )
 
 func (s *Server) Register(api fiber.Router) {
@@ -382,27 +383,37 @@ func (s *Server) handleOPMLImport(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
-	folder, err := opml.Parse(file)
+	d := xml.NewDecoder(file)
+	d.Entity = xml.HTMLEntity
+	d.Strict = false
+	d.CharsetReader = charset.NewReaderLabel
+	var opml OPML
+	err = d.Decode(&opml)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
 	var errs []error
-	for _, f := range folder.Feeds {
-		_, err = s.db.CreateFeed(f.Title, f.SiteUrl, f.FeedUrl, nil)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-	}
-	for _, f := range folder.Folders {
-		folder, err := s.db.CreateFolder(f.Title)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		for _, f := range f.AllFeeds() {
-			_, err = s.db.CreateFeed(f.Title, f.SiteUrl, f.FeedUrl, &folder.Id)
+	for _, o := range opml.Outlines {
+		if o.isFolder() {
+			title := o.Title
+			if title == "" {
+				title = o.Title2
+			}
+			folder, err := s.db.CreateFolder(title)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			for _, o := range o.allFeeds() {
+				_, err = s.db.CreateFeed(o.Title, o.SiteUrl, o.FeedUrl, &folder.Id)
+				if err != nil {
+					errs = append(errs, err)
+					continue
+				}
+			}
+		} else {
+			_, err := s.db.CreateFeed(o.Title, o.SiteUrl, o.FeedUrl, nil)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -419,7 +430,10 @@ func (s *Server) handleOPMLImport(c *fiber.Ctx) error {
 }
 
 func (s *Server) handleOPMLExport(c *fiber.Ctx) error {
-	var f opml.Folder
+	opml := OPML{
+		Version: "1.1",
+		Title:   "subscriptions",
+	}
 
 	feedsByFolderId := make(map[int][]*storage.Feed)
 	feeds, err := s.db.ListFeeds()
@@ -428,7 +442,8 @@ func (s *Server) handleOPMLExport(c *fiber.Ctx) error {
 	}
 	for _, feed := range feeds {
 		if feed.FolderId == nil {
-			f.Feeds = append(f.Feeds, opml.Feed{
+			opml.Outlines = append(opml.Outlines, Outline{
+				Type:    "rss",
 				Title:   feed.Title,
 				FeedUrl: feed.FeedLink,
 				SiteUrl: feed.Link,
@@ -448,18 +463,25 @@ func (s *Server) handleOPMLExport(c *fiber.Ctx) error {
 		if len(feeds) == 0 {
 			continue
 		}
-		folder := opml.Folder{Title: folder.Title}
+		folder := Outline{Title: folder.Title}
 		for _, feed := range feeds {
-			folder.Feeds = append(folder.Feeds, opml.Feed{
+			folder.Outlines = append(folder.Outlines, Outline{
+				Type:    "rss",
 				Title:   feed.Title,
 				FeedUrl: feed.FeedLink,
 				SiteUrl: feed.Link,
 			})
 		}
-		f.Folders = append(f.Folders, folder)
+		opml.Outlines = append(opml.Outlines, folder)
 	}
 
 	c.Set("Content-Type", "application/xml; charset=utf-8")
 	c.Set("Content-Disposition", `attachment; filename="subscriptions.opml"`)
-	return c.SendString(f.OPML())
+	_, err = c.WriteString(xml.Header)
+	if err != nil {
+		return err
+	}
+	e := xml.NewEncoder(c.Response().BodyWriter())
+	e.Indent("", "  ")
+	return e.Encode(opml)
 }
