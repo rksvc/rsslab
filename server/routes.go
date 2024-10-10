@@ -15,7 +15,6 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/mmcdole/gofeed"
-	"github.com/nkanaev/yarr/src/content/sanitizer"
 	"golang.org/x/net/html/charset"
 )
 
@@ -328,7 +327,7 @@ func (s *Server) handleItem(c *fiber.Ctx) error {
 	} else if item == nil {
 		return c.Status(http.StatusNotFound).SendString("no such item")
 	}
-	item.Content = sanitizer.Sanitize(item.Link, item.Content)
+	item.Content = utils.Sanitize(item.Link, item.Content)
 	return c.JSON(item)
 }
 
