@@ -25,9 +25,13 @@ export function Alert({
         }, 300)
       }}
     >
-      <pre className="mt-0" style={{ fontFamily: 'inherit' }}>
-        {error}
-      </pre>
+      {error.includes('\n') ? (
+        <pre className="mt-0" style={{ fontFamily: 'inherit' }}>
+          {error}
+        </pre>
+      ) : (
+        <p>{error}</p>
+      )}
     </BlueprintAlert>
   )
 }
