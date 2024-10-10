@@ -25,7 +25,9 @@ export function Alert({
         }, 300)
       }}
     >
-      <p>{error}</p>
+      <pre className="mt-0" style={{ fontFamily: 'inherit' }}>
+        {error}
+      </pre>
     </BlueprintAlert>
   )
 }
