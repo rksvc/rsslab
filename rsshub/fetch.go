@@ -113,11 +113,8 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 
 	response := new(response)
 	switch toString(opts["responseType"]) {
-	case "blob", "stream":
+	case "blob", "stream", "buffer", "arrayBuffer":
 		return nil, errUnsupportedResponseType
-	case "buffer":
-		response.Body = body
-		response.Data = body
 	case "text":
 		response.Body = string(body)
 		response.Data = response.Body

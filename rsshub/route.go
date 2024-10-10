@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/dop251/goja_nodejs/buffer"
 	"github.com/dop251/goja_nodejs/eventloop"
 	"github.com/dop251/goja_nodejs/process"
 	"github.com/dop251/goja_nodejs/require"
@@ -104,11 +103,6 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 					if err != nil {
 						reject(err)
 						return
-					}
-					if b, ok := resp.Body.([]byte); ok {
-						resp.Body = buffer.WrapBytes(vm, b)
-						resp.Data = resp.Body
-						resp.Data2 = resp.Body
 					}
 					h := resp.Headers.(http.Header)
 					resp.Headers = map[string]any{
