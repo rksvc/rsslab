@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"rsslab/utils"
 	"strings"
-
-	"golang.org/x/net/html/charset"
 )
 
 var (
@@ -121,9 +119,6 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 		response.Body = body
 		response.Data = body
 	case "text":
-		if body, err = tryDecode(body, opts); err != nil {
-			return nil, err
-		}
 		response.Body = string(body)
 		response.Data = response.Body
 	case "json":
@@ -131,18 +126,12 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 			response.Body = ""
 			response.Data = ""
 		} else {
-			if body, err = tryDecode(body, opts); err != nil {
-				return nil, err
-			}
 			if err = json.Unmarshal(body, &response.Body); err != nil {
 				return nil, err
 			}
 			response.Data = response.Body
 		}
 	case "":
-		if body, err = tryDecode(body, opts); err != nil {
-			return nil, err
-		}
 		response.Body = string(body)
 		if json.Unmarshal(body, &response.Data) != nil {
 			response.Data = response.Body
@@ -155,13 +144,6 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	response.Data2 = response.Data
 	response.Headers = resp.Header
 	return response, nil
-}
-
-func tryDecode(body []byte, opts map[string]any) ([]byte, error) {
-	if e, _ := charset.Lookup(toString(opts["encoding"])); e != nil {
-		return e.NewDecoder().Bytes(body)
-	}
-	return body, nil
 }
 
 func toString(v any) string {
