@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/evanw/esbuild/pkg/api"
+	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 )
@@ -28,6 +31,50 @@ func FirstNonEmpty(vals ...string) string {
 		}
 	}
 	return ""
+}
+
+func IsAPossibleLink(s string) bool {
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+}
+
+func AbsoluteUrl(href, base string) string {
+	baseUrl, err := url.Parse(base)
+	if err != nil {
+		return ""
+	}
+	hrefUrl, err := url.Parse(href)
+	if err != nil {
+		return ""
+	}
+	return baseUrl.ResolveReference(hrefUrl).String()
+}
+
+func UrlDomain(href string) string {
+	if url, err := url.Parse(href); err == nil {
+		return url.Host
+	}
+	return ""
+}
+
+var whitespaces = regexp.MustCompile(`\s+`)
+
+func CollapseWhitespace(s string) string {
+	return whitespaces.ReplaceAllLiteralString(strings.TrimSpace(s), " ")
+}
+
+func ExtractText(content string) string {
+	var b strings.Builder
+	tokenizer := html.NewTokenizer(strings.NewReader(content))
+	for {
+		token := tokenizer.Next()
+		if token == html.ErrorToken {
+			break
+		}
+		if token == html.TextToken {
+			b.Write(tokenizer.Text())
+		}
+	}
+	return CollapseWhitespace(b.String())
 }
 
 func ResponseError(resp *http.Response) error {

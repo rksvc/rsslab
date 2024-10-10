@@ -12,7 +12,6 @@ require (
 	github.com/karlseguin/ccache/v3 v3.0.6
 	github.com/mattn/go-sqlite3 v1.14.23
 	github.com/mmcdole/gofeed v1.3.0
-	github.com/nkanaev/yarr v0.0.0-20240929203653-f71792d6a50f
 	github.com/redis/go-redis/v9 v9.6.1
 	golang.org/x/net v0.29.0
 	golang.org/x/sync v0.8.0

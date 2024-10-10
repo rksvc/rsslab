@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"rsslab/utils"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/nkanaev/yarr/src/content/htmlutil"
 )
 
 type ItemStatus int
@@ -95,7 +95,7 @@ func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time,
 			values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			on conflict (feed_id, guid) do nothing`,
 			item.GUID, item.FeedId, item.Title, item.Link, item.Date.UTC(),
-			item.Content, htmlutil.ExtractText(item.Content), item.ImageURL,
+			item.Content, utils.ExtractText(item.Content), item.ImageURL,
 			item.AudioURL, lastRefreshed, UNREAD,
 		)
 		if err != nil {

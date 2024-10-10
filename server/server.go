@@ -17,7 +17,6 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/mmcdole/gofeed"
-	"github.com/nkanaev/yarr/src/content/htmlutil"
 )
 
 type Server struct {
@@ -228,8 +227,8 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 	for i, item := range items {
 		links := append([]string{item.Link}, item.Links...)
 		link := utils.FirstNonEmpty(links...)
-		if !htmlutil.IsAPossibleLink(link) {
-			link = htmlutil.AbsoluteUrl(link, feed.Link)
+		if !utils.IsAPossibleLink(link) {
+			link = utils.AbsoluteUrl(link, feed.Link)
 		}
 		result[i] = storage.Item{
 			GUID:    utils.FirstNonEmpty(item.GUID, item.Link),

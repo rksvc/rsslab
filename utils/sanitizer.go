@@ -2,7 +2,6 @@ package utils
 
 import (
 	"io"
-	urlpkg "net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -125,7 +124,7 @@ func sanitizeAttrs(baseURL string, token html.Token) (string, bool) {
 					continue
 				}
 			} else if !(token.DataAtom == atom.Img && attr.Key == "src" && isValidDataAttr(attr.Val)) {
-				val = absoluteUrl(val, baseURL)
+				val = AbsoluteUrl(val, baseURL)
 				if val == "" || !hasValidURIScheme(val) || isBlockedResource(val) {
 					continue
 				}
@@ -674,9 +673,9 @@ var safeDomains = map[string]struct{}{
 }
 
 func isSafeIframeSource(baseURL, src string) bool {
-	domain := urlDomain(src)
+	domain := UrlDomain(src)
 	// allow iframe from same origin
-	if urlDomain(baseURL) == domain {
+	if UrlDomain(baseURL) == domain {
 		return true
 	}
 	_, ok := safeDomains[domain]
@@ -707,7 +706,7 @@ func sanitizeSrcsetAttr(baseURL, srcset string) string {
 		if len(parts) > 0 {
 			sanitizedSrc := parts[0]
 			if !strings.HasPrefix(parts[0], "data:") {
-				sanitizedSrc = absoluteUrl(sanitizedSrc, baseURL)
+				sanitizedSrc = AbsoluteUrl(sanitizedSrc, baseURL)
 				if sanitizedSrc == "" {
 					continue
 				}
@@ -770,29 +769,10 @@ func isKnownVideoIframe(token html.Token) bool {
 	if token.DataAtom == atom.Iframe {
 		for _, attr := range token.Attr {
 			if attr.Key == "src" {
-				_, ok := videoWhitelist[urlDomain(attr.Val)]
+				_, ok := videoWhitelist[UrlDomain(attr.Val)]
 				return ok
 			}
 		}
 	}
 	return false
-}
-
-func absoluteUrl(href, base string) string {
-	baseUrl, err := urlpkg.Parse(base)
-	if err != nil {
-		return ""
-	}
-	hrefUrl, err := urlpkg.Parse(href)
-	if err != nil {
-		return ""
-	}
-	return baseUrl.ResolveReference(hrefUrl).String()
-}
-
-func urlDomain(url string) string {
-	if url, err := urlpkg.Parse(url); err == nil {
-		return url.Host
-	}
-	return ""
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html"
 	"net/url"
-	"regexp"
 	"rsslab/utils"
 	"slices"
 	"strings"
@@ -172,12 +171,12 @@ func toJSONFeed(v any) (*jsonFeed, error) {
 		}
 		item.Description = strings.TrimSpace(description)
 
-		item.Title = collapseWhitespace(html.UnescapeString(item.Title))
+		item.Title = utils.CollapseWhitespace(html.UnescapeString(item.Title))
 		item.Content.Html = strings.TrimSpace(item.Content.Html)
 		item.Content.Text = strings.TrimSpace(item.Content.Text)
 	}
-	data.Title = collapseWhitespace(data.Title)
-	data.Description = collapseWhitespace(data.Description)
+	data.Title = utils.CollapseWhitespace(data.Title)
+	data.Description = utils.CollapseWhitespace(data.Description)
 	slices.SortStableFunc(data.Item, func(a, b dataItem) int {
 		if a.PubDate == nil {
 			return 1
@@ -267,10 +266,4 @@ func toAuthorArray(v any) (a []author) {
 		a = append(a, author{Name: fmt.Sprintf("%v", v)})
 	}
 	return
-}
-
-var whitespaces = regexp.MustCompile(`\s+`)
-
-func collapseWhitespace(s string) string {
-	return whitespaces.ReplaceAllLiteralString(strings.TrimSpace(s), " ")
 }
