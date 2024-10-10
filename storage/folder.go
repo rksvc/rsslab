@@ -2,9 +2,8 @@ package storage
 
 import (
 	"fmt"
+	"rsslab/utils"
 	"strings"
-
-	"github.com/go-errors/errors"
 )
 
 type Folder struct {
@@ -30,7 +29,7 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 		title,
 	).Scan(&id)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return &Folder{Id: id, Title: title, IsExpanded: expanded}, nil
 }
@@ -38,7 +37,7 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 func (s *Storage) DeleteFolder(folderId int) error {
 	_, err := s.db.Exec(`delete from folders where id = ?`, folderId)
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 	return nil
 }
@@ -60,7 +59,7 @@ func (s *Storage) EditFolder(folderId int, editor FolderEditor) error {
 	args = append(args, folderId)
 	_, err := s.db.Exec(fmt.Sprintf(`update folders set %s where id = ?`, strings.Join(acts, ", ")), args...)
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 	return nil
 }
@@ -72,19 +71,19 @@ func (s *Storage) ListFolders() ([]Folder, error) {
 		order by title collate nocase
 	`)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	result := make([]Folder, 0)
 	for rows.Next() {
 		var f Folder
 		err = rows.Scan(&f.Id, &f.Title, &f.IsExpanded)
 		if err != nil {
-			return nil, errors.New(err)
+			return nil, utils.NewError(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return result, nil
 }

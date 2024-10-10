@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-errors/errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/mmcdole/gofeed"
 )
@@ -61,7 +60,7 @@ func (s *Server) Start() {
 	go s.FindFavicons()
 	settings, err := s.db.GetSettings()
 	if err != nil {
-		log.Print(errString(err))
+		log.Print(err)
 		return
 	}
 	go s.SetRefreshRate(settings.RefreshRate)
@@ -138,7 +137,7 @@ func (s *Server) SetRefreshRate(minute int) {
 func (s *Server) RefreshAllFeeds() {
 	feeds, err := s.db.ListFeeds()
 	if err != nil {
-		log.Print(errString(err))
+		log.Print(err)
 		return
 	}
 	s.RefreshFeeds(feeds...)
@@ -178,7 +177,7 @@ func (s *Server) worker() {
 			err = s.db.CreateItems(items, feed.Id, time.Now(), state)
 		}
 		if err != nil {
-			log.Print(errString(err))
+			log.Print(err)
 		}
 		s.db.SetFeedError(feed.Id, err)
 		s.pending.Add(-1)
@@ -262,11 +261,4 @@ func getHTTPState(resp *http.Response) *storage.HTTPState {
 		}
 	}
 	return nil
-}
-
-func errString(err error) string {
-	if err, ok := err.(*errors.Error); ok {
-		return err.ErrorStack()
-	}
-	return err.Error()
 }

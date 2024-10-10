@@ -9,8 +9,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	"github.com/go-errors/errors"
 )
 
 type ItemStatus int
@@ -77,7 +75,7 @@ type Item struct {
 func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time, state *HTTPState) error {
 	tx, err := s.db.Begin()
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 
 	slices.SortStableFunc(items, func(a, b Item) int {
@@ -102,7 +100,7 @@ func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time,
 			if err := tx.Rollback(); err != nil {
 				log.Print(err)
 			}
-			return errors.New(err)
+			return utils.NewError(err)
 		}
 	}
 
@@ -127,12 +125,12 @@ func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time,
 		if err := tx.Rollback(); err != nil {
 			log.Print(err)
 		}
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 	return nil
 }
@@ -199,7 +197,7 @@ func (s *Storage) ListItems(filter ItemFilter, limit int, oldestFirst bool) ([]I
 		limit %d
 	`, predicate, order, limit), args...)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	result := make([]Item, 0)
 	for rows.Next() {
@@ -210,7 +208,7 @@ func (s *Storage) ListItems(filter ItemFilter, limit int, oldestFirst bool) ([]I
 			&i.Status, &i.ImageURL, &i.AudioURL,
 		)
 		if err != nil {
-			return nil, errors.New(err)
+			return nil, utils.NewError(err)
 		}
 		result = append(result, i)
 	}
@@ -233,7 +231,7 @@ func (s *Storage) GetItem(id int) (*Item, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return &i, nil
 }
@@ -241,7 +239,7 @@ func (s *Storage) GetItem(id int) (*Item, error) {
 func (s *Storage) UpdateItemStatus(itemId int, status ItemStatus) error {
 	_, err := s.db.Exec(`update items set status = ? where id = ?`, status, itemId)
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 	return nil
 }
@@ -253,7 +251,7 @@ func (s *Storage) MarkItemsRead(filter ItemFilter) error {
 		where %s and status != %d
 	`, READ, predicate, STARRED), args...)
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 	return nil
 }
@@ -274,19 +272,19 @@ func (s *Storage) FeedStats() ([]FeedStat, error) {
 		group by feed_id
 	`, UNREAD, STARRED))
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	result := make([]FeedStat, 0)
 	for rows.Next() {
 		var s FeedStat
 		err = rows.Scan(&s.FeedId, &s.UnreadCount, &s.StarredCount)
 		if err != nil {
-			return nil, errors.New(err)
+			return nil, utils.NewError(err)
 		}
 		result = append(result, s)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return result, nil
 }

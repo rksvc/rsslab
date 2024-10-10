@@ -4,10 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"rsslab/utils"
 	"strings"
 	"time"
-
-	"github.com/go-errors/errors"
 )
 
 type Feed struct {
@@ -33,7 +32,7 @@ func (s *Storage) CreateFeed(title, link, feedLink string, folderId *int) (*Feed
 		title, link, feedLink, folderId, folderId,
 	).Scan(&id)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return &Feed{
 		Id:       id,
@@ -47,7 +46,7 @@ func (s *Storage) CreateFeed(title, link, feedLink string, folderId *int) (*Feed
 func (s *Storage) DeleteFeed(feedId int) error {
 	_, err := s.db.Exec(`delete from feeds where id = ?`, feedId)
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 	return nil
 }
@@ -79,7 +78,7 @@ func (s *Storage) EditFeed(feedId int, editor FeedEditor) error {
 	args = append(args, feedId)
 	_, err := s.db.Exec(fmt.Sprintf(`update feeds set %s where id = ?`, strings.Join(acts, ", ")), args...)
 	if err != nil {
-		return errors.New(err)
+		return utils.NewError(err)
 	}
 	return nil
 }
@@ -99,7 +98,7 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 		order by title collate nocase
 	`)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	result := make([]Feed, 0)
 	for rows.Next() {
@@ -114,12 +113,12 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 			&f.HasIcon,
 		)
 		if err != nil {
-			return nil, errors.New(err)
+			return nil, utils.NewError(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return result, nil
 }
@@ -164,7 +163,7 @@ func (s *Storage) GetFeed(id int) (*Feed, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return &f, nil
 }
@@ -178,7 +177,7 @@ func (s *Storage) GetFeedIcon(id int) ([]byte, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return icon, nil
 }
@@ -191,19 +190,19 @@ func (s *Storage) GetFeeds(folderId int) ([]Feed, error) {
 		order by title collate nocase
 	`, folderId)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	result := make([]Feed, 0)
 	for rows.Next() {
 		var f Feed
 		err = rows.Scan(&f.Id, &f.FeedLink)
 		if err != nil {
-			return nil, errors.New(err)
+			return nil, utils.NewError(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return result, nil
 }
@@ -227,7 +226,7 @@ func (s *Storage) GetFeedErrors() (map[int]string, error) {
 		select id, error from feeds where error is not null`,
 	)
 	if err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 
 	errs := make(map[int]string)
@@ -235,12 +234,12 @@ func (s *Storage) GetFeedErrors() (map[int]string, error) {
 		var id int
 		var err string
 		if err := rows.Scan(&id, &err); err != nil {
-			return nil, errors.New(err)
+			return nil, utils.NewError(err)
 		}
 		errs[id] = err
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.New(err)
+		return nil, utils.NewError(err)
 	}
 	return errs, nil
 }
@@ -259,7 +258,7 @@ func (s *Storage) GetHTTPState(feedId int) (state HTTPState, err error) {
 		&state.Etag,
 	)
 	if err != nil {
-		err = errors.New(err)
+		err = utils.NewError(err)
 	}
 	return
 }

@@ -2,8 +2,7 @@ package storage
 
 import (
 	"database/sql"
-
-	"github.com/go-errors/errors"
+	"rsslab/utils"
 )
 
 type Settings struct {
@@ -22,7 +21,7 @@ func (s *Storage) GetSettings() (settings Settings, err error) {
 		if err == sql.ErrNoRows {
 			err = nil
 		} else {
-			err = errors.New(err)
+			err = utils.NewError(err)
 		}
 	}
 	return
@@ -34,7 +33,7 @@ func (s *Storage) UpdateSettings(settings SettingsEditor) error {
 			insert or replace into settings (key, val) values ('refresh_rate', ?)
 		`, *settings.RefreshRate)
 		if err != nil {
-			return errors.New(err)
+			return utils.NewError(err)
 		}
 	}
 	return nil
