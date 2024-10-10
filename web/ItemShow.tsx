@@ -9,7 +9,6 @@ import {
 } from '@blueprintjs/core'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
-import classes from './styles.module.css'
 import type { Feed, Image, Item, Stats } from './types'
 import { cn, iconProps, xfetch } from './utils'
 
@@ -108,7 +107,7 @@ export default function ItemShow({
         </div>
         <Divider className="mx-0 my-3" />
         <div
-          className={cn(Classes.RUNNING_TEXT, classes.content, 'text-base')}
+          className={cn(Classes.RUNNING_TEXT, 'text-base', 'content')}
           dangerouslySetInnerHTML={{ __html: selectedItemDetails.content }}
         />
       </div>
