@@ -55,7 +55,7 @@ var native = map[string]moduleLoader{
 		module.Set("exports", func(data string) string { return fmt.Sprintf("%x", md5.Sum([]byte(data))) })
 	},
 	"@/utils/rand-user-agent": func(_ *goja.Runtime, module *goja.Object) {
-		module.Set("exports", func() string { return utils.UserAgent })
+		module.Set("exports", func() string { return utils.USER_AGENT })
 	},
 	"@/utils/logger": func(vm *goja.Runtime, module *goja.Object) {
 		o := module.Get("exports").ToObject(vm)
@@ -182,7 +182,7 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 			cache.Set("contentExpire", contentExpire/time.Second)
 
 			config.Get("feature").ToObject(r.vm).Set("allow_user_supply_unsafe_domain", true)
-			config.Set("ua", utils.UserAgent)
+			config.Set("ua", utils.USER_AGENT)
 		}
 
 	} else if prg, ok := core[p]; ok {

@@ -73,7 +73,7 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 		}
 	}
 
-	req.Header.Set("User-Agent", utils.UserAgent)
+	req.Header.Set("User-Agent", utils.USER_AGENT)
 	req.Header.Set("Referer", req.URL.Scheme+"://"+req.URL.Host)
 	if headers, ok := opts["headers"]; ok {
 		headers, ok := headers.(map[string]any)
