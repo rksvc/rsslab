@@ -102,7 +102,7 @@ func reload() bool {
 		log.Print(err)
 		return false
 	}
-	rssHub.ResetRegistry()
+	rssHub.ClearCachedModules()
 	app.Use("/", filesystem.New(fsConfig))
 
 	oldApp := api.App.Swap(app).(*fiber.App)

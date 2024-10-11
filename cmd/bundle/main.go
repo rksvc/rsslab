@@ -57,6 +57,8 @@ func main() {
 		Target:            api.ES2023,
 		Supported:         utils.SupportedSyntaxFeatures,
 		LogLevel:          api.LogLevelInfo,
+		Banner:            map[string]string{"js": utils.IIFE_PREFIX},
+		Footer:            map[string]string{"js": utils.IIFE_SUFFIX},
 		Bundle:            true,
 		Write:             true,
 		MinifyWhitespace:  true,

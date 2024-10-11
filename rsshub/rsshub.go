@@ -2,129 +2,49 @@ package rsshub
 
 import (
 	"bytes"
-	"crypto/md5"
-	"embed"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
-	"path"
 	"rsslab/cache"
 	"rsslab/utils"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/dop251/goja_nodejs/require"
 	"github.com/evanw/esbuild/pkg/api"
 )
 
-//go:embed utils
-var lib embed.FS
+const (
+	srcExpire     = 6 * time.Hour
+	routeExpire   = 5 * time.Minute
+	contentExpire = time.Hour
+)
 
-//go:embed third_party
-var third_party embed.FS
+type RSSHub struct {
+	srcUrl, routesUrl string
+	cache             *cache.Cache
+	client            http.Client
+	modules           map[string]*goja.Program
+	mu                sync.Mutex
+}
 
-const srcExpire = 6 * time.Hour
-const routeExpire = 5 * time.Minute
-const contentExpire = time.Hour
-
-func init() {
-	require.RegisterCoreModule("assert", func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("strict", func(value goja.Value, message goja.Value) error {
-			if value.ToBoolean() {
-				return nil
-			}
-			return errors.New(message.String())
-		})
-	})
-	require.RegisterCoreModule("path", func(vm *goja.Runtime, module *goja.Object) {
-		o := module.Get("exports").ToObject(vm)
-		o.Set("join", func(elem ...string) string { return path.Join(elem...) })
-		o.Set("dirname", func(p string) string { return path.Dir(p) })
-	})
-	require.RegisterNativeModule("dotenv/config", func(_ *goja.Runtime, _ *goja.Object) {})
-	require.RegisterNativeModule("ofetch", func(_ *goja.Runtime, _ *goja.Object) {})
-	require.RegisterNativeModule("@/utils/md5", func(_ *goja.Runtime, module *goja.Object) {
-		module.Set("exports", func(data string) string { return fmt.Sprintf("%x", md5.Sum([]byte(data))) })
-	})
-	require.RegisterNativeModule("@/utils/rand-user-agent", func(_ *goja.Runtime, module *goja.Object) {
-		module.Set("exports", func() string { return utils.UserAgent })
-	})
-	require.RegisterNativeModule("@/types", func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("ViewType", vm.NewObject())
-	})
-	require.RegisterNativeModule("@/utils/logger", func(vm *goja.Runtime, module *goja.Object) {
-		o := module.Get("exports").ToObject(vm)
-		for _, name := range []string{"debug", "info", "warn", "error", "http"} {
-			o.Set(name, func() {})
-		}
-	})
-	require.RegisterNativeModule("@/utils/cache", func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("tryGet", vm.Get("$tryGet"))
-	})
-
-	for _, words := range [][]string{
-		{"config", "not", "found"},
-		{"invalid", "parameter"},
-		{"not", "found"},
-		{"reject"},
-		{"request", "in", "progress"},
-	} {
-		path := "@/errors/types/" + strings.Join(words, "-")
-		require.RegisterNativeModule(path, func(vm *goja.Runtime, module *goja.Object) {
-			var name string
-			for _, word := range words {
-				name += strings.ToUpper(word[:1]) + word[1:]
-			}
-			name += "Error"
-			result, err := vm.RunScript(path, fmt.Sprintf("(class extends Error{name='%s'})", name))
-			if err != nil {
-				log.Fatal(err)
-			}
-			module.Set("exports", result)
-		})
+func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
+	return &RSSHub{
+		srcUrl:    srcUrl,
+		routesUrl: routesUrl,
+		cache:     cache,
+		client:    http.Client{Timeout: 30 * time.Second},
+		modules:   make(map[string]*goja.Program),
 	}
+}
 
-	fs.WalkDir(lib, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		name := "@/" + strings.TrimSuffix(path, ".js")
-		require.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
-			src, err := fs.ReadFile(lib, path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			loadModule(src, name, vm, module)
-		})
-		return nil
-	})
-	fs.WalkDir(third_party, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		name := strings.TrimSuffix(d.Name(), ".js")
-		require.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
-			src, err := fs.ReadFile(third_party, path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			loadModule(src, name, vm, module)
-		})
-		return nil
-	})
+func (r *RSSHub) ClearCachedModules() {
+	r.mu.Lock()
+	clear(r.modules)
+	r.mu.Unlock()
 }
 
 var retryStatusCodes = map[int]struct{}{
@@ -136,63 +56,6 @@ var retryStatusCodes = map[int]struct{}{
 	http.StatusBadGateway:          {},
 	http.StatusServiceUnavailable:  {},
 	http.StatusGatewayTimeout:      {},
-}
-
-type RSSHub struct {
-	srcUrl, routesUrl string
-	cache             *cache.Cache
-	client            http.Client
-	registry          atomic.Value
-}
-
-func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
-	r := &RSSHub{
-		srcUrl:    srcUrl,
-		routesUrl: routesUrl,
-		cache:     cache,
-		client:    http.Client{Timeout: 30 * time.Second},
-	}
-	r.ResetRegistry()
-	return r
-}
-
-func (r *RSSHub) ResetRegistry() {
-	registry := require.NewRegistryWithLoader(r.sourceLoader)
-	registry.RegisterNativeModule("@/utils/render", func(vm *goja.Runtime, module *goja.Object) {
-		art := require.Require(vm, "art-template").ToObject(vm)
-		render := vm.ToValue(func(filename string, content goja.Value) (goja.Value, error) {
-			source, err := r.file(filename)
-			if err != nil {
-				return goja.Undefined(), err
-			}
-			render, _ := goja.AssertFunction(art.Get("render"))
-			return render(goja.Undefined(), vm.ToValue(string(source)), content, vm.ToValue(map[string]bool{
-				"debug":    false,
-				"minimize": false,
-			}))
-		}).ToObject(vm)
-		render.Set("defaults", art.Get("defaults"))
-		module.Get("exports").ToObject(vm).Set("art", render)
-	})
-	name := "@/config"
-	registry.RegisterNativeModule(name, func(vm *goja.Runtime, module *goja.Object) {
-		src, err := r.route("lib/config.ts")
-		if err != nil {
-			panic(err)
-		}
-		loadModule(src, name, vm, module)
-
-		config := module.Get("exports").ToObject(vm).Get("config").ToObject(vm)
-
-		cache := config.Get("cache").ToObject(vm)
-		cache.Set("routeExpire", routeExpire/time.Second)
-		cache.Set("contentExpire", contentExpire/time.Second)
-
-		config.Get("feature").ToObject(vm).Set("allow_user_supply_unsafe_domain", true)
-		config.Set("ua", utils.UserAgent)
-	})
-
-	r.registry.Store(registry)
 }
 
 func (r *RSSHub) do(req *http.Request, body any) (resp *http.Response, respBody []byte, err error) {
@@ -236,67 +99,55 @@ func (r *RSSHub) do(req *http.Request, body any) (resp *http.Response, respBody 
 	return
 }
 
-func (r *RSSHub) sourceLoader(p string) ([]byte, error) {
-	name := strings.ReplaceAll(p, "node_modules/", "")
-	if i := strings.LastIndex(name, "@/"); i != -1 {
-		return nil, fmt.Errorf("require %s: %s", name[i:], require.ModuleFileDoesNotExistError)
-	}
-	return r.route(path.Join("lib/routes", name+".ts"))
-}
-
-func (r *RSSHub) route(path string) ([]byte, error) {
+func (r *RSSHub) route(path string) (string, error) {
 	url, err := url.JoinPath(r.srcUrl, path)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	data, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			return nil, err
-		}
-		_, body, err := r.do(req, nil)
-		if err != nil {
-			return nil, err
-		}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	_, body, err := r.do(req, nil)
+	if err != nil {
+		return "", err
+	}
 
-		code := string(body)
-		if path == "lib/config.ts" {
-			code = strings.Replace(code,
-				"import('@/utils/logger')",
-				"{                      }", 1)
-		}
-		result := api.Transform(code, api.TransformOptions{
-			Sourcefile:        path,
-			Format:            api.FormatCommonJS,
-			Loader:            api.LoaderTS,
-			Sourcemap:         api.SourceMapInline,
-			SourcesContent:    api.SourcesContentExclude,
-			Target:            api.ES2023,
-			Supported:         utils.SupportedSyntaxFeatures,
-			Define:            map[string]string{"import.meta.url": `"` + path + `"`},
-			MinifyWhitespace:  true,
-			MinifySyntax:      true,
-			MinifyIdentifiers: true,
-		})
-		if len(result.Errors) > 0 {
-			return nil, utils.Errorf(result.Errors)
-		} else if len(result.Warnings) > 0 {
-			log.Print(utils.Errorf(result.Warnings))
-		}
-		return result.Code, nil
+	code := utils.BytesToString(body)
+	if path == "/lib/config.ts" {
+		code = strings.Replace(code,
+			"import('@/utils/logger')",
+			"{                      }", 1)
+	}
+	result := api.Transform(code, api.TransformOptions{
+		Sourcefile:        path,
+		Format:            api.FormatCommonJS,
+		Loader:            api.LoaderTS,
+		Sourcemap:         api.SourceMapInline,
+		SourcesContent:    api.SourcesContentExclude,
+		Target:            api.ES2023,
+		Supported:         utils.SupportedSyntaxFeatures,
+		Define:            map[string]string{"import.meta.url": `"` + path + `"`},
+		Banner:            utils.IIFE_PREFIX,
+		Footer:            utils.IIFE_SUFFIX,
+		MinifyWhitespace:  true,
+		MinifySyntax:      true,
+		MinifyIdentifiers: true,
 	})
-	if err != nil {
-		return nil, err
+	if len(result.Errors) > 0 {
+		return "", utils.Errorf(result.Errors)
+	} else if len(result.Warnings) > 0 {
+		log.Print(utils.Errorf(result.Warnings))
 	}
-	return data.([]byte), nil
+	return utils.BytesToString(result.Code), nil
 }
 
-func (r *RSSHub) file(path string) ([]byte, error) {
+func (r *RSSHub) file(path string) (string, error) {
 	url, err := url.JoinPath(r.srcUrl, path)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	data, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
+	b, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
@@ -305,27 +156,7 @@ func (r *RSSHub) file(path string) ([]byte, error) {
 		return body, err
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return data.([]byte), nil
-}
-
-func loadModule(src []byte, name string, vm *goja.Runtime, module *goja.Object) {
-	const PREFIX = "(function(exports,require,module){"
-	const SUFFIX = "\n})"
-	var b strings.Builder
-	b.Grow(len(PREFIX) + len(SUFFIX) + len(src))
-	b.WriteString(PREFIX)
-	b.Write(src)
-	b.WriteString(SUFFIX)
-	f, err := vm.RunScript(name, b.String())
-	if err != nil {
-		log.Fatal(err)
-	}
-	call, _ := goja.AssertFunction(f)
-	exports := module.Get("exports")
-	_, err = call(exports, exports, vm.Get("require"), module)
-	if err != nil {
-		log.Fatal(err)
-	}
+	return utils.BytesToString(b.([]byte)), nil
 }

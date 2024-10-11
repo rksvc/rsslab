@@ -20,11 +20,11 @@ var (
 )
 
 type response struct {
-	URL     string `json:"url"`
-	Body    any    `json:"body"`
-	Data    any    `json:"data"`
-	Data2   any    `json:"_data"`
-	Headers any    `json:"headers"`
+	URL     string         `json:"url"`
+	Body    any            `json:"body"`
+	Data    any            `json:"data"`
+	Data2   any            `json:"_data"`
+	Headers map[string]any `json:"headers"`
 }
 
 func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
@@ -139,7 +139,14 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 
 	response.URL = req.URL.String()
 	response.Data2 = response.Data
-	response.Headers = resp.Header
+	response.Headers = map[string]any{
+		"getSetCookie": func() []string {
+			return resp.Header.Values("Set-Cookie")
+		},
+		"get": func(key string) string {
+			return resp.Header.Get(key)
+		},
+	}
 	return response, nil
 }
 

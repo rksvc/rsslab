@@ -5,15 +5,11 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
-	"net/http"
+	"rsslab/utils"
 	"sync"
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/dop251/goja_nodejs/eventloop"
-	"github.com/dop251/goja_nodejs/process"
-	"github.com/dop251/goja_nodejs/require"
-	"github.com/dop251/goja_nodejs/url"
 )
 
 //go:embed handler.js
@@ -57,12 +53,6 @@ type wait struct {
 	Err   error
 }
 
-func newWait() *wait {
-	var w wait
-	w.Add(1)
-	return &w
-}
-
 func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 	then, _ := goja.AssertFunction(promise.ToObject(vm).Get("then"))
 	_, err := then(promise, vm.ToValue(func(value goja.Value) {
@@ -85,83 +75,92 @@ func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 }
 
 func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
-	loop := eventloop.NewEventLoop(eventloop.WithRegistry(r.registry.Load().(*require.Registry)))
-	loop.Start()
-	defer loop.Stop()
-	w := newWait()
-	loop.RunOnLoop(func(vm *goja.Runtime) {
-		vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
-		process.Enable(vm)
-		url.Enable(vm)
-		require.Require(vm, "url").ToObject(vm).Set("fileURLToPath", func(url string) string { return url })
+	vm := goja.New()
+	require := &requireModule{
+		r:       r,
+		vm:      vm,
+		modules: make(map[string]goja.Value),
+	}
+	jobs := make(chan func())
+	go func() {
+		for job := range jobs {
+			job()
+		}
+	}()
 
-		vm.Set("$fetch", func(opts map[string]any) *goja.Promise {
-			promise, resolve, reject := vm.NewPromise()
-			go func() {
-				resp, err := r.fetch(opts)
-				loop.RunOnLoop(func(vm *goja.Runtime) {
-					if err != nil {
-						reject(err)
-						return
-					}
-					h := resp.Headers.(http.Header)
-					resp.Headers = map[string]any{
-						"getSetCookie": func() []string {
-							return h.Values("Set-Cookie")
-						},
-						"get": func(key string) string {
-							return h.Get(key)
-						},
-					}
+	vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
+	vm.Set("require", require.require)
+
+	process := vm.NewObject()
+	process.Set("env", utils.Env)
+	vm.Set("process", process)
+
+	url, err := require.require("url")
+	if err != nil {
+		return nil, err
+	}
+	exports := url.ToObject(vm)
+	vm.Set("URL", exports.Get("URL"))
+	vm.Set("URLSearchParams", exports.Get("URLSearchParams"))
+
+	vm.Set("$fetch", func(opts map[string]any) *goja.Promise {
+		promise, resolve, reject := vm.NewPromise()
+		go func() {
+			resp, err := r.fetch(opts)
+			jobs <- func() {
+				if err == nil {
 					resolve(resp)
-				})
-			}()
-			return promise
-		})
-		vm.Set("$tryGet", func(key string, f func() goja.Value, maxAge *int, ex *bool) *goja.Promise {
-			promise, resolve, reject := vm.NewPromise()
-			go func() {
-				ttl := contentExpire
-				if maxAge != nil {
-					ttl = time.Duration(*maxAge) * time.Second
+				} else {
+					reject(err)
 				}
-				v, err := r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
-					w := newWait()
-					loop.RunOnLoop(func(vm *goja.Runtime) { w.Await(vm, f()) })
-					w.Wait()
-					return w.Value, w.Err
-				})
-				var data any
-				if b, ok := v.([]byte); !ok {
-					data = v
-				} else if json.Unmarshal(b, &data) != nil {
-					data = string(b)
-				}
-				loop.RunOnLoop(func(*goja.Runtime) {
-					if err == nil {
-						resolve(data)
-					} else {
-						reject(err)
-					}
-				})
-			}()
-			return promise
-		})
-
-		defer w.Done()
-		var v goja.Value
-		v, w.Err = vm.RunProgram(handlerPrg)
-		if w.Err != nil {
-			return
-		}
-		handler, _ := goja.AssertFunction(v)
-		v, w.Err = handler(goja.Undefined(), vm.ToValue(sourcePath), vm.ToValue(ctx))
-		if w.Err != nil {
-			return
-		}
-		w.Add(1)
-		w.Await(vm, v)
+			}
+		}()
+		return promise
 	})
+	vm.Set("$tryGet", func(key string, f func() goja.Value, maxAge *int, ex *bool) *goja.Promise {
+		promise, resolve, reject := vm.NewPromise()
+		go func() {
+			ttl := contentExpire
+			if maxAge != nil {
+				ttl = time.Duration(*maxAge) * time.Second
+			}
+			v, err := r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
+				var w wait
+				w.Add(1)
+				jobs <- func() { w.Await(vm, f()) }
+				w.Wait()
+				return w.Value, w.Err
+			})
+			var data any
+			if b, ok := v.([]byte); !ok {
+				data = v
+			} else if json.Unmarshal(b, &data) != nil {
+				data = utils.BytesToString(b)
+			}
+			jobs <- func() {
+				if err == nil {
+					resolve(data)
+				} else {
+					reject(err)
+				}
+			}
+		}()
+		return promise
+	})
+
+	f, err := vm.RunProgram(handlerPrg)
+	if err != nil {
+		return nil, err
+	}
+	handler, _ := goja.AssertFunction(f)
+	promise, err := handler(goja.Undefined(), vm.ToValue(sourcePath), vm.ToValue(ctx))
+	if err != nil {
+		return nil, err
+	}
+	var w wait
+	w.Add(1)
+	w.Await(vm, promise)
 	w.Wait()
+	close(jobs)
 	return w.Value, w.Err
 }

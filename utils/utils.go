@@ -6,8 +6,10 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
+	"unsafe"
 
 	"github.com/evanw/esbuild/pkg/api"
 	"golang.org/x/net/html"
@@ -17,11 +19,40 @@ import (
 
 var UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
+const IIFE_PREFIX = "(function(exports,require,module){"
+const IIFE_SUFFIX = "\n})"
+
 var SupportedSyntaxFeatures = map[string]bool{
 	"async-generator":      false,
 	"for-await":            false,
 	"logical-assignment":   false,
 	"regexp-match-indices": false,
+}
+
+var Env = make(map[string]string)
+
+func init() {
+	for _, env := range os.Environ() {
+		i := strings.IndexByte(env, '=')
+		if i >= 0 {
+			Env[env[:i]] = env[i+1:]
+		} else {
+			Env[env] = ""
+		}
+	}
+}
+
+func BytesToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+func StringToBytes(s string) []byte {
+	return *(*[]byte)(unsafe.Pointer(
+		&struct {
+			string
+			Cap int
+		}{s, len(s)},
+	))
 }
 
 func FirstNonEmpty(vals ...string) string {
