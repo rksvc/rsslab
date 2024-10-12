@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
@@ -88,7 +87,6 @@ func main() {
 func engine() *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
-	app.Use(compress.New())
 	api.Register(app.Group("/api"))
 	return app
 }
