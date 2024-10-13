@@ -217,7 +217,7 @@ func (s *Server) handleFeedIcon(c *fiber.Ctx) error {
 	}
 
 	icon := val.(*icon)
-	if string(c.Request().Header.Peek("If-None-Match")) == icon.etag {
+	if utils.BytesToString(c.Request().Header.Peek("If-None-Match")) == icon.etag {
 		return c.SendStatus(http.StatusNotModified)
 	}
 	c.Set("Content-Type", icon.ctype)

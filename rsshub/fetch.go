@@ -116,13 +116,13 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	case "blob", "stream", "arrayBuffer":
 		return nil, errUnsupportedResponseType
 	case "text":
-		response.Body = string(body)
+		response.Body = utils.BytesToString(body)
 		response.Data2 = response.Body
 		if len(body) == 0 || json.Unmarshal(body, &response.Data) != nil {
 			response.Data = response.Body
 		}
 	case "json", "":
-		response.Body = string(body)
+		response.Body = utils.BytesToString(body)
 		if len(body) == 0 || json.Unmarshal(body, &response.Data) != nil {
 			response.Data = response.Body
 		}
@@ -148,7 +148,7 @@ func toString(v any) string {
 	case nil:
 		return ""
 	case []uint8:
-		return string(v)
+		return utils.BytesToString(v)
 	default:
 		return fmt.Sprintf("%v", v)
 	}

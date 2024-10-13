@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	pathpkg "path"
+	"rsslab/utils"
 	"strings"
 
 	"github.com/dop251/goja"
@@ -63,7 +64,7 @@ func (r *RSSHub) Register(app *fiber.App) error {
 					}
 					sourcePath := pathpkg.Join(namespace, strings.TrimSuffix(route.Location, ".ts"))
 					data, err := r.handle(sourcePath, &ctx{Req: req{
-						Path:    string(c.Request().URI().Path()),
+						Path:    utils.BytesToString(c.Request().URI().Path()),
 						queries: c.Queries(),
 						params:  params,
 					}})

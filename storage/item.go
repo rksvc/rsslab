@@ -51,7 +51,7 @@ func (s *ItemStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (s *ItemStatus) UnmarshalText(text []byte) error {
-	v, ok := StatusValues[string(text)]
+	v, ok := StatusValues[utils.BytesToString(text)]
 	if !ok {
 		return errInvalidValue
 	}

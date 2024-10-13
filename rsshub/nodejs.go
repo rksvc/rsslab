@@ -52,7 +52,7 @@ var native = map[string]moduleLoader{
 		module.Get("exports").ToObject(vm).Set("ViewType", vm.NewObject())
 	},
 	"@/utils/md5": func(_ *goja.Runtime, module *goja.Object) {
-		module.Set("exports", func(data string) string { return fmt.Sprintf("%x", md5.Sum([]byte(data))) })
+		module.Set("exports", func(data string) string { return fmt.Sprintf("%x", md5.Sum(utils.StringToBytes(data))) })
 	},
 	"@/utils/rand-user-agent": func(_ *goja.Runtime, module *goja.Object) {
 		module.Set("exports", func() string { return utils.USER_AGENT })
