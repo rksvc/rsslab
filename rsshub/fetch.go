@@ -113,32 +113,25 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 
 	response := new(response)
 	switch toString(opts["responseType"]) {
-	case "blob", "stream", "buffer", "arrayBuffer":
+	case "blob", "stream", "arrayBuffer":
 		return nil, errUnsupportedResponseType
 	case "text":
 		response.Body = string(body)
-		response.Data = response.Body
-	case "json":
-		if len(body) == 0 {
-			response.Body = ""
-			response.Data = ""
-		} else {
-			if err = json.Unmarshal(body, &response.Body); err != nil {
-				return nil, err
-			}
+		response.Data2 = response.Body
+		if len(body) == 0 || json.Unmarshal(body, &response.Data) != nil {
 			response.Data = response.Body
 		}
-	case "":
+	case "json", "":
 		response.Body = string(body)
-		if json.Unmarshal(body, &response.Data) != nil {
+		if len(body) == 0 || json.Unmarshal(body, &response.Data) != nil {
 			response.Data = response.Body
 		}
+		response.Data2 = response.Data
 	default:
 		return nil, errUnknownResponseType
 	}
 
 	response.URL = req.URL.String()
-	response.Data2 = response.Data
 	response.Headers = map[string]any{
 		"getSetCookie": func() []string {
 			return resp.Header.Values("Set-Cookie")
