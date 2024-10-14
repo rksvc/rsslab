@@ -9,18 +9,18 @@ import {
 } from '@blueprintjs/core'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
-import type { Feed, Image, Item, Stats } from './types'
+import type { Feed, Image, Item, Status } from './types'
 import { cn, iconProps, xfetch } from './utils'
 
 export default function ItemShow({
-  setStats,
+  setStatus,
   setItems,
   selectedItemDetails,
   setSelectedItemDetails,
   contentRef,
   feedsById,
 }: {
-  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>
+  setStatus: Dispatch<SetStateAction<Status | undefined>>
   setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
   selectedItemDetails: Item
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
@@ -35,20 +35,19 @@ export default function ItemShow({
     })
     const diff = (s: string) =>
       status === s ? +1 : selectedItemDetails.status === s ? -1 : 0
-    setStats(
-      stats =>
-        stats &&
-        new Map(
-          [...stats].map(([feedId, stats]) => [
-            feedId,
-            feedId === selectedItemDetails.feed_id
-              ? {
-                  starred: stats.starred + diff('starred'),
-                  unread: stats.unread + diff('unread'),
-                }
-              : stats,
-          ]),
-        ),
+    setStatus(
+      status =>
+        status && {
+          ...status,
+          stats: {
+            ...status.stats,
+            [selectedItemDetails.feed_id]: {
+              starred:
+                status.stats[selectedItemDetails.feed_id].starred + diff('starred'),
+              unread: status.stats[selectedItemDetails.feed_id].unread + diff('unread'),
+            },
+          },
+        },
     )
     setItems(items =>
       items?.map(i => (i.id === selectedItemDetails.id ? { ...i, status } : i)),

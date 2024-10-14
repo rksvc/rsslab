@@ -49,8 +49,9 @@ func (s *Server) handleStatus(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
 	return c.JSON(fiber.Map{
-		"stats":   stats,
-		"running": s.pending.Load(),
+		"stats":          stats,
+		"running":        s.pending.Load(),
+		"last_refreshed": s.lastRefreshed.Load(),
 	})
 }
 

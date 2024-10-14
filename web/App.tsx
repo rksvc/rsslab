@@ -10,7 +10,6 @@ import type {
   Image,
   Item,
   Settings,
-  Stats,
   Status,
 } from './types'
 import { xfetch } from './utils'
@@ -21,10 +20,9 @@ export default function App() {
   const [filter, setFilter] = useState('Unread')
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
-  const [stats, setStats] = useState<Map<number, Stats>>()
+  const [status, setStatus] = useState<Status>()
   const [errors, setErrors] = useState<Map<number, string>>()
   const [selected, setSelected] = useState('')
-  const [loadingFeeds, setLoadingFeeds] = useState(0)
   const [settings, setSettings] = useState<Settings>()
 
   const [items, setItems] = useState<(Item & Image)[]>()
@@ -51,11 +49,8 @@ export default function App() {
     setErrors(
       new Map(Object.entries(errors).map(([id, error]) => [Number.parseInt(id), error])),
     )
-    setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])))
-    if (loop) {
-      setLoadingFeeds(status.running)
-      if (status.running) setTimeout(() => refreshStats(), 500)
-    }
+    setStatus(status)
+    if (loop && status.running) setTimeout(() => refreshStats(), 500)
   }, [])
   useEffect(() => {
     refreshFeeds()
@@ -82,12 +77,11 @@ export default function App() {
     folders,
     setFolders,
     setFeeds,
-    stats,
-    setStats,
+    status,
+    setStatus,
     errors,
     selected,
     setSelected,
-    loadingFeeds,
     settings,
     setSettings,
 

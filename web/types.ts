@@ -4,8 +4,9 @@ export type Stats = {
 }
 
 export type Status = {
-  stats: ({ feed_id: number } & Stats)[]
+  stats: Record<number, Stats>
   running: number
+  last_refreshed: string | null
 }
 
 export type Folder = {

@@ -21,15 +21,16 @@ import (
 type Server struct {
 	App atomic.Value
 
-	db      *storage.Storage
-	client  *http.Client
-	cache   *cache.Cache
-	pending atomic.Int32
-	refresh chan storage.Feed
-	ticker  *time.Ticker
-	context context.Context
-	cancel  context.CancelFunc
-	mu      sync.Mutex
+	db            *storage.Storage
+	client        *http.Client
+	cache         *cache.Cache
+	pending       atomic.Int32
+	lastRefreshed atomic.Value
+	refresh       chan storage.Feed
+	ticker        *time.Ticker
+	context       context.Context
+	cancel        context.CancelFunc
+	mu            sync.Mutex
 }
 
 func New(db *storage.Storage) *Server {
@@ -140,6 +141,7 @@ func (s *Server) RefreshAllFeeds() {
 		log.Print(err)
 		return
 	}
+	s.lastRefreshed.Store(time.Now().UTC())
 	s.RefreshFeeds(feeds...)
 }
 

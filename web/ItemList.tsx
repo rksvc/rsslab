@@ -25,14 +25,14 @@ import {
 import { Check, Search } from 'react-feather'
 import useInfiniteScroll from 'react-infinite-scroll-hook'
 import { useDebouncedCallback } from 'use-debounce'
-import type { Feed, Image, Item, Items, Stats, Status } from './types'
+import type { Feed, Image, Item, Items, Status } from './types'
 import { cn, iconProps, param, xfetch } from './utils'
 
 dayjs.extend(relativeTime)
 
 export default function ItemList({
   filter,
-  setStats,
+  setStatus,
   errors,
   selected,
 
@@ -47,7 +47,7 @@ export default function ItemList({
   feedsById,
 }: {
   filter: string
-  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>
+  setStatus: Dispatch<SetStateAction<Status | undefined>>
   selected: string
   errors?: Map<number, string>
 
@@ -155,8 +155,7 @@ export default function ItemList({
                 status: item.status === 'starred' ? 'starred' : 'read',
               })),
             )
-            const status = await xfetch<Status>('api/status')
-            setStats(new Map(status.stats.map(stats => [stats.feed_id, stats])))
+            setStatus(await xfetch<Status>('api/status'))
           }}
         />
       </div>
@@ -168,7 +167,7 @@ export default function ItemList({
             item={item}
             i={i}
             loaded={loaded}
-            setStats={setStats}
+            setStatus={setStatus}
             setItems={setItems}
             selectedItemId={selectedItemId}
             setSelectedItemId={setSelectedItemId}
@@ -197,7 +196,7 @@ function CardItem({
   item,
   i,
   loaded,
-  setStats,
+  setStatus,
   setItems,
   selectedItemId,
   setSelectedItemId,
@@ -208,7 +207,7 @@ function CardItem({
   item: Item & Image
   i: number
   loaded: MutableRefObject<boolean[] | undefined>
-  setStats: Dispatch<SetStateAction<Map<number, Stats> | undefined>>
+  setStatus: Dispatch<SetStateAction<Status | undefined>>
   setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
   selectedItemId?: number
   setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
@@ -242,20 +241,18 @@ function CardItem({
             method: 'PUT',
             body: JSON.stringify({ status: 'read' }),
           })
-          setStats(
-            stats =>
-              stats &&
-              new Map(
-                [...stats].map(([feedId, stats]) => [
-                  feedId,
-                  feedId === item.feed_id
-                    ? {
-                        ...stats,
-                        unread: stats.unread - 1,
-                      }
-                    : stats,
-                ]),
-              ),
+          setStatus(
+            status =>
+              status && {
+                ...status,
+                stats: {
+                  ...status.stats,
+                  [item.feed_id]: {
+                    ...status.stats[item.feed_id],
+                    unread: status.stats[item.feed_id].unread - 1,
+                  },
+                },
+              },
           )
           setItems(items =>
             items?.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),

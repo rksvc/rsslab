@@ -47,7 +47,7 @@ import {
   Wind,
 } from 'react-feather'
 import { Dialog } from './Dialog'
-import type { Feed, Folder, FolderWithFeeds, Settings, Stats } from './types'
+import type { Feed, Folder, FolderWithFeeds, Settings, Stats, Status } from './types'
 import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils'
 
 const textAreaProps = {
@@ -64,11 +64,10 @@ export default function FeedList({
   folders,
   setFolders,
   setFeeds,
-  stats,
+  status,
   errors,
   selected,
   setSelected,
-  loadingFeeds,
   settings,
   setSettings,
 
@@ -83,11 +82,10 @@ export default function FeedList({
   folders?: Folder[]
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
-  stats?: Map<number, Stats>
+  status?: Status
   errors?: Map<number, string>
   selected: string
   setSelected: Dispatch<SetStateAction<string>>
-  loadingFeeds: number
   settings?: Settings
   setSettings: Dispatch<SetStateAction<Settings | undefined>>
 
@@ -197,7 +195,7 @@ export default function FeedList({
             <MenuItem
               text="Refresh"
               icon={<RotateCw {...menuIconProps} />}
-              disabled={loadingFeeds > 0}
+              disabled={!!status?.running}
               onClick={async () => {
                 await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
                 await refreshStats()
@@ -257,7 +255,7 @@ export default function FeedList({
     ),
     isSelected: selected === `feed:${feed.id}`,
     secondaryLabel: secondaryLabel(
-      stats?.get(feed.id),
+      status?.stats[feed.id],
       !!errors?.get(feed.id),
       feed.last_refreshed,
     ),
@@ -282,26 +280,26 @@ export default function FeedList({
           folder.id,
           {
             starred: folder.feeds.reduce(
-              (acc, feed) => acc + (stats?.get(feed.id)?.starred ?? 0),
+              (acc, feed) => acc + (status?.stats[feed.id].starred ?? 0),
               0,
             ),
             unread: folder.feeds.reduce(
-              (acc, feed) => acc + (stats?.get(feed.id)?.unread ?? 0),
+              (acc, feed) => acc + (status?.stats[feed.id].unread ?? 0),
               0,
             ),
           },
         ]),
       ),
-    [foldersWithFeeds, stats],
+    [foldersWithFeeds, status],
   )
   const total = useMemo(
     () =>
       filter !== 'Feeds' &&
-      `${[...(stats?.values() ?? [])].reduce(
-        (acc, stats) => acc + (filter === 'Unread' ? stats.unread : stats.starred),
+      `${[...(status ? Object.entries(status.stats) : [])].reduce(
+        (acc, [_, stats]) => acc + (filter === 'Unread' ? stats.unread : stats.starred),
         0,
       )}`,
-    [stats, filter],
+    [status, filter],
   )
   const visibleFolders =
     filter === 'Feeds'
@@ -313,8 +311,8 @@ export default function FeedList({
               feed =>
                 selected === `feed:${feed.id}` ||
                 (filter === 'Unread'
-                  ? (stats?.get(feed.id)?.unread ?? 0)
-                  : (stats?.get(feed.id)?.starred ?? 0)) > 0,
+                  ? (status?.stats[feed.id].unread ?? 0)
+                  : (status?.stats[feed.id].starred ?? 0)) > 0,
             ),
           }))
           .filter(folder => folder.feeds.length > 0 || selected === `folder:${folder.id}`)
@@ -325,8 +323,8 @@ export default function FeedList({
           feed =>
             selected === `feed:${feed.id}` ||
             (filter === 'Unread'
-              ? (stats?.get(feed.id)?.unread ?? 0)
-              : (stats?.get(feed.id)?.starred ?? 0)) > 0,
+              ? (status?.stats[feed.id].unread ?? 0)
+              : (status?.stats[feed.id].starred ?? 0)) > 0,
         )
 
   return (
@@ -370,8 +368,13 @@ export default function FeedList({
               <MenuDivider />
               <MenuItem
                 text="Refresh Feeds"
+                title={
+                  status?.last_refreshed
+                    ? `Last Refreshed: ${new Date(status.last_refreshed).toLocaleString()}`
+                    : undefined
+                }
                 icon={<RotateCw {...menuIconProps} />}
-                disabled={loadingFeeds > 0}
+                disabled={!!status?.running}
                 onClick={async () => {
                   await xfetch('api/feeds/refresh', { method: 'POST' })
                   await refreshStats()
@@ -448,7 +451,7 @@ export default function FeedList({
                       <MenuItem
                         text="Refresh"
                         icon={<RotateCw {...menuIconProps} />}
-                        disabled={loadingFeeds > 0}
+                        disabled={!!status?.running}
                         onClick={async () => {
                           await xfetch(`api/folders/${folder.id}/refresh`, {
                             method: 'POST',
@@ -493,10 +496,10 @@ export default function FeedList({
       />
       <Divider className="m-0" />
       <div className="flex items-center p-1 break-words">
-        {loadingFeeds > 0 ? (
+        {status?.running ? (
           <>
             <Spinner className="ml-3 mr-2" size={15} />
-            Refreshing ({loadingFeeds} left)
+            Refreshing ({status.running} left)
           </>
         ) : errors?.size ? (
           <>

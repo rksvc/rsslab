@@ -257,12 +257,11 @@ func (s *Storage) MarkItemsRead(filter ItemFilter) error {
 }
 
 type FeedStat struct {
-	FeedId       int `json:"feed_id"`
 	UnreadCount  int `json:"unread"`
 	StarredCount int `json:"starred"`
 }
 
-func (s *Storage) FeedStats() ([]FeedStat, error) {
+func (s *Storage) FeedStats() (map[int]FeedStat, error) {
 	rows, err := s.db.Query(fmt.Sprintf(`
 		select
 			feed_id,
@@ -274,14 +273,15 @@ func (s *Storage) FeedStats() ([]FeedStat, error) {
 	if err != nil {
 		return nil, utils.NewError(err)
 	}
-	result := make([]FeedStat, 0)
+	result := make(map[int]FeedStat)
 	for rows.Next() {
+		var id int
 		var s FeedStat
-		err = rows.Scan(&s.FeedId, &s.UnreadCount, &s.StarredCount)
+		err = rows.Scan(&id, &s.UnreadCount, &s.StarredCount)
 		if err != nil {
 			return nil, utils.NewError(err)
 		}
-		result = append(result, s)
+		result[id] = s
 	}
 	if err = rows.Err(); err != nil {
 		return nil, utils.NewError(err)
