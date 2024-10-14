@@ -237,13 +237,15 @@ export default function FeedList({
           <span
             className={cn(
               ctxMenuProps.className,
+              'block w-full truncate',
               ctxMenuProps.contentProps.isOpen && 'context-menu-open',
             )}
+            title={feed.title}
             onContextMenu={ctxMenuProps.onContextMenu}
             ref={ctxMenuProps.ref}
           >
             {ctxMenuProps.popover}
-            <span title={feed.title}>{feed.title}</span>
+            {feed.title}
           </span>
         )}
       </ContextMenu>
@@ -472,13 +474,15 @@ export default function FeedList({
                     <span
                       className={cn(
                         ctxMenuProps.className,
+                        'block w-full truncate',
                         ctxMenuProps.contentProps.isOpen && 'context-menu-open',
                       )}
+                      title={folder.title}
                       onContextMenu={ctxMenuProps.onContextMenu}
                       ref={ctxMenuProps.ref}
                     >
                       {ctxMenuProps.popover}
-                      <span title={folder.title}>{folder.title}</span>
+                      {folder.title}
                     </span>
                   )}
                 </ContextMenu>
