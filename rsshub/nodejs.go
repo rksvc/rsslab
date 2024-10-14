@@ -242,6 +242,7 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 		ldr(module, r)
 
 	} else if p == "@/utils/render" {
+		// not in `native` due to initialization cycle
 		v, err := r.require("art-template")
 		if err != nil {
 			return nil, err
