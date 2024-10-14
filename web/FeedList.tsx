@@ -498,22 +498,25 @@ export default function FeedList({
         onNodeCollapse={setExpanded(false)}
         onNodeClick={node => setSelected(typeof node.id === 'number' ? '' : node.id)}
       />
-      <Divider className="m-0" />
-      <div className="flex items-center p-1 break-words">
-        {status?.running ? (
-          <>
+      {status?.running ? (
+        <>
+          <Divider className="m-0" />
+          <div className="flex items-center p-1 break-words">
             <Spinner className="ml-3 mr-2" size={15} />
             Refreshing ({status.running} left)
-          </>
-        ) : errors?.size ? (
-          <>
+          </div>
+        </>
+      ) : errors?.size ? (
+        <>
+          <Divider className="m-0" />
+          <div className="flex items-center p-1 break-words">
             <AlertCircle className="ml-3 mr-2" {...iconProps} />
             {errors.size} feeds have errors
-          </>
-        ) : (
-          <></>
-        )}
-      </div>
+          </div>
+        </>
+      ) : (
+        <></>
+      )}
       <Dialog
         isOpen={newFeedDialogOpen}
         close={() => setNewFeedDialogOpen(false)}
