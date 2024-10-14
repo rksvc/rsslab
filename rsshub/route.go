@@ -3,11 +3,9 @@ package rsshub
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"rsslab/utils"
 	"sync"
-	"time"
 
 	"github.com/dop251/goja"
 )
@@ -76,12 +74,13 @@ func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 
 func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 	vm := goja.New()
+	jobs := make(chan func())
 	require := &requireModule{
 		r:       r,
 		vm:      vm,
+		jobs:    jobs,
 		modules: make(map[string]goja.Value),
 	}
-	jobs := make(chan func())
 	go func() {
 		for job := range jobs {
 			job()
@@ -102,51 +101,6 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 	exports := url.ToObject(vm)
 	vm.Set("URL", exports.Get("URL"))
 	vm.Set("URLSearchParams", exports.Get("URLSearchParams"))
-
-	vm.Set("$fetch", func(opts map[string]any) *goja.Promise {
-		promise, resolve, reject := vm.NewPromise()
-		go func() {
-			resp, err := r.fetch(opts)
-			jobs <- func() {
-				if err == nil {
-					resolve(resp)
-				} else {
-					reject(err)
-				}
-			}
-		}()
-		return promise
-	})
-	vm.Set("$tryGet", func(key string, f func() goja.Value, maxAge *int, ex *bool) *goja.Promise {
-		promise, resolve, reject := vm.NewPromise()
-		go func() {
-			ttl := contentExpire
-			if maxAge != nil {
-				ttl = time.Duration(*maxAge) * time.Second
-			}
-			v, err := r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
-				var w wait
-				w.Add(1)
-				jobs <- func() { w.Await(vm, f()) }
-				w.Wait()
-				return w.Value, w.Err
-			})
-			var data any
-			if b, ok := v.([]byte); !ok {
-				data = v
-			} else if json.Unmarshal(b, &data) != nil {
-				data = utils.BytesToString(b)
-			}
-			jobs <- func() {
-				if err == nil {
-					resolve(data)
-				} else {
-					reject(err)
-				}
-			}
-		}()
-		return promise
-	})
 
 	f, err := vm.RunProgram(handlerPrg)
 	if err != nil {

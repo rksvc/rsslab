@@ -3,6 +3,7 @@ package rsshub
 import (
 	"crypto/md5"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -25,56 +26,100 @@ var third_party embed.FS
 var core = make(map[string]*goja.Program)
 var native = map[string]moduleLoader{
 	// Node.js modules
-	"assert": func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("strict", func(value goja.Value, message goja.Value) error {
+	"assert": func(module *goja.Object, r *requireModule) {
+		module.Get("exports").ToObject(r.vm).Set("strict", func(value goja.Value, message goja.Value) error {
 			if value.ToBoolean() {
 				return nil
 			}
 			return errors.New(message.String())
 		})
 	},
-	"path": func(vm *goja.Runtime, module *goja.Object) {
-		o := module.Get("exports").ToObject(vm)
+	"path": func(module *goja.Object, r *requireModule) {
+		o := module.Get("exports").ToObject(r.vm)
 		o.Set("join", func(elem ...string) string { return path.Join(elem...) })
 		o.Set("dirname", func(p string) string { return path.Dir(p) })
 	},
-	"url": func(vm *goja.Runtime, module *goja.Object) {
-		url.Require(vm, module)
-		module.Get("exports").ToObject(vm).Set("fileURLToPath", func(url string) string { return url })
+	"url": func(module *goja.Object, r *requireModule) {
+		url.Require(r.vm, module)
+		module.Get("exports").ToObject(r.vm).Set("fileURLToPath", func(url string) string { return url })
 	},
 
 	// RSSHub dependencies
-	"dotenv/config": func(_ *goja.Runtime, _ *goja.Object) {},
-	"ofetch":        func(_ *goja.Runtime, _ *goja.Object) {},
+	"dotenv/config": func(_ *goja.Object, _ *requireModule) {},
+	"ofetch":        func(_ *goja.Object, _ *requireModule) {},
 
 	// RSSHub source files
-	"@/types": func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("ViewType", vm.NewObject())
+	"@/types": func(module *goja.Object, r *requireModule) {
+		module.Get("exports").ToObject(r.vm).Set("ViewType", r.vm.NewObject())
 	},
-	"@/utils/md5": func(_ *goja.Runtime, module *goja.Object) {
+	"@/utils/md5": func(module *goja.Object, _ *requireModule) {
 		module.Set("exports", func(data string) string { return fmt.Sprintf("%x", md5.Sum(utils.StringToBytes(data))) })
 	},
-	"@/utils/rand-user-agent": func(_ *goja.Runtime, module *goja.Object) {
+	"@/utils/rand-user-agent": func(module *goja.Object, _ *requireModule) {
 		module.Set("exports", func() string { return utils.USER_AGENT })
 	},
-	"@/utils/logger": func(vm *goja.Runtime, module *goja.Object) {
-		o := module.Get("exports").ToObject(vm)
+	"@/utils/logger": func(module *goja.Object, r *requireModule) {
+		o := module.Get("exports").ToObject(r.vm)
 		for _, name := range []string{"debug", "info", "warn", "error", "http"} {
 			o.Set(name, func() {})
 		}
 	},
-	"@/utils/cache": func(vm *goja.Runtime, module *goja.Object) {
-		module.Get("exports").ToObject(vm).Set("tryGet", vm.Get("$tryGet"))
+	"@/utils/ofetch": func(module *goja.Object, r *requireModule) {
+		ofetch := r.vm.ToValue(func(req, opts goja.Value) *goja.Promise { return fetch(req, opts, "", respFmtOfetch, r) }).ToObject(r.vm)
+		ofetch.Set("raw", func(req, opts goja.Value) *goja.Promise { return fetch(req, opts, "", respFmtOfetchRaw, r) })
+		module.Set("exports", ofetch)
+	},
+	"@/utils/got": func(module *goja.Object, r *requireModule) {
+		got := r.vm.ToValue(func(req, opts goja.Value) *goja.Promise { return fetch(req, opts, "", respFmtGot, r) }).ToObject(r.vm)
+		for _, method := range []string{"get", "post", "put", "head", "patch", "delete"} {
+			got.Set(method, func(req, opts goja.Value) *goja.Promise {
+				return fetch(req, opts, strings.ToUpper(method), respFmtGot, r)
+			})
+		}
+		module.Set("exports", got)
+	},
+	"@/utils/cache": func(module *goja.Object, r *requireModule) {
+		module.Get("exports").ToObject(r.vm).Set("tryGet", func(key string, f func() goja.Value, maxAge *int, ex *bool) *goja.Promise {
+			promise, resolve, reject := r.vm.NewPromise()
+			go func() {
+				ttl := contentExpire
+				if maxAge != nil {
+					ttl = time.Duration(*maxAge) * time.Second
+				}
+				v, err := r.r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
+					var w wait
+					w.Add(1)
+					r.jobs <- func() { w.Await(r.vm, f()) }
+					w.Wait()
+					return w.Value, w.Err
+				})
+				var data any
+				if b, ok := v.([]byte); !ok {
+					data = v
+				} else if json.Unmarshal(b, &data) != nil {
+					data = utils.BytesToString(b)
+				}
+				r.jobs <- func() {
+					if err == nil {
+						resolve(data)
+					} else {
+						reject(err)
+					}
+				}
+			}()
+			return promise
+		})
 	},
 }
 
 var errNoSuchModule = errors.New("no such module")
 
-type moduleLoader func(*goja.Runtime, *goja.Object)
+type moduleLoader func(*goja.Object, *requireModule)
 
 type requireModule struct {
 	r       *RSSHub
 	vm      *goja.Runtime
+	jobs    chan<- func()
 	modules map[string]goja.Value
 }
 
@@ -87,13 +132,13 @@ func init() {
 		{"request", "in", "progress"},
 	} {
 		path := "@/errors/types/" + strings.Join(words, "-")
-		native[path] = func(vm *goja.Runtime, module *goja.Object) {
+		native[path] = func(module *goja.Object, r *requireModule) {
 			var name string
 			for _, word := range words {
 				name += strings.ToUpper(word[:1]) + word[1:]
 			}
 			name += "Error"
-			val, err := vm.RunScript(path, fmt.Sprintf("(class extends Error{name='%s'})", name))
+			val, err := r.vm.RunScript(path, fmt.Sprintf("(class extends Error{name='%s'})", name))
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -194,7 +239,7 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 	} else if ldr, ok := native[p]; ok {
 		module = r.vm.NewObject()
 		module.Set("exports", r.vm.NewObject())
-		ldr(r.vm, module)
+		ldr(module, r)
 
 	} else if p == "@/utils/render" {
 		v, err := r.require("art-template")
@@ -259,4 +304,19 @@ func loadIIFEModule(prg *goja.Program, vm *goja.Runtime) (*goja.Object, error) {
 	module.Set("exports", exports)
 	_, err = call(exports, exports, vm.Get("require"), module)
 	return module, err
+}
+
+func fetch(req, opts goja.Value, method string, respFmt respFmt, r *requireModule) *goja.Promise {
+	promise, resolve, reject := r.vm.NewPromise()
+	go func() {
+		resp, err := r.r.fetch(req, opts, method, respFmt, r.vm)
+		r.jobs <- func() {
+			if err == nil {
+				resolve(resp)
+			} else {
+				reject(err)
+			}
+		}
+	}()
+	return promise
 }

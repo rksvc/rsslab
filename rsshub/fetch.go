@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"rsslab/utils"
 	"strings"
+
+	"github.com/dop251/goja"
 )
 
 var (
@@ -20,17 +23,39 @@ var (
 )
 
 type response struct {
-	URL     string         `json:"url"`
-	Body    any            `json:"body"`
-	Data    any            `json:"data"`
-	Data2   any            `json:"_data"`
-	Headers map[string]any `json:"headers"`
+	URL     string         `json:"url,omitempty"`
+	Body    any            `json:"body,omitempty"`
+	Data    any            `json:"data,omitempty"`
+	Data2   any            `json:"_data,omitempty"`
+	Headers map[string]any `json:"headers,omitempty"`
 }
 
-func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
-	rawUrl := toString(opts["url"])
-	if baseUrl, ok := opts["baseURL"]; ok {
-		base, err := url.Parse(toString(baseUrl))
+type respFmt int
+
+const (
+	respFmtOfetch respFmt = iota
+	respFmtOfetchRaw
+	respFmtGot
+)
+
+func (r *RSSHub) fetch(request, options goja.Value, method string, respFmt respFmt, vm *goja.Runtime) (any, error) {
+	if request.ExportType().Kind() == reflect.String || vm.InstanceOf(request, vm.Get("URL").ToObject(vm)) {
+		if options == nil || !options.ToBoolean() {
+			options = vm.NewObject()
+		}
+		options.ToObject(vm).Set("url", request.String())
+	} else {
+		options = request
+	}
+	opts := options.ToObject(vm)
+
+	rawUrl := opts.Get("url").String()
+	baseUrl := opts.Get("baseURL")
+	if baseUrl == nil {
+		baseUrl = opts.Get("prefixUrl")
+	}
+	if baseUrl != nil {
+		base, err := url.Parse(baseUrl.String())
 		if err != nil {
 			return nil, err
 		}
@@ -40,16 +65,18 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 		}
 		rawUrl = base.ResolveReference(ref).String()
 	}
-	method := http.MethodGet
-	if m, ok := opts["method"]; ok {
-		m := strings.ToUpper(toString(m))
-		switch m {
-		case "":
-		case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
-			http.MethodDelete, http.MethodOptions, http.MethodPatch:
-			method = m
-		default:
-			return nil, fmt.Errorf("%w %s", errInvalidMethod, m)
+	if method == "" {
+		if m := opts.Get("method"); m != nil {
+			m := strings.ToUpper(m.String())
+			switch m {
+			case "":
+				method = http.MethodGet
+			case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
+				http.MethodDelete, http.MethodOptions, http.MethodPatch:
+				method = m
+			default:
+				return nil, fmt.Errorf("%w %s", errInvalidMethod, m)
+			}
 		}
 	}
 	req, err := http.NewRequest(method, rawUrl, nil)
@@ -57,53 +84,60 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 		return nil, err
 	}
 
-	if query, ok := opts["query"]; ok {
-		switch query := query.(type) {
-		case map[string]any:
-			values := url.Values{}
-			for param, value := range query {
-				values.Set(param, toString(value))
+	query := opts.Get("query")
+	if query == nil {
+		query = opts.Get("searchParams")
+	}
+	if query != nil {
+		if query.ExportType().Kind() == reflect.String {
+			req.URL.RawQuery = query.String()
+		} else {
+			values := make(url.Values)
+			query := query.ToObject(vm)
+			var keys []string
+			if err := vm.Try(func() { keys = query.Keys() }); err != nil {
+				return nil, errInvalidQueryParameter
+			}
+			for _, key := range keys {
+				values.Set(key, query.Get(key).String())
 			}
 			req.URL.RawQuery = values.Encode()
-		case string:
-			req.URL.RawQuery = query
-		case nil:
-		default:
-			return nil, errInvalidQueryParameter
 		}
 	}
 
 	req.Header.Set("User-Agent", utils.USER_AGENT)
 	req.Header.Set("Referer", req.URL.Scheme+"://"+req.URL.Host)
-	if headers, ok := opts["headers"]; ok {
-		headers, ok := headers.(map[string]any)
-		if !ok {
+	if headers := opts.Get("headers"); headers != nil {
+		headers := headers.ToObject(vm)
+		var keys []string
+		if err := vm.Try(func() { keys = headers.Keys() }); err != nil {
 			return nil, errInvalidHeaders
 		}
-		for header, value := range headers {
-			req.Header.Set(header, toString(value))
+		for _, key := range keys {
+			req.Header.Set(key, headers.Get(key).String())
 		}
 	}
 
 	var reqBody any
-	if form, ok := opts["form"]; ok {
-		form, ok := form.(map[string]any)
-		if !ok {
+	if form := opts.Get("form"); form != nil {
+		form := form.ToObject(vm)
+		var keys []string
+		if err := vm.Try(func() { keys = form.Keys() }); err != nil {
 			return nil, errInvalidFormData
 		}
-		values := url.Values{}
-		for key, value := range form {
-			values.Set(key, toString(value))
+		values := make(url.Values)
+		for _, key := range keys {
+			values.Set(key, form.Get(key).String())
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		reqBody = values.Encode()
 	}
-	if json, ok := opts["json"]; ok {
+	if json := opts.Get("json"); json != nil {
 		req.Header.Set("Content-Type", "application/json")
-		reqBody = json
+		reqBody = json.Export()
 	}
-	if body, ok := opts["body"]; ok {
-		reqBody = body
+	if body := opts.Get("body"); body != nil {
+		reqBody = body.Export()
 	}
 
 	resp, body, err := r.do(req, reqBody)
@@ -112,44 +146,54 @@ func (r *RSSHub) fetch(opts map[string]any) (*response, error) {
 	}
 
 	response := new(response)
-	switch toString(opts["responseType"]) {
-	case "blob", "stream", "arrayBuffer":
+	responseType := opts.Get("responseType")
+	var respType string
+	if responseType != nil {
+		respType = responseType.String()
+	}
+	switch respType {
+	case "blob", "stream", "buffer", "arrayBuffer":
 		return nil, errUnsupportedResponseType
 	case "text":
-		response.Body = utils.BytesToString(body)
-		response.Data2 = response.Body
-		if len(body) == 0 || json.Unmarshal(body, &response.Data) != nil {
-			response.Data = response.Body
+		switch respFmt {
+		case respFmtOfetch:
+			return utils.BytesToString(body), nil
+		case respFmtOfetchRaw:
+			response.Data2 = utils.BytesToString(body)
+		case respFmtGot:
+			response.Body = utils.BytesToString(body)
+			if len(body) == 0 || json.Unmarshal(body, &response.Data) != nil {
+				response.Data = response.Body
+			}
 		}
 	case "json", "":
-		response.Body = utils.BytesToString(body)
-		if len(body) == 0 || json.Unmarshal(body, &response.Data) != nil {
-			response.Data = response.Body
+		var data any
+		if len(body) == 0 || json.Unmarshal(body, &data) != nil {
+			data = utils.BytesToString(body)
 		}
-		response.Data2 = response.Data
+		switch respFmt {
+		case respFmtOfetch:
+			return data, nil
+		case respFmtOfetchRaw:
+			response.Data2 = data
+		case respFmtGot:
+			response.Body = utils.BytesToString(body)
+			response.Data = data
+		}
 	default:
 		return nil, errUnknownResponseType
 	}
 
-	response.URL = req.URL.String()
-	response.Headers = map[string]any{
-		"getSetCookie": func() []string {
-			return resp.Header.Values("Set-Cookie")
-		},
-		"get": func(key string) string {
-			return resp.Header.Get(key)
-		},
+	if respFmt == respFmtOfetchRaw {
+		response.URL = req.URL.String()
+		response.Headers = map[string]any{
+			"getSetCookie": func() []string {
+				return resp.Header.Values("Set-Cookie")
+			},
+			"get": func(key string) string {
+				return resp.Header.Get(key)
+			},
+		}
 	}
 	return response, nil
-}
-
-func toString(v any) string {
-	switch v := v.(type) {
-	case nil:
-		return ""
-	case []uint8:
-		return utils.BytesToString(v)
-	default:
-		return fmt.Sprintf("%v", v)
-	}
 }
