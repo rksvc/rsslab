@@ -3,7 +3,6 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -13,11 +12,7 @@ type Redis struct {
 	c *redis.Client
 }
 
-func NewRedis(redisUrl string) *Redis {
-	opt, err := redis.ParseURL(redisUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
+func NewRedis(opt *redis.Options) *Redis {
 	return &Redis{redis.NewClient(opt)}
 }
 

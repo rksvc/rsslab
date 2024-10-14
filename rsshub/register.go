@@ -62,8 +62,8 @@ func (r *RSSHub) Register(app *fiber.App) error {
 							}
 						}
 					}
-					sourcePath := pathpkg.Join(namespace, strings.TrimSuffix(route.Location, ".ts"))
-					data, err := r.handle(sourcePath, &ctx{Req: req{
+					path := pathpkg.Join(namespace, strings.TrimSuffix(route.Location, ".ts"))
+					data, err := r.handle(path, &ctx{Req: req{
 						Path:    utils.BytesToString(c.Request().URI().Path()),
 						queries: c.Queries(),
 						params:  params,

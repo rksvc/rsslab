@@ -72,7 +72,7 @@ func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
 	}
 }
 
-func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
+func (r *RSSHub) handle(path string, ctx *ctx) (any, error) {
 	vm := goja.New()
 	jobs := make(chan func())
 	require := &requireModule{
@@ -107,7 +107,7 @@ func (r *RSSHub) handle(sourcePath string, ctx *ctx) (any, error) {
 		return nil, err
 	}
 	handler, _ := goja.AssertFunction(f)
-	promise, err := handler(goja.Undefined(), vm.ToValue(sourcePath), vm.ToValue(ctx))
+	promise, err := handler(goja.Undefined(), vm.ToValue(path), vm.ToValue(ctx))
 	if err != nil {
 		return nil, err
 	}

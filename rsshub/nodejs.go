@@ -17,6 +17,15 @@ import (
 	"github.com/dop251/goja_nodejs/url"
 )
 
+type moduleLoader func(*goja.Object, *requireModule)
+
+type requireModule struct {
+	r       *RSSHub
+	vm      *goja.Runtime
+	jobs    chan<- func()
+	modules map[string]goja.Value
+}
+
 //go:embed utils
 var lib embed.FS
 
@@ -113,15 +122,6 @@ var native = map[string]moduleLoader{
 }
 
 var errNoSuchModule = errors.New("no such module")
-
-type moduleLoader func(*goja.Object, *requireModule)
-
-type requireModule struct {
-	r       *RSSHub
-	vm      *goja.Runtime
-	jobs    chan<- func()
-	modules map[string]goja.Value
-}
 
 func init() {
 	for _, words := range [][]string{
@@ -251,7 +251,7 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 		render := r.vm.ToValue(func(filename string, content goja.Value) (goja.Value, error) {
 			source, err := r.r.file(filename)
 			if err != nil {
-				return goja.Undefined(), err
+				return nil, err
 			}
 			render, _ := goja.AssertFunction(art.Get("render"))
 			return render(goja.Undefined(), r.vm.ToValue(source), content, r.vm.ToValue(map[string]bool{

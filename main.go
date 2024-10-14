@@ -17,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/redis/go-redis/v9"
 )
 
 var addr, redisUrl, database, routesUrl, srcUrl string
@@ -47,7 +48,11 @@ func main() {
 	if redisUrl == "" {
 		cc = cache.NewCache(cache.NewLRU())
 	} else {
-		cc = cache.NewCache(cache.NewRedis(redisUrl))
+		opt, err := redis.ParseURL(redisUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cc = cache.NewCache(cache.NewRedis(opt))
 	}
 
 	if database == "" {

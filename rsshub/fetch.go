@@ -146,9 +146,8 @@ func (r *RSSHub) fetch(request, options goja.Value, method string, respFmt respF
 	}
 
 	response := new(response)
-	responseType := opts.Get("responseType")
 	var respType string
-	if responseType != nil {
+	if responseType := opts.Get("responseType"); responseType != nil {
 		respType = responseType.String()
 	}
 	switch respType {

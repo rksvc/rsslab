@@ -60,7 +60,7 @@
             "noDelete": "off"
           },
           "suspicious": {
-            "noGlobalAssign": "off"
+            "noGlobalIsNan": "off"
           }
         }
       }
