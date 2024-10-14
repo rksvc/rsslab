@@ -2,7 +2,6 @@ package utils
 
 import (
 	"io"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -691,8 +690,6 @@ func isBlockedTag(tagAtom atom.Atom) bool {
 	}
 }
 
-var splitSrcsetRegexp = regexp.MustCompile(`,\s+`)
-
 // One or more strings separated by commas, indicating possible image sources for the user agent to use.
 //
 // Each string is composed of a URL to an image and, optionally, whitespace followed by one of:
@@ -701,7 +698,7 @@ var splitSrcsetRegexp = regexp.MustCompile(`,\s+`)
 //   - A pixel density descriptor (a positive floating point number directly followed by x).
 func sanitizeSrcsetAttr(baseURL, srcset string) string {
 	var sanitizedSrcs []string
-	for _, rawSrc := range splitSrcsetRegexp.Split(srcset, -1) {
+	for _, rawSrc := range strings.Split(srcset, ", ") {
 		parts := strings.SplitN(strings.TrimSpace(rawSrc), " ", 3)
 		if len(parts) > 0 {
 			sanitizedSrc := parts[0]
