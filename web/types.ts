@@ -4,7 +4,7 @@ export type Stats = {
 }
 
 export type Status = {
-  stats: Record<number, Stats>
+  stats: Record<string, Stats>
   running: number
   last_refreshed: string | null
 }

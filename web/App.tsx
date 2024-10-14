@@ -43,7 +43,7 @@ export default function App() {
   }, [])
   const refreshStats = useCallback(async (loop = true) => {
     const [errors, status] = await Promise.all([
-      xfetch<Record<number, string>>('api/feeds/errors'),
+      xfetch<Record<string, string>>('api/feeds/errors'),
       xfetch<Status>('api/status'),
     ])
     setErrors(
