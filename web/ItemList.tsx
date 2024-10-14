@@ -59,7 +59,7 @@ export default function ItemList({
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
 
-  feedsById: Map<number, Feed>
+  feedsById?: Record<number, Feed>
 }) {
   const [search, setSearch] = useState('')
   const [hasMore, setHasMore] = useState(false)
@@ -213,7 +213,7 @@ function CardItem({
   setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
-  feedsById: Map<number, Feed>
+  feedsById?: Record<number, Feed>
 }) {
   const previousStatus = usePrevious(item.status)
   const onLoad = () => {
@@ -294,7 +294,7 @@ function CardItem({
               size={10}
               intent={selected ? Intent.NONE : Intent.PRIMARY}
             />
-            <small className="truncate grow">{feedsById.get(item.feed_id)?.title}</small>
+            <small className="truncate grow">{feedsById?.[item.feed_id].title}</small>
             <small className="whitespace-nowrap ml-2">
               <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
                 {dayjs(item.date).fromNow(true)}
