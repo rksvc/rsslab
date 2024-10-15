@@ -52,6 +52,12 @@ var native = map[string]moduleLoader{
 		url.Require(r.vm, module)
 		module.Get("exports").ToObject(r.vm).Set("fileURLToPath", func(url string) string { return url })
 	},
+	"tty": func(module *goja.Object, r *requireModule) {
+		module.Get("exports").ToObject(r.vm).Set("isatty", func() bool { return false })
+	},
+	"fs": func(module *goja.Object, r *requireModule) {
+		module.Get("exports").ToObject(r.vm).Set("existsSync", func() bool { return false })
+	},
 
 	// RSSHub dependencies
 	"dotenv/config": func(_ *goja.Object, _ *requireModule) {},
