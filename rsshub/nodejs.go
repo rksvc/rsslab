@@ -248,13 +248,13 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 			return nil, err
 		}
 		art := v.ToObject(r.vm)
-		render := r.vm.ToValue(func(filename string, content goja.Value) (goja.Value, error) {
+		render := r.vm.ToValue(func(filename string, data goja.Value) (goja.Value, error) {
 			source, err := r.r.file(filename)
 			if err != nil {
 				return nil, err
 			}
 			render, _ := goja.AssertFunction(art.Get("render"))
-			return render(goja.Undefined(), r.vm.ToValue(source), content, r.vm.ToValue(map[string]bool{
+			return render(goja.Undefined(), r.vm.ToValue(source), data, r.vm.ToValue(map[string]any{
 				"debug":    false,
 				"minimize": false,
 			}))
