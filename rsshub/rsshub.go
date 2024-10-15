@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	srcExpire     = 6 * time.Hour
 	routeExpire   = 5 * time.Minute
 	contentExpire = time.Hour
 )

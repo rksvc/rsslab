@@ -9,13 +9,14 @@ import (
 	pathpkg "path"
 	"rsslab/utils"
 	"strings"
+	"time"
 
 	"github.com/dop251/goja"
 	"github.com/gofiber/fiber/v2"
 )
 
 func (r *RSSHub) Register(app *fiber.App) error {
-	v, err := r.cache.TryGet(r.routesUrl, srcExpire, false, func() (any, error) {
+	v, err := r.cache.TryGet(r.routesUrl, 6*time.Hour, false, func() (any, error) {
 		req, err := http.NewRequest(http.MethodGet, r.routesUrl, nil)
 		if err != nil {
 			return nil, err
