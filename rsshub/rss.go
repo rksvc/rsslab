@@ -134,7 +134,7 @@ func toJSONFeed(v any) (*jsonFeed, error) {
 			item.Link = baseUrl.ResolveReference(ref).String()
 		}
 
-		doc, err := goquery.NewDocumentFromReader(strings.NewReader(item.Description))
+		doc, err := goquery.NewDocumentFromReader(strings.NewReader(html.UnescapeString(item.Description)))
 		if err != nil {
 			return nil, err
 		}
