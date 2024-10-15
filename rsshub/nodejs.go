@@ -197,22 +197,10 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 	var err error
 
 	if strings.HasPrefix(p, "/") {
-		r.r.mu.Lock()
-		prg, ok := r.r.modules[p]
-		if !ok {
-			r.r.mu.Unlock()
-			src, err := r.r.route(p)
-			if err != nil {
-				return nil, err
-			}
-			prg, err = goja.Compile(p, src, false)
-			if err != nil {
-				return nil, err
-			}
-			r.r.mu.Lock()
-			r.r.modules[p] = prg
+		prg, err := r.r.route(p)
+		if err != nil {
+			return nil, err
 		}
-		r.r.mu.Unlock()
 		module, err = loadIIFEModule(prg, r.vm)
 		if err != nil {
 			return nil, err

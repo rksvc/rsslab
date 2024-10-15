@@ -15,6 +15,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/evanw/esbuild/pkg/api"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -28,7 +29,9 @@ type RSSHub struct {
 	cache             *cache.Cache
 	client            http.Client
 	modules           map[string]*goja.Program
+	files             map[string]string
 	mu                sync.Mutex
+	g                 singleflight.Group
 }
 
 func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
@@ -38,12 +41,14 @@ func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 		cache:     cache,
 		client:    http.Client{Timeout: 30 * time.Second},
 		modules:   make(map[string]*goja.Program),
+		files:     make(map[string]string),
 	}
 }
 
 func (r *RSSHub) ClearCachedModules() {
 	r.mu.Lock()
 	clear(r.modules)
+	clear(r.files)
 	r.mu.Unlock()
 }
 
@@ -99,64 +104,100 @@ func (r *RSSHub) do(req *http.Request, body any) (resp *http.Response, respBody 
 	return
 }
 
-func (r *RSSHub) route(path string) (string, error) {
-	url, err := url.JoinPath(r.srcUrl, path)
-	if err != nil {
-		return "", err
-	}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return "", err
-	}
-	_, body, err := r.do(req, nil)
-	if err != nil {
-		return "", err
-	}
+func (r *RSSHub) route(path string) (*goja.Program, error) {
+	prg, err, _ := r.g.Do(path, func() (interface{}, error) {
+		r.mu.Lock()
+		if module, ok := r.modules[path]; ok {
+			r.mu.Unlock()
+			return module, nil
+		}
+		r.mu.Unlock()
 
-	code := utils.BytesToString(body)
-	if path == "/lib/config.ts" {
-		code = strings.Replace(code,
-			"import('@/utils/logger')",
-			"{                      }", 1)
-	}
-	result := api.Transform(code, api.TransformOptions{
-		Sourcefile:        path,
-		Format:            api.FormatCommonJS,
-		Loader:            api.LoaderTS,
-		Sourcemap:         api.SourceMapInline,
-		SourcesContent:    api.SourcesContentExclude,
-		Target:            api.ES2023,
-		Supported:         utils.SupportedSyntaxFeatures,
-		Define:            map[string]string{"import.meta.url": `"` + path + `"`},
-		Banner:            utils.IIFE_PREFIX,
-		Footer:            utils.IIFE_SUFFIX,
-		MinifyWhitespace:  true,
-		MinifySyntax:      true,
-		MinifyIdentifiers: true,
-	})
-	if len(result.Errors) > 0 {
-		return "", utils.Errorf(result.Errors)
-	} else if len(result.Warnings) > 0 {
-		log.Print(utils.Errorf(result.Warnings))
-	}
-	return utils.BytesToString(result.Code), nil
-}
-
-func (r *RSSHub) file(path string) (string, error) {
-	url, err := url.JoinPath(r.srcUrl, path)
-	if err != nil {
-		return "", err
-	}
-	b, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
+		url, err := url.JoinPath(r.srcUrl, path)
+		if err != nil {
+			return nil, err
+		}
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
 		}
 		_, body, err := r.do(req, nil)
-		return body, err
+		if err != nil {
+			return nil, err
+		}
+
+		code := utils.BytesToString(body)
+		if path == "/lib/config.ts" {
+			code = strings.Replace(code,
+				"import('@/utils/logger')",
+				"{                      }", 1)
+		}
+		result := api.Transform(code, api.TransformOptions{
+			Sourcefile:        path,
+			Format:            api.FormatCommonJS,
+			Loader:            api.LoaderTS,
+			Sourcemap:         api.SourceMapInline,
+			SourcesContent:    api.SourcesContentExclude,
+			Target:            api.ES2023,
+			Supported:         utils.SupportedSyntaxFeatures,
+			Define:            map[string]string{"import.meta.url": `"` + path + `"`},
+			Banner:            utils.IIFE_PREFIX,
+			Footer:            utils.IIFE_SUFFIX,
+			MinifyWhitespace:  true,
+			MinifySyntax:      true,
+			MinifyIdentifiers: true,
+		})
+		if len(result.Errors) > 0 {
+			return nil, utils.Errorf(result.Errors)
+		} else if len(result.Warnings) > 0 {
+			log.Print(utils.Errorf(result.Warnings))
+		}
+		prg, err := goja.Compile(path, utils.BytesToString(result.Code), false)
+		if err != nil {
+			return nil, err
+		}
+
+		r.mu.Lock()
+		r.modules[path] = prg
+		r.mu.Unlock()
+		return prg, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return prg.(*goja.Program), nil
+}
+
+func (r *RSSHub) file(path string) (string, error) {
+	file, err, _ := r.g.Do(path, func() (any, error) {
+		r.mu.Lock()
+		if file, ok := r.files[path]; ok {
+			r.mu.Unlock()
+			return file, nil
+		}
+		r.mu.Unlock()
+
+		url, err := url.JoinPath(r.srcUrl, path)
+		if err != nil {
+			return nil, err
+		}
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		_, body, err := r.do(req, nil)
+		if err != nil {
+			return nil, err
+		}
+		file := utils.BytesToString(body)
+
+		r.mu.Lock()
+		r.files[path] = file
+		r.mu.Unlock()
+		return file, nil
 	})
 	if err != nil {
 		return "", err
 	}
-	return utils.BytesToString(b.([]byte)), nil
+	return file.(string), nil
 }
