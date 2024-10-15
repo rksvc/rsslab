@@ -103,10 +103,12 @@ var native = map[string]moduleLoader{
 					return w.Value, w.Err
 				})
 				var data any
-				if b, ok := v.([]byte); !ok {
-					data = v
-				} else if json.Unmarshal(b, &data) != nil {
-					data = utils.BytesToString(b)
+				if err == nil {
+					if b, ok := v.([]byte); !ok {
+						data = v
+					} else if json.Unmarshal(b, &data) != nil {
+						data = utils.BytesToString(b)
+					}
 				}
 				r.jobs <- func() {
 					if err == nil {
