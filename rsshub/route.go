@@ -102,18 +102,22 @@ func (r *RSSHub) handle(path string, ctx *ctx) (any, error) {
 	vm.Set("URL", exports.Get("URL"))
 	vm.Set("URLSearchParams", exports.Get("URLSearchParams"))
 
-	f, err := vm.RunProgram(handlerPrg)
+	val, err := vm.RunProgram(handlerPrg)
 	if err != nil {
 		return nil, err
 	}
-	handler, _ := goja.AssertFunction(f)
-	promise, err := handler(goja.Undefined(), vm.ToValue(path), vm.ToValue(ctx))
-	if err != nil {
-		return nil, err
-	}
+	handler, _ := goja.AssertFunction(val)
 	var w wait
 	w.Add(1)
-	w.Await(vm, promise)
+	jobs <- func() {
+		defer w.Done()
+		val, w.Err = handler(goja.Undefined(), vm.ToValue(path), vm.ToValue(ctx))
+		if w.Err != nil {
+			return
+		}
+		w.Add(1)
+		w.Await(vm, val)
+	}
 	w.Wait()
 	close(jobs)
 	return w.Value, w.Err
