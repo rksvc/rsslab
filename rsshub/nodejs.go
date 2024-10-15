@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"path"
+	"reflect"
 	"rsslab/utils"
 	"strings"
 	"time"
@@ -88,7 +89,7 @@ var native = map[string]moduleLoader{
 		got := r.vm.ToValue(func(req, opts goja.Value) *goja.Promise { return fetch(req, opts, "", respFmtGot, r) }).ToObject(r.vm)
 		for _, method := range []string{"get", "post", "put", "head", "patch", "delete"} {
 			got.Set(method, func(req, opts goja.Value) *goja.Promise {
-				return fetch(req, opts, strings.ToUpper(method), respFmtGot, r)
+				return fetch(req, opts, method, respFmtGot, r)
 			})
 		}
 		module.Set("exports", got)
@@ -305,8 +306,26 @@ func loadIIFEModule(prg *goja.Program, vm *goja.Runtime) (*goja.Object, error) {
 
 func fetch(req, opts goja.Value, method string, respFmt respFmt, r *requireModule) *goja.Promise {
 	promise, resolve, reject := r.vm.NewPromise()
+	if req.ExportType().Kind() == reflect.String || r.vm.InstanceOf(req, r.vm.Get("URL").ToObject(r.vm)) {
+		if opts == nil || !opts.ToBoolean() {
+			opts = r.vm.NewObject()
+		}
+		opts.ToObject(r.vm).Set("url", req.String())
+	} else {
+		opts = req
+	}
+	options := new(options)
+	err := r.vm.ExportTo(opts, options)
+	if err != nil {
+		reject(err)
+		return promise
+	}
+	if method != "" {
+		options.Method = method
+	}
+
 	go func() {
-		resp, err := r.r.fetch(req, opts, method, respFmt, r.vm)
+		resp, err := r.r.fetch(options, respFmt)
 		r.jobs <- func() {
 			if err == nil {
 				resolve(resp)
