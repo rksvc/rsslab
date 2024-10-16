@@ -59,20 +59,16 @@ export default function App() {
 
   const [foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
     if (!feeds || !folders) return [undefined, undefined, undefined]
-    const foldersById: Record<number, FolderWithFeeds> = {}
-    for (const folder of folders) foldersById[folder.id] = { ...folder, feeds: [] }
+    const foldersById = new Map<number, FolderWithFeeds>()
+    for (const folder of folders) foldersById.set(folder.id, { ...folder, feeds: [] })
     const feedsById: Record<number, Feed> = {}
     const feedsWithoutFolders: Feed[] = []
     for (const feed of feeds) {
       if (feed.folder_id === null) feedsWithoutFolders.push(feed)
-      else foldersById[feed.folder_id].feeds.push(feed)
+      else foldersById.get(feed.folder_id)?.feeds.push(feed)
       feedsById[feed.id] = feed
     }
-    return [
-      [...Object.entries(foldersById).map(([_, folder]) => folder)],
-      feedsWithoutFolders,
-      feedsById,
-    ]
+    return [[...foldersById.values()], feedsWithoutFolders, feedsById]
   }, [feeds, folders])
 
   const props = {
