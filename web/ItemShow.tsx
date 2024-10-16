@@ -25,7 +25,7 @@ export default function ItemShow({
   selectedItemDetails: Item
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
-  feedsById?: Record<number, Feed>
+  feedsById: Map<number, Feed>
 }) {
   const toggleStatus = (targetStatus: string) => async () => {
     const status = targetStatus === selectedItemDetails.status ? 'read' : targetStatus
@@ -98,7 +98,9 @@ export default function ItemShow({
       <Divider className="m-0" />
       <div className="overflow-auto p-5 break-words" ref={contentRef}>
         <H2 className="font-bold">{selectedItemDetails.title || 'untitled'}</H2>
-        <div className="opacity-95">{feedsById?.[selectedItemDetails.feed_id].title}</div>
+        <div className="opacity-95">
+          {feedsById.get(selectedItemDetails.feed_id)?.title}
+        </div>
         <div className="opacity-95">
           {new Date(selectedItemDetails.date).toLocaleString()}
         </div>

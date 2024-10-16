@@ -93,7 +93,7 @@ export default function FeedList({
   refreshStats: (loop?: boolean) => Promise<void>
   foldersWithFeeds?: FolderWithFeeds[]
   feedsWithoutFolders?: Feed[]
-  feedsById?: Record<number, Feed>
+  feedsById: Map<number, Feed>
 }) {
   const [selectedFolder, setSelectedFolder] = useState(
     getSelectedFolder(selected, feedsById),
@@ -709,10 +709,10 @@ export default function FeedList({
   )
 }
 
-function getSelectedFolder(selected: string, feedsById?: Record<number, Feed>): string {
+function getSelectedFolder(selected: string, feedsById: Map<number, Feed>): string {
   const [type, id] = selected.split(':')
   return type === 'feed'
-    ? (feedsById?.[Number.parseInt(id)].folder_id?.toString() ?? '')
+    ? (feedsById.get(Number.parseInt(id))?.folder_id?.toString() ?? '')
     : type === 'folder'
       ? id
       : ''
