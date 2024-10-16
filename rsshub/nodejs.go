@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/dop251/goja_nodejs/buffer"
 	"github.com/dop251/goja_nodejs/url"
 )
 
@@ -52,6 +53,9 @@ var native = map[string]moduleLoader{
 	"url": func(module *goja.Object, r *requireModule) {
 		url.Require(r.vm, module)
 		module.Get("exports").ToObject(r.vm).Set("fileURLToPath", func(url string) string { return url })
+	},
+	"buffer": func(module *goja.Object, r *requireModule) {
+		buffer.Require(r.vm, module)
 	},
 	"tty": func(module *goja.Object, r *requireModule) {
 		module.Get("exports").ToObject(r.vm).Set("isatty", func() bool { return false })
@@ -328,6 +332,22 @@ func fetch(req, opts goja.Value, method string, respFmt respFmt, r *requireModul
 		resp, err := r.r.fetch(options, respFmt)
 		r.jobs <- func() {
 			if err == nil {
+				if options.ResponseType == "buffer" || options.ResponseType == "arrayBuffer" {
+					vm := r.vm
+					switch respFmt {
+					case respFmtOfetch:
+						resp = buffer.WrapBytes(vm, resp.([]byte))
+					case respFmtOfetchRaw:
+						r := resp.(*response)
+						r.Data2 = buffer.WrapBytes(vm, r.Data2.([]byte))
+						resp = r
+					case respFmtGot:
+						r := resp.(*response)
+						r.Body = buffer.WrapBytes(vm, r.Body.([]byte))
+						r.Data = buffer.WrapBytes(vm, r.Data.([]byte))
+						resp = r
+					}
+				}
 				resolve(resp)
 			} else {
 				reject(err)

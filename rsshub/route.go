@@ -94,6 +94,12 @@ func (r *RSSHub) handle(path string, ctx *ctx) (any, error) {
 	process.Set("env", utils.Env)
 	vm.Set("process", process)
 
+	buffer, err := require.require("buffer")
+	if err != nil {
+		return nil, err
+	}
+	vm.Set("Buffer", buffer.ToObject(vm).Get("Buffer"))
+
 	url, err := require.require("url")
 	if err != nil {
 		return nil, err

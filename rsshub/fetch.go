@@ -114,8 +114,18 @@ func (r *RSSHub) fetch(opts *options, respFmt respFmt) (any, error) {
 
 	response := new(response)
 	switch opts.ResponseType {
-	case "blob", "stream", "buffer", "arrayBuffer":
+	case "blob", "stream":
 		return nil, errUnsupportedResponseType
+	case "buffer", "arrayBuffer":
+		switch respFmt {
+		case respFmtOfetch:
+			return body, nil
+		case respFmtOfetchRaw:
+			response.Data2 = body
+		case respFmtGot:
+			response.Body = body
+			response.Data = body
+		}
 	case "text":
 		switch respFmt {
 		case respFmtOfetch:
