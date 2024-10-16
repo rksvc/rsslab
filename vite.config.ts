@@ -17,7 +17,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/': 'http://localhost:1234',
+      '^/(?!(@|node_modules|web)).+': 'http://localhost:1234',
     },
   },
 })
