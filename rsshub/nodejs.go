@@ -56,6 +56,10 @@ var native = map[string]moduleLoader{
 	},
 	"buffer": func(module *goja.Object, r *requireModule) {
 		buffer.Require(r.vm, module)
+		buffer := module.Get("exports").ToObject(r.vm).Get("Buffer").ToObject(r.vm)
+		buffer.Set("isBuffer", func(call goja.FunctionCall) goja.Value {
+			return r.vm.ToValue(r.vm.InstanceOf(call.Argument(0), buffer))
+		})
 	},
 	"tty": func(module *goja.Object, r *requireModule) {
 		module.Get("exports").ToObject(r.vm).Set("isatty", func() bool { return false })
