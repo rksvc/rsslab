@@ -17,8 +17,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:1234',
-      '/rsshub': 'http://localhost:1234',
+      '/': 'http://localhost:1234',
     },
   },
 })
