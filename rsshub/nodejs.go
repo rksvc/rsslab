@@ -52,7 +52,9 @@ var native = map[string]moduleLoader{
 	},
 	"url": func(module *goja.Object, r *requireModule) {
 		url.Require(r.vm, module)
-		module.Get("exports").ToObject(r.vm).Set("fileURLToPath", func(url string) string { return url })
+		module.Get("exports").ToObject(r.vm).Set("fileURLToPath", func(call goja.FunctionCall) goja.Value {
+			return call.Argument(0)
+		})
 	},
 	"buffer": func(module *goja.Object, r *requireModule) {
 		buffer.Require(r.vm, module)
