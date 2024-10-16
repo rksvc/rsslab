@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/dop251/goja"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding"
 )
 
 //go:embed handler.js
@@ -43,6 +45,10 @@ func (req *req) Query(key *string) any {
 		return query
 	}
 	return goja.Undefined()
+}
+
+type textDecoder struct {
+	encoding encoding.Encoding
 }
 
 type wait struct {
@@ -99,6 +105,28 @@ func (r *RSSHub) handle(path string, ctx *ctx) (any, error) {
 		return nil, err
 	}
 	vm.Set("Buffer", buffer.ToObject(vm).Get("Buffer"))
+
+	decoder := vm.ToValue(func(call goja.ConstructorCall) *goja.Object {
+		e, _ := charset.Lookup(call.Argument(0).String())
+		val := vm.ToValue(&textDecoder{encoding: e}).(*goja.Object)
+		val.SetPrototype(call.This.Prototype())
+		return val
+	}).(*goja.Object)
+	proto := vm.NewObject()
+	proto.Set("decode", func(call goja.FunctionCall) goja.Value {
+		buffer := call.Argument(0).Export().([]byte)
+		if e := call.This.Export().(*textDecoder).encoding; e != nil {
+			s, err := e.NewDecoder().String(utils.BytesToString(buffer))
+			if err != nil {
+				panic(err)
+			}
+			return vm.ToValue(s)
+		}
+		return vm.ToValue(utils.BytesToString(buffer))
+	})
+	decoder.Set("prototype", proto)
+	proto.DefineDataProperty("constructor", decoder, goja.FLAG_FALSE, goja.FLAG_FALSE, goja.FLAG_FALSE)
+	vm.Set("TextDecoder", decoder)
 
 	url, err := require.require("url")
 	if err != nil {
