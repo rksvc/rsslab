@@ -44,6 +44,7 @@ export default function ItemList({
   setSelectedItemDetails,
   contentRef,
 
+  refreshStats,
   feedsById,
 }: {
   filter: string
@@ -59,6 +60,7 @@ export default function ItemList({
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
 
+  refreshStats: (loop?: boolean) => Promise<void>
   feedsById: Map<number, Feed>
 }) {
   const [search, setSearch] = useState('')
@@ -155,7 +157,7 @@ export default function ItemList({
                 status: item.status === 'starred' ? 'starred' : 'read',
               })),
             )
-            setStatus(await xfetch<Status>('api/status'))
+            await refreshStats(false)
           }}
         />
       </div>
@@ -245,13 +247,16 @@ function CardItem({
             status =>
               status && {
                 ...status,
-                stats: {
+                stats: new Map([
                   ...status.stats,
-                  [item.feed_id]: {
-                    ...status.stats[item.feed_id],
-                    unread: status.stats[item.feed_id].unread - 1,
-                  },
-                },
+                  [
+                    item.feed_id,
+                    {
+                      starred: status.stats.get(item.feed_id)?.starred ?? 0,
+                      unread: (status.stats.get(item.feed_id)?.unread ?? 0) - 1,
+                    },
+                  ],
+                ]),
               },
           )
           setItems(items =>

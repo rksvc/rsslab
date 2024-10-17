@@ -10,6 +10,8 @@ import type {
   Image,
   Item,
   Settings,
+  State,
+  Stats,
   Status,
 } from './types'
 import { xfetch } from './utils'
@@ -42,15 +44,21 @@ export default function App() {
     setSettings(settings)
   }, [])
   const refreshStats = useCallback(async (loop = true) => {
-    const [errors, status] = await Promise.all([
+    const [errors, { running, last_refreshed, stats }] = await Promise.all([
       xfetch<Record<string, string>>('api/feeds/errors'),
-      xfetch<Status>('api/status'),
+      xfetch<State & { stats: Record<string, Stats> }>('api/status'),
     ])
     setErrors(
       new Map(Object.entries(errors).map(([id, error]) => [Number.parseInt(id), error])),
     )
-    setStatus(status)
-    if (loop && status.running) setTimeout(() => refreshStats(), 500)
+    setStatus({
+      running,
+      last_refreshed,
+      stats: new Map(
+        Object.entries(stats).map(([id, stats]) => [Number.parseInt(id), stats]),
+      ),
+    })
+    if (loop && running) setTimeout(() => refreshStats(), 500)
   }, [])
   useEffect(() => {
     refreshFeeds()

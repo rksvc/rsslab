@@ -3,10 +3,13 @@ export type Stats = {
   starred: number
 }
 
-export type Status = {
-  stats: Record<string, Stats>
+export type State = {
   running: number
   last_refreshed: string | null
+}
+
+export type Status = State & {
+  stats: Map<number, Stats>
 }
 
 export type Folder = {

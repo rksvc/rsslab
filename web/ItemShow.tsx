@@ -39,14 +39,20 @@ export default function ItemShow({
       status =>
         status && {
           ...status,
-          stats: {
+          stats: new Map([
             ...status.stats,
-            [selectedItemDetails.feed_id]: {
-              starred:
-                status.stats[selectedItemDetails.feed_id].starred + diff('starred'),
-              unread: status.stats[selectedItemDetails.feed_id].unread + diff('unread'),
-            },
-          },
+            [
+              selectedItemDetails.feed_id,
+              {
+                starred:
+                  (status.stats.get(selectedItemDetails.feed_id)?.starred ?? 0) +
+                  diff('starred'),
+                unread:
+                  (status.stats.get(selectedItemDetails.feed_id)?.unread ?? 0) +
+                  diff('unread'),
+              },
+            ],
+          ]),
         },
     )
     setItems(items =>

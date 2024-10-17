@@ -257,7 +257,7 @@ export default function FeedList({
     ),
     isSelected: selected === `feed:${feed.id}`,
     secondaryLabel: secondaryLabel(
-      status?.stats[feed.id],
+      status?.stats.get(feed.id),
       !!errors?.get(feed.id),
       feed.last_refreshed,
     ),
@@ -282,11 +282,11 @@ export default function FeedList({
           folder.id,
           {
             starred: folder.feeds.reduce(
-              (acc, feed) => acc + (status?.stats[feed.id].starred ?? 0),
+              (acc, feed) => acc + (status?.stats.get(feed.id)?.starred ?? 0),
               0,
             ),
             unread: folder.feeds.reduce(
-              (acc, feed) => acc + (status?.stats[feed.id].unread ?? 0),
+              (acc, feed) => acc + (status?.stats.get(feed.id)?.unread ?? 0),
               0,
             ),
           },
@@ -297,10 +297,14 @@ export default function FeedList({
   const total = useMemo(
     () =>
       filter !== 'Feeds' &&
-      `${[...(status ? Object.entries(status.stats) : [])].reduce(
-        (acc, [_, stats]) => acc + (filter === 'Unread' ? stats.unread : stats.starred),
-        0,
-      )}`,
+      (status?.stats
+        .values()
+        .reduce(
+          (acc, stats) => acc + (filter === 'Unread' ? stats.unread : stats.starred),
+          0,
+        )
+        .toString() ??
+        ''),
     [status, filter],
   )
   const visibleFolders =
@@ -313,8 +317,8 @@ export default function FeedList({
               feed =>
                 selected === `feed:${feed.id}` ||
                 (filter === 'Unread'
-                  ? (status?.stats[feed.id].unread ?? 0)
-                  : (status?.stats[feed.id].starred ?? 0)) > 0,
+                  ? (status?.stats.get(feed.id)?.unread ?? 0)
+                  : (status?.stats.get(feed.id)?.starred ?? 0)) > 0,
             ),
           }))
           .filter(folder => folder.feeds.length > 0 || selected === `folder:${folder.id}`)
@@ -325,8 +329,8 @@ export default function FeedList({
           feed =>
             selected === `feed:${feed.id}` ||
             (filter === 'Unread'
-              ? (status?.stats[feed.id].unread ?? 0)
-              : (status?.stats[feed.id].starred ?? 0)) > 0,
+              ? (status?.stats.get(feed.id)?.unread ?? 0)
+              : (status?.stats.get(feed.id)?.starred ?? 0)) > 0,
         )
 
   return (
