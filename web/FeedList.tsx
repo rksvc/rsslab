@@ -597,11 +597,11 @@ export default function FeedList({
         callback={async () => {
           if (!refreshRateRef.current) return
           const refreshRate = Number.parseInt(refreshRateRef.current.value)
-          setSettings(settings => settings && { ...settings, refresh_rate: refreshRate })
           await xfetch('api/settings', {
             method: 'PUT',
             body: JSON.stringify({ refresh_rate: refreshRate }),
           })
+          setSettings(settings => settings && { ...settings, refresh_rate: refreshRate })
         }}
       >
         <NumericInput
