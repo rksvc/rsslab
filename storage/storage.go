@@ -3,7 +3,6 @@ package storage
 import (
 	"database/sql"
 	"log"
-	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -13,9 +12,6 @@ type Storage struct {
 }
 
 func New(path string) (*Storage, error) {
-	if !strings.ContainsRune(path, '?') {
-		path += "?_journal=WAL&_sync=NORMAL&_busy_timeout=5000&cache=shared"
-	}
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, err
