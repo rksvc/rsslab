@@ -10,15 +10,13 @@ import (
 	"rsslab/cache"
 	"rsslab/utils"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/dop251/goja"
 	"github.com/evanw/esbuild/pkg/api"
-	"golang.org/x/sync/singleflight"
 )
 
 const (
+	srcExpire     = 6 * time.Hour
 	routeExpire   = 5 * time.Minute
 	contentExpire = time.Hour
 )
@@ -27,10 +25,6 @@ type RSSHub struct {
 	srcUrl, routesUrl string
 	cache             *cache.Cache
 	client            http.Client
-	modules           map[string]*goja.Program
-	files             map[string]string
-	mu                sync.Mutex
-	g                 singleflight.Group
 }
 
 func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
@@ -39,16 +33,7 @@ func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
 		routesUrl: routesUrl,
 		cache:     cache,
 		client:    http.Client{Timeout: 30 * time.Second},
-		modules:   make(map[string]*goja.Program),
-		files:     make(map[string]string),
 	}
-}
-
-func (r *RSSHub) ClearCachedModules() {
-	r.mu.Lock()
-	clear(r.modules)
-	clear(r.files)
-	r.mu.Unlock()
 }
 
 var retryStatusCodes = map[int]struct{}{
@@ -103,19 +88,12 @@ func (r *RSSHub) do(req *http.Request, body any) (resp *http.Response, respBody 
 	return
 }
 
-func (r *RSSHub) route(path string) (*goja.Program, error) {
-	prg, err, _ := r.g.Do(path, func() (interface{}, error) {
-		r.mu.Lock()
-		if module, ok := r.modules[path]; ok {
-			r.mu.Unlock()
-			return module, nil
-		}
-		r.mu.Unlock()
-
-		url, err := url.JoinPath(r.srcUrl, path)
-		if err != nil {
-			return nil, err
-		}
+func (r *RSSHub) route(path string) (string, error) {
+	url, err := url.JoinPath(r.srcUrl, path)
+	if err != nil {
+		return "", err
+	}
+	src, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
@@ -151,35 +129,20 @@ func (r *RSSHub) route(path string) (*goja.Program, error) {
 		} else if len(result.Warnings) > 0 {
 			log.Print(utils.Errorf(result.Warnings))
 		}
-		prg, err := goja.Compile(path, utils.BytesToString(result.Code), false)
-		if err != nil {
-			return nil, err
-		}
-
-		r.mu.Lock()
-		r.modules[path] = prg
-		r.mu.Unlock()
-		return prg, nil
+		return result.Code, nil
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return prg.(*goja.Program), nil
+	return utils.BytesToString(src.([]byte)), nil
 }
 
 func (r *RSSHub) file(path string) (string, error) {
-	file, err, _ := r.g.Do(path, func() (any, error) {
-		r.mu.Lock()
-		if file, ok := r.files[path]; ok {
-			r.mu.Unlock()
-			return file, nil
-		}
-		r.mu.Unlock()
-
-		url, err := url.JoinPath(r.srcUrl, path)
-		if err != nil {
-			return nil, err
-		}
+	url, err := url.JoinPath(r.srcUrl, path)
+	if err != nil {
+		return "", err
+	}
+	file, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
@@ -188,15 +151,10 @@ func (r *RSSHub) file(path string) (string, error) {
 		if err != nil {
 			return nil, err
 		}
-		file := utils.BytesToString(body)
-
-		r.mu.Lock()
-		r.files[path] = file
-		r.mu.Unlock()
-		return file, nil
+		return body, nil
 	})
 	if err != nil {
 		return "", err
 	}
-	return file.(string), nil
+	return utils.BytesToString(file.([]byte)), nil
 }

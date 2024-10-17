@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"path"
 	"reflect"
 	"rsslab/utils"
@@ -34,7 +33,6 @@ var lib embed.FS
 //go:embed third_party
 var third_party embed.FS
 
-var core = make(map[string]*goja.Program)
 var native = map[string]moduleLoader{
 	// Node.js modules
 	"assert": func(module *goja.Object, r *requireModule) {
@@ -142,70 +140,6 @@ var native = map[string]moduleLoader{
 
 var errNoSuchModule = errors.New("no such module")
 
-func init() {
-	for _, words := range [][]string{
-		{"config", "not", "found"},
-		{"invalid", "parameter"},
-		{"not", "found"},
-		{"reject"},
-		{"request", "in", "progress"},
-	} {
-		path := "@/errors/types/" + strings.Join(words, "-")
-		native[path] = func(module *goja.Object, r *requireModule) {
-			var name string
-			for _, word := range words {
-				name += strings.ToUpper(word[:1]) + word[1:]
-			}
-			name += "Error"
-			val, err := r.vm.RunScript(path, fmt.Sprintf("(class extends Error{name='%s'})", name))
-			if err != nil {
-				log.Fatal(err)
-			}
-			module.Set("exports", val)
-		}
-	}
-
-	fs.WalkDir(lib, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			log.Fatal(err)
-		}
-		if d.IsDir() {
-			return nil
-		}
-		src, err := fs.ReadFile(lib, path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		name := "@/" + strings.TrimSuffix(path, ".js")
-		prg, err := goja.Compile(name, utils.BytesToString(src), false)
-		if err != nil {
-			log.Fatal(err)
-		}
-		core[name] = prg
-		return nil
-	})
-
-	fs.WalkDir(third_party, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			log.Fatal(err)
-		}
-		if d.IsDir() {
-			return nil
-		}
-		src, err := fs.ReadFile(third_party, path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		name := strings.TrimSuffix(d.Name(), ".js")
-		prg, err := goja.Compile(name, utils.BytesToString(src), false)
-		if err != nil {
-			log.Fatal(err)
-		}
-		core[name] = prg
-		return nil
-	})
-}
-
 func (r *requireModule) require(p string) (goja.Value, error) {
 	p = r.resolve(p)
 	if module, ok := r.modules[p]; ok {
@@ -213,14 +147,12 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 	}
 
 	var module *goja.Object
-	var err error
-
 	if strings.HasPrefix(p, "/") {
-		prg, err := r.r.route(p)
+		src, err := r.r.route(p)
 		if err != nil {
 			return nil, err
 		}
-		module, err = loadIIFEModule(prg, r.vm)
+		module, err = loadIIFEModule(p, src, r.vm)
 		if err != nil {
 			return nil, err
 		}
@@ -237,41 +169,72 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 			config.Set("ua", utils.USER_AGENT)
 		}
 
-	} else if prg, ok := core[p]; ok {
-		module, err = loadIIFEModule(prg, r.vm)
-		if err != nil {
-			return nil, err
-		}
-
 	} else if ldr, ok := native[p]; ok {
 		module = r.vm.NewObject()
 		module.Set("exports", r.vm.NewObject())
 		ldr(module, r)
 
-	} else if p == "@/utils/render" {
-		// not in `native` due to initialization cycle
-		v, err := r.require("art-template")
-		if err != nil {
-			return nil, err
-		}
-		art := v.ToObject(r.vm)
-		render := r.vm.ToValue(func(filename string, data goja.Value) (goja.Value, error) {
-			source, err := r.r.file(filename)
+	} else if name, found := strings.CutPrefix(p, "@/"); found {
+		if name == "utils/render" {
+			// not in `native` due to initialization cycle
+			v, err := r.require("art-template")
 			if err != nil {
 				return nil, err
 			}
-			render, _ := goja.AssertFunction(art.Get("render"))
-			return render(goja.Undefined(), r.vm.ToValue(source), data, r.vm.ToValue(map[string]any{
-				"debug":    false,
-				"minimize": false,
-			}))
-		}).ToObject(r.vm)
-		render.Set("defaults", art.Get("defaults"))
+			art := v.ToObject(r.vm)
+			render := r.vm.ToValue(func(filename string, data goja.Value) (goja.Value, error) {
+				source, err := r.r.file(filename)
+				if err != nil {
+					return nil, err
+				}
+				render, _ := goja.AssertFunction(art.Get("render"))
+				return render(goja.Undefined(), r.vm.ToValue(source), data, r.vm.ToValue(map[string]any{
+					"debug":    false,
+					"minimize": false,
+				}))
+			}).ToObject(r.vm)
+			render.Set("defaults", art.Get("defaults"))
 
-		exports := r.vm.NewObject()
-		exports.Set("art", render)
-		module = r.vm.NewObject()
-		module.Set("exports", exports)
+			exports := r.vm.NewObject()
+			exports.Set("art", render)
+			module = r.vm.NewObject()
+			module.Set("exports", exports)
+
+		} else if basename, found := strings.CutPrefix(name, "errors/types/"); found {
+			var name string
+			for _, word := range strings.Split(basename, "-") {
+				name += strings.ToUpper(word[:1]) + word[1:]
+			}
+			name += "Error"
+			val, err := r.vm.RunScript(p, fmt.Sprintf("(class extends Error{name='%s'})", name))
+			if err != nil {
+				return nil, err
+			}
+			module = r.vm.NewObject()
+			module.Set("exports", val)
+
+		} else {
+			src, err := lib.ReadFile(name + ".js")
+			if err == nil {
+				module, err = loadIIFEModule(p, utils.BytesToString(src), r.vm)
+				if err != nil {
+					return nil, err
+				}
+			} else if !errors.Is(err, fs.ErrNotExist) {
+				return nil, err
+			}
+		}
+
+	} else {
+		src, err := third_party.ReadFile(path.Join("third_party", p+".js"))
+		if err == nil {
+			module, err = loadIIFEModule(p, utils.BytesToString(src), r.vm)
+			if err != nil {
+				return nil, err
+			}
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
 	}
 
 	if module != nil {
@@ -301,8 +264,8 @@ func (r *requireModule) resolve(p string) string {
 	return p
 }
 
-func loadIIFEModule(prg *goja.Program, vm *goja.Runtime) (*goja.Object, error) {
-	f, err := vm.RunProgram(prg)
+func loadIIFEModule(name, src string, vm *goja.Runtime) (*goja.Object, error) {
+	f, err := vm.RunScript(name, src)
 	if err != nil {
 		return nil, err
 	}
