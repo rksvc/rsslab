@@ -5,9 +5,25 @@ import { Alert } from './Alert'
 export const iconProps = { size: 16 } as const
 export const menuIconProps = { size: 14 } as const
 export const popoverProps = { transitionDuration: 0 } as const
+export const panelStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: '100vh',
+  maxHeight: '100vh',
+} as const
+export const statusBarStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  padding: length(1),
+  overflowWrap: 'break-word',
+} as const
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ')
+}
+
+export function length(n: number) {
+  return `${n * 0.25}rem`
 }
 
 export function param(query: Record<string, string | number | boolean | undefined>) {

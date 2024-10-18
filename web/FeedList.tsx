@@ -48,7 +48,16 @@ import {
 } from 'react-feather'
 import { Dialog } from './Dialog'
 import type { Feed, Folder, FolderWithFeeds, Settings, Stats, Status } from './types'
-import { cn, iconProps, menuIconProps, popoverProps, xfetch } from './utils'
+import {
+  cn,
+  iconProps,
+  length,
+  menuIconProps,
+  panelStyle,
+  popoverProps,
+  statusBarStyle,
+  xfetch,
+} from './utils'
 
 const textAreaProps = {
   style: { fontFamily: 'inherit' },
@@ -142,7 +151,7 @@ export default function FeedList({
       `${stats?.starred ?? ''}`
     ) : error ? (
       <span
-        className="flex"
+        style={{ display: 'flex' }}
         title={
           lastRefreshed && `Last Refreshed: ${new Date(lastRefreshed).toLocaleString()}`
         }
@@ -237,9 +246,9 @@ export default function FeedList({
           <span
             className={cn(
               ctxMenuProps.className,
-              'block w-full truncate',
               ctxMenuProps.contentProps.isOpen && 'context-menu-open',
             )}
+            style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
             title={feed.title}
             onContextMenu={ctxMenuProps.onContextMenu}
             ref={ctxMenuProps.ref}
@@ -251,9 +260,12 @@ export default function FeedList({
       </ContextMenu>
     ),
     icon: feed.has_icon ? (
-      <img className="w-4 mr-[7px]" src={`api/feeds/${feed.id}/icon`} />
+      <img
+        style={{ width: length(4), marginRight: '7px' }}
+        src={`api/feeds/${feed.id}/icon`}
+      />
     ) : (
-      <Rss className="mr-[6px]" {...iconProps} />
+      <Rss style={{ marginRight: '6px' }} {...iconProps} />
     ),
     isSelected: selected === `feed:${feed.id}`,
     secondaryLabel: secondaryLabel(
@@ -334,10 +346,12 @@ export default function FeedList({
         )
 
   return (
-    <div className="flex flex-col min-h-screen max-h-screen">
-      <div className="flex flex-row justify-between items-center">
-        <Wind className="ml-3 mr-3" {...iconProps} />
-        <ButtonGroup className="min-h-10 max-h-10" outlined>
+    <div style={panelStyle}>
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
+        <Wind style={{ marginLeft: length(3), marginRight: length(3) }} {...iconProps} />
+        <ButtonGroup style={{ marginTop: length(1), marginBottom: length(1) }} outlined>
           {[
             { value: 'Unread', title: 'Unread', icon: <Circle {...iconProps} /> },
             { value: 'Feeds', title: 'All', icon: <MenuIcon {...iconProps} /> },
@@ -345,7 +359,6 @@ export default function FeedList({
           ].map(option => (
             <Button
               key={option.value}
-              className="my-1"
               intent={Intent.PRIMARY}
               icon={option.icon}
               title={option.title}
@@ -391,10 +404,10 @@ export default function FeedList({
                 icon={<Edit {...menuIconProps} />}
                 onClick={() => setChangeRefreshRateDialogOpen(true)}
               />
-              <MenuDivider className="select-none" />
+              <MenuDivider />
               <form ref={opmlFormRef}>
                 <FileInput
-                  className="hidden"
+                  style={{ display: 'none' }}
                   inputProps={{ name: 'opml', id: 'opml-import' }}
                   onInputChange={async () => {
                     if (!opmlFormRef.current) return
@@ -425,15 +438,14 @@ export default function FeedList({
         >
           <Button
             ref={menuRef}
-            className="mr-1"
+            style={{ marginRight: length(1) }}
             icon={<MoreHorizontal {...iconProps} />}
             minimal
           />
         </Popover>
       </div>
-      <Divider className="m-0" />
+      <Divider />
       <Tree
-        className="overflow-auto grow"
         contents={[
           {
             id: 0,
@@ -478,9 +490,9 @@ export default function FeedList({
                     <span
                       className={cn(
                         ctxMenuProps.className,
-                        'block w-full truncate',
                         ctxMenuProps.contentProps.isOpen && 'context-menu-open',
                       )}
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
                       title={folder.title}
                       onContextMenu={ctxMenuProps.onContextMenu}
                       ref={ctxMenuProps.ref}
@@ -504,17 +516,23 @@ export default function FeedList({
       />
       {status?.running ? (
         <>
-          <Divider className="m-0" />
-          <div className="flex items-center p-1 break-words">
-            <Spinner className="ml-3 mr-2" size={15} />
+          <Divider />
+          <div style={statusBarStyle}>
+            <Spinner
+              style={{ marginLeft: length(3), marginRight: length(2) }}
+              size={15}
+            />
             Refreshing ({status.running} left)
           </div>
         </>
       ) : errors?.size ? (
         <>
-          <Divider className="m-0" />
-          <div className="flex items-center p-1 break-words">
-            <AlertCircle className="ml-3 mr-2" {...iconProps} />
+          <Divider />
+          <div style={statusBarStyle}>
+            <AlertCircle
+              style={{ marginLeft: length(3), marginRight: length(2) }}
+              {...iconProps}
+            />
             {errors.size} feeds have errors
           </div>
         </>
@@ -544,7 +562,7 @@ export default function FeedList({
           }
         }}
       >
-        <div className="flex flex-row">
+        <div style={{ display: 'flex' }}>
           <TextArea
             placeholder="https://example.com/feed"
             inputRef={newFeedLinkRef}
@@ -552,7 +570,7 @@ export default function FeedList({
             {...textAreaProps}
           />
           <HTMLSelect
-            className="ml-2"
+            style={{ marginLeft: length(2) }}
             iconName="caret-down"
             options={[
               { value: '', label: '--' },

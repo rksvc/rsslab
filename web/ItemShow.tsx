@@ -10,7 +10,7 @@ import {
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
 import type { Feed, Image, Item, Status } from './types'
-import { cn, iconProps, xfetch } from './utils'
+import { cn, iconProps, length, panelStyle, xfetch } from './utils'
 
 export default function ItemShow({
   setStatus,
@@ -62,9 +62,9 @@ export default function ItemShow({
   }
 
   return (
-    <div className="flex flex-col min-h-screen max-h-screen">
-      <div className="flex flex-row min-h-10 max-h-10">
-        <ButtonGroup className="ml-1 my-1 items-center" minimal>
+    <div style={panelStyle}>
+      <div style={{ display: 'flex', minHeight: length(10) }}>
+        <ButtonGroup style={{ margin: length(1) }} minimal>
           <Button
             icon={
               <Star
@@ -101,18 +101,22 @@ export default function ItemShow({
           />
         </ButtonGroup>
       </div>
-      <Divider className="m-0" />
-      <div className="overflow-auto p-5 break-words" ref={contentRef}>
-        <H2 className="font-bold">{selectedItemDetails.title || 'untitled'}</H2>
-        <div className="opacity-95">
+      <Divider />
+      <div
+        style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }}
+        ref={contentRef}
+      >
+        <H2 style={{ fontWeight: 700 }}>{selectedItemDetails.title || 'untitled'}</H2>
+        <div style={{ opacity: 0.95 }}>
           {feedsById.get(selectedItemDetails.feed_id)?.title}
         </div>
-        <div className="opacity-95">
+        <div style={{ opacity: 0.95 }}>
           {new Date(selectedItemDetails.date).toLocaleString()}
         </div>
-        <Divider className="mx-0 my-3" />
+        <Divider style={{ marginTop: length(3), marginBottom: length(3) }} />
         <div
-          className={cn(Classes.RUNNING_TEXT, 'text-base', 'content')}
+          style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
+          className={cn(Classes.RUNNING_TEXT, 'content')}
           dangerouslySetInnerHTML={{ __html: selectedItemDetails.content }}
         />
       </div>

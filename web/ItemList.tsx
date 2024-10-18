@@ -26,7 +26,7 @@ import { Check, Search } from 'react-feather'
 import useInfiniteScroll from 'react-infinite-scroll-hook'
 import { useDebouncedCallback } from 'use-debounce'
 import type { Feed, Image, Item, Items, Status } from './types'
-import { cn, iconProps, param, xfetch } from './utils'
+import { cn, iconProps, length, panelStyle, param, xfetch } from './utils'
 
 dayjs.extend(relativeTime)
 
@@ -124,11 +124,18 @@ export default function ItemList({
   }, [query, setItems, setSelectedItemId, setSelectedItemDetails])
 
   return (
-    <div className="flex flex-col min-h-screen max-h-screen">
-      <div className="flex flex-row items-center min-h-10 max-h-10">
+    <div style={panelStyle}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: length(10),
+          paddingLeft: length(1),
+          paddingRight: length(1),
+        }}
+      >
         <InputGroup
           inputRef={inputRef}
-          className="mx-1"
           leftIcon={<Search className={Classes.ICON} {...iconProps} />}
           type="search"
           value={search}
@@ -139,7 +146,7 @@ export default function ItemList({
           fill
         />
         <Button
-          className="mr-1"
+          style={{ marginLeft: length(1) }}
           icon={<Check {...iconProps} />}
           title="Mark All Read"
           disabled={filter === 'Starred'}
@@ -161,8 +168,8 @@ export default function ItemList({
           }}
         />
       </div>
-      <Divider className="m-0" />
-      <CardList className="grow" ref={itemListRef} bordered={false} compact>
+      <Divider />
+      <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
         {items?.map((item, i) => (
           <CardItem
             key={item.id}
@@ -179,15 +186,19 @@ export default function ItemList({
           />
         ))}
         {(loading || hasMore) && (
-          <div className="mt-4 mb-3" ref={sentryRef}>
+          <div style={{ marginTop: length(4), marginBottom: length(3) }} ref={sentryRef}>
             <Spinner size={SpinnerSize.SMALL} />
           </div>
         )}
       </CardList>
       {isFeedSelected && errors?.get(id) && (
         <>
-          <Divider className="m-0" />
-          <div className="p-3 break-words text-red-600">{errors?.get(id)}</div>
+          <Divider />
+          <div
+            style={{ padding: length(3), overflowWrap: 'break-word', color: '#dc2626' }}
+          >
+            {errors?.get(id)}
+          </div>
         </>
       )}
     </div>
@@ -230,7 +241,6 @@ function CardItem({
   const selected = item.id === selectedItemId
   return (
     <Card
-      className="w-full"
       selected={selected}
       interactive
       onClick={async () => {
@@ -266,30 +276,43 @@ function CardItem({
         }
       }}
     >
-      <div className="flex flex-row w-full">
+      <div style={{ display: 'flex', width: '100%' }}>
         {item.image && (
           <div
-            className={cn(
-              'flex h-full mr-2 my-2 min-w-[80px] max-w-[80px]',
-              !item.loaded && 'bp5-skeleton',
-            )}
+            className={cn(!item.loaded && Classes.SKELETON)}
+            style={{
+              display: 'flex',
+              height: '100%',
+              marginRight: length(2),
+              marginTop: length(2),
+              marginBottom: length(2),
+              minWidth: '80px',
+              maxWidth: '80px',
+            }}
           >
             <img
               ref={image => image?.complete && onLoad()}
-              className="w-full aspect-square object-cover rounded-lg"
+              style={{
+                width: '100%',
+                aspectRatio: '1/1',
+                objectFit: 'cover',
+                borderRadius: length(2),
+              }}
               src={item.image}
               onLoad={onLoad}
             />
           </div>
         )}
-        <div className="flex flex-col grow min-w-0">
-          <div className="flex flex-row items-center opacity-70">
+        <div
+          style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
             <Icon
               svgProps={{
-                className: cn(
-                  'flex items-center transition-all',
-                  item.status === 'read' ? 'w-0' : 'mr-1',
-                ),
+                style: {
+                  transitionDuration: '150ms',
+                  ...(item.status === 'read' ? { width: 0 } : { marginRight: length(1) }),
+                },
               }}
               icon={
                 (item.status === 'read' ? previousStatus : item.status) === 'unread'
@@ -299,14 +322,23 @@ function CardItem({
               size={10}
               intent={selected ? Intent.NONE : Intent.PRIMARY}
             />
-            <small className="truncate grow">{feedsById.get(item.feed_id)?.title}</small>
-            <small className="whitespace-nowrap ml-2">
+            <small
+              style={{
+                flexGrow: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {feedsById.get(item.feed_id)?.title}
+            </small>
+            <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
               <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
                 {dayjs(item.date).fromNow(true)}
               </time>
             </small>
           </div>
-          <span className="mb-0.5 break-words">
+          <span style={{ marginBottom: length(0.5), overflowWrap: 'break-word' }}>
             {item.title.length > 100
               ? `${item.title.slice(0, 100)}...`
               : item.title || 'untitled'}

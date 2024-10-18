@@ -109,16 +109,16 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-row text-base min-h-screen max-h-screen">
-      <div className="min-w-[300px] max-w-[300px]">
+    <div style={{ display: 'flex', fontSize: '1rem', lineHeight: '1.5rem' }}>
+      <div style={{ minWidth: '300px', maxWidth: '300px' }}>
         <FeedList {...props} />
       </div>
-      <Divider className="m-0" />
-      <div className="min-w-[300px] max-w-[300px]">
+      <Divider />
+      <div style={{ minWidth: '300px', maxWidth: '300px' }}>
         <ItemList {...props} />
       </div>
-      <Divider className="m-0" />
-      <div className="grow min-w-0">
+      <Divider />
+      <div style={{ flexGrow: 1, minWidth: 0 }}>
         {selectedItemDetails && (
           <ItemShow {...props} selectedItemDetails={selectedItemDetails} />
         )}

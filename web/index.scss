@@ -1,8 +1,10 @@
-@tailwind components;
-@tailwind utilities;
 @import '@blueprintjs/core/lib/scss/variables';
 
 $border-radius: 0.25rem;
+
+.bp5-divider {
+	margin: 0;
+}
 
 .bp5-button {
 	border-radius: $border-radius;
@@ -21,6 +23,11 @@ $border-radius: 0.25rem;
 		color: $white;
 		background-color: $blue3;
 	}
+}
+
+.bp5-tree {
+	flex-grow: 1;
+	overflow: auto;
 }
 
 .bp5-tree-root {

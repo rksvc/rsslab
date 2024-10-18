@@ -57,14 +57,8 @@ export function Dialog<T>({
       <DialogFooter
         actions={
           <>
-            <Button className="select-none" text="Cancel" onClick={close} />
-            <Button
-              className="select-none"
-              intent={intent}
-              loading={loading}
-              text="OK"
-              onClick={onConfirm}
-            />
+            <Button text="Cancel" onClick={close} />
+            <Button intent={intent} loading={loading} text="OK" onClick={onConfirm} />
           </>
         }
       />

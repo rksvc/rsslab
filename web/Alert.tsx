@@ -26,9 +26,7 @@ export function Alert({
       }}
     >
       {error.includes('\n') ? (
-        <pre className="mt-0" style={{ fontFamily: 'inherit' }}>
-          {error}
-        </pre>
+        <pre style={{ marginTop: 0, fontFamily: 'inherit' }}>{error}</pre>
       ) : (
         <p>{error}</p>
       )}
