@@ -1,3 +1,103 @@
+:root {
+	--border-radius: 0.25rem;
+}
+
+.bp5-divider {
+	margin: 0;
+}
+
+.bp5-button {
+	border-radius: var(--border-radius);
+}
+
+.bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary {
+	&:hover {
+		background-color: rgb(from var(--gray3) r g b / 15%);
+	}
+
+	&:active {
+		background-color: rgb(from var(--gray3) r g b / 30%);
+	}
+
+	&.bp5-active {
+		color: var(--white);
+		background-color: var(--blue3);
+	}
+}
+
+.bp5-tree {
+	flex-grow: 1;
+	overflow: auto;
+}
+
+.bp5-tree-root {
+	padding: 0.5rem;
+	padding-top: 0.25rem;
+}
+
+.bp5-tree-node {
+	margin-top: 0.25rem;
+}
+
+.bp5-tree-node-content {
+	padding-left: 0;
+	border-radius: var(--border-radius);
+	height: 2.1rem;
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	&:has(.context-menu-open) {
+		background-color: rgb(from var(--gray3) r g b / 30%);
+	}
+
+	* {
+		user-select: none;
+	}
+}
+
+.bp5-tree-node-label span {
+	display: inherit;
+}
+
+.bp5-card-list.bp5-compact {
+	padding-top: 0.25rem;
+	padding-bottom: 0.5rem;
+
+	& > .bp5-card {
+		width: 95%;
+		margin-top: 0.25rem;
+		margin-left: auto;
+		margin-right: auto;
+		padding: 0.25rem 0.5rem;
+		border-radius: var(--border-radius);
+		user-select: none;
+
+		&:not(:last-child) {
+			border-bottom: 0;
+		}
+
+		&.bp5-interactive:hover {
+			background-color: var(--light-gray4);
+		}
+
+		&.bp5-selected,
+		&.bp5-selected:hover {
+			color: var(--white);
+			background-color: var(--blue3);
+		}
+	}
+}
+
+.bp5-html-select select {
+	width: auto;
+}
+
+.bp5-alert-contents {
+	overflow: auto;
+}
+
 .content {
 	h1 {
 		font-size: 1.8rem;
@@ -39,6 +139,7 @@
 		max-width: 100%;
 	}
 
+	/* added by sanitizer */
 	.video-wrapper {
 		position: relative;
 		padding-bottom: 56.25%; /* 16:9 */
