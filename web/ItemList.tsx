@@ -315,6 +315,7 @@ function CardItem({
                 },
               }}
               icon={
+                // use name string instead of icon element for ineffective animation issue
                 (item.status === 'read' ? previousStatus : item.status) === 'unread'
                   ? 'record'
                   : 'star'
