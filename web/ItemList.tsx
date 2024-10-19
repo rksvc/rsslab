@@ -23,7 +23,6 @@ import {
   useState,
 } from 'react'
 import { Check, Search } from 'react-feather'
-import { useDebouncedCallback } from 'use-debounce'
 import type { Feed, Image, Item, Items, Status } from './types'
 import { cn, iconProps, length, panelStyle, param, xfetch } from './utils'
 
@@ -117,12 +116,18 @@ export default function ItemList({
     if (search) query.search = search
     return query
   }, [selected, filter])
-  const onSearch = useDebouncedCallback(async () => {
-    const result = await xfetch<Items>(`api/items${param(query())}`)
-    setItems(result.list)
-    setHasMore(result.has_more)
-    loaded.current = Array.from({ length: result.list.length })
-  }, 200)
+
+  const timerId = useRef<number>()
+  const onSearch = () => {
+    clearTimeout(timerId.current)
+    timerId.current = setTimeout(async () => {
+      timerId.current = undefined
+      const result = await xfetch<Items>(`api/items${param(query())}`)
+      setItems(result.list)
+      setHasMore(result.has_more)
+      loaded.current = Array.from({ length: result.list.length })
+    }, 200)
+  }
 
   useEffect(() => {
     ;(async () => {
