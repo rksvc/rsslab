@@ -14,7 +14,6 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import {
   type Dispatch,
-  type MutableRefObject,
   type RefObject,
   type SetStateAction,
   useCallback,
@@ -23,8 +22,8 @@ import {
   useState,
 } from 'react'
 import { Check, Search } from 'react-feather'
-import type { Feed, Image, Item, Items, Status } from './types'
-import { cn, iconProps, length, panelStyle, param, xfetch } from './utils'
+import type { Feed, Item, Items, Status } from './types'
+import { iconProps, length, panelStyle, param, xfetch } from './utils'
 
 dayjs.extend(relativeTime)
 
@@ -50,8 +49,8 @@ export default function ItemList({
   selected: string
   errors?: Map<number, string>
 
-  items?: (Item & Image)[]
-  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
+  items?: Item[]
+  setItems: Dispatch<SetStateAction<Item[] | undefined>>
   selectedItemId?: number
   setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
 
@@ -66,7 +65,6 @@ export default function ItemList({
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
-  const loaded = useRef<boolean[]>()
 
   const [type, s] = selected.split(':')
   const id = Number.parseInt(s)
@@ -119,7 +117,6 @@ export default function ItemList({
       const result = await xfetch<Items>(`api/items${param(query())}`)
       setItems(result.list)
       setHasMore(result.has_more)
-      loaded.current = Array.from({ length: result.list.length })
     }, 200)
   }
 
@@ -130,7 +127,6 @@ export default function ItemList({
       setSelectedItemId(undefined)
       setSelectedItemDetails(undefined)
       setHasMore(result.has_more)
-      loaded.current = Array.from({ length: result.list.length })
       itemListRef.current?.scrollTo(0, 0)
     })()
   }, [query, setItems, setSelectedItemId, setSelectedItemDetails])
@@ -182,12 +178,10 @@ export default function ItemList({
       </div>
       <Divider />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
-        {items?.map((item, i) => (
+        {items?.map(item => (
           <CardItem
             key={item.id}
             item={item}
-            i={i}
-            loaded={loaded}
             setStatus={setStatus}
             setItems={setItems}
             selectedItemId={selectedItemId}
@@ -230,8 +224,6 @@ export default function ItemList({
 
 function CardItem({
   item,
-  i,
-  loaded,
   setStatus,
   setItems,
   selectedItemId,
@@ -240,11 +232,9 @@ function CardItem({
   contentRef,
   feedsById,
 }: {
-  item: Item & Image
-  i: number
-  loaded: MutableRefObject<boolean[] | undefined>
+  item: Item
   setStatus: Dispatch<SetStateAction<Status | undefined>>
-  setItems: Dispatch<SetStateAction<(Item & Image)[] | undefined>>
+  setItems: Dispatch<SetStateAction<Item[] | undefined>>
   selectedItemId?: number
   setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
@@ -252,15 +242,6 @@ function CardItem({
   feedsById: Map<number, Feed>
 }) {
   const previousStatus = usePrevious(item.status)
-  const onLoad = () => {
-    if (loaded.current && !loaded.current[i]) {
-      loaded.current[i] = true
-      setItems(items =>
-        items?.map(i => (i.id === item.id ? { ...item, loaded: true } : i)),
-      )
-    }
-  }
-
   const selected = item.id === selectedItemId
   return (
     <Card
@@ -299,75 +280,47 @@ function CardItem({
         }
       }}
     >
-      <div style={{ display: 'flex', width: '100%' }}>
-        {item.image && (
-          <div
-            className={cn(!item.loaded && Classes.SKELETON)}
+      <div
+        style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
+          <Icon
+            svgProps={{
+              style: {
+                transitionDuration: '150ms',
+                ...(item.status === 'read' ? { width: 0 } : { marginRight: length(1) }),
+              },
+            }}
+            icon={
+              // use name string instead of icon element for ineffective animation issue
+              (item.status === 'read' ? previousStatus : item.status) === 'unread'
+                ? 'record'
+                : 'star'
+            }
+            size={10}
+            intent={selected ? Intent.NONE : Intent.PRIMARY}
+          />
+          <small
             style={{
-              display: 'flex',
-              height: '100%',
-              marginRight: length(2),
-              marginTop: length(2),
-              marginBottom: length(2),
-              minWidth: '80px',
-              maxWidth: '80px',
+              flexGrow: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            <img
-              ref={image => image?.complete && onLoad()}
-              style={{
-                width: '100%',
-                aspectRatio: '1/1',
-                objectFit: 'cover',
-                borderRadius: length(2),
-              }}
-              src={item.image}
-              onLoad={onLoad}
-            />
-          </div>
-        )}
-        <div
-          style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-            <Icon
-              svgProps={{
-                style: {
-                  transitionDuration: '150ms',
-                  ...(item.status === 'read' ? { width: 0 } : { marginRight: length(1) }),
-                },
-              }}
-              icon={
-                // use name string instead of icon element for ineffective animation issue
-                (item.status === 'read' ? previousStatus : item.status) === 'unread'
-                  ? 'record'
-                  : 'star'
-              }
-              size={10}
-              intent={selected ? Intent.NONE : Intent.PRIMARY}
-            />
-            <small
-              style={{
-                flexGrow: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {feedsById.get(item.feed_id)?.title}
-            </small>
-            <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
-              <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
-                {dayjs(item.date).fromNow(true)}
-              </time>
-            </small>
-          </div>
-          <span style={{ marginBottom: length(0.5), overflowWrap: 'break-word' }}>
-            {item.title.length > 100
-              ? `${item.title.slice(0, 100)}...`
-              : item.title || 'untitled'}
-          </span>
+            {feedsById.get(item.feed_id)?.title}
+          </small>
+          <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
+            <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
+              {dayjs(item.date).fromNow(true)}
+            </time>
+          </small>
         </div>
+        <span style={{ marginBottom: length(0.5), overflowWrap: 'break-word' }}>
+          {item.title.length > 100
+            ? `${item.title.slice(0, 100)}...`
+            : item.title || 'untitled'}
+        </span>
       </div>
     </Card>
   )

@@ -32,10 +32,6 @@ export type FolderWithFeeds = Folder & {
   feeds: Feed[]
 }
 
-export type Image = {
-  loaded?: boolean
-}
-
 export type Item = {
   id: number
   guid: string

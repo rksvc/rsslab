@@ -7,7 +7,6 @@ import type {
   Feed,
   Folder,
   FolderWithFeeds,
-  Image,
   Item,
   Settings,
   State,
@@ -27,7 +26,7 @@ export default function App() {
   const [selected, setSelected] = useState('')
   const [settings, setSettings] = useState<Settings>()
 
-  const [items, setItems] = useState<(Item & Image)[]>()
+  const [items, setItems] = useState<Item[]>()
   const [selectedItemId, setSelectedItemId] = useState<number>()
 
   const [selectedItemDetails, setSelectedItemDetails] = useState<Item>()
