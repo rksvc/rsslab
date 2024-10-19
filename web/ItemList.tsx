@@ -23,7 +23,6 @@ import {
   useState,
 } from 'react'
 import { Check, Search } from 'react-feather'
-import useInfiniteScroll from 'react-infinite-scroll-hook'
 import { useDebouncedCallback } from 'use-debounce'
 import type { Feed, Image, Item, Items, Status } from './types'
 import { cn, iconProps, length, panelStyle, param, xfetch } from './utils'
@@ -69,25 +68,39 @@ export default function ItemList({
   const inputRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
   const loaded = useRef<boolean[]>()
-  const [sentryRef] = useInfiniteScroll({
-    disabled: false,
-    loading: loading,
-    hasNextPage: hasMore,
-    rootMargin: '0px 0px 400px 0px',
-    onLoadMore: async () => {
-      if (!items) return
-      setLoading(true)
-      try {
-        const result = await xfetch<Items>(
-          `api/items${param({ ...query(), after: items.at(-1)?.id })}`,
-        )
-        setItems([...items, ...result.list])
-        setHasMore(result.has_more)
-      } finally {
-        setLoading(false)
-      }
-    },
-  })
+
+  const sentryNodeRef = useRef<Element>()
+  const [isIntersecting, setIsIntersecting] = useState(false)
+  const observer = useRef<IntersectionObserver>()
+  if (!observer.current) {
+    observer.current = new IntersectionObserver(entries => {
+      for (const entry of entries)
+        if (entry.target === sentryNodeRef.current && entry.isIntersecting)
+          setIsIntersecting(true)
+    })
+  }
+  const shouldLoadMore = !loading && isIntersecting && hasMore
+  // biome-ignore lint/correctness/useExhaustiveDependencies(items):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(items.at):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(setItems):
+  useEffect(() => {
+    if (shouldLoadMore) {
+      ;(async () => {
+        if (!items) return
+        setLoading(true)
+        try {
+          const result = await xfetch<Items>(
+            `api/items${param({ ...query(), after: items.at(-1)?.id })}`,
+          )
+          setItems([...items, ...result.list])
+          setHasMore(result.has_more)
+        } finally {
+          setLoading(false)
+          setIsIntersecting(false)
+        }
+      })()
+    }
+  }, [shouldLoadMore])
 
   const [type, s] = selected.split(':')
   const id = Number.parseInt(s)
@@ -186,7 +199,18 @@ export default function ItemList({
           />
         ))}
         {(loading || hasMore) && (
-          <div style={{ marginTop: length(4), marginBottom: length(3) }} ref={sentryRef}>
+          <div
+            style={{ marginTop: length(4), marginBottom: length(3) }}
+            ref={node => {
+              if (node) {
+                sentryNodeRef.current = node
+                observer.current?.observe(node)
+              } else {
+                if (sentryNodeRef.current)
+                  observer.current?.unobserve(sentryNodeRef.current)
+              }
+            }}
+          >
             <Spinner size={SpinnerSize.SMALL} />
           </div>
         )}
