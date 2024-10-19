@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"rsslab/cache"
 	"rsslab/utils"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/evanw/esbuild/pkg/api"
+	"golang.org/x/net/publicsuffix"
 )
 
 const (
@@ -28,11 +30,18 @@ type RSSHub struct {
 }
 
 func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	if err != nil {
+		panic(err)
+	}
 	return &RSSHub{
 		srcUrl:    srcUrl,
 		routesUrl: routesUrl,
 		cache:     cache,
-		client:    http.Client{Timeout: 30 * time.Second},
+		client: http.Client{
+			Timeout: 30 * time.Second,
+			Jar:     jar,
+		},
 	}
 }
 
