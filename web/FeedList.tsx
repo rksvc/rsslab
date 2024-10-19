@@ -21,7 +21,6 @@ import {
   type Dispatch,
   type KeyboardEvent,
   type SetStateAction,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -104,13 +103,13 @@ export default function FeedList({
   feedsWithoutFolders?: Feed[]
   feedsById: Map<number, Feed>
 }) {
-  const [selectedFolder, setSelectedFolder] = useState(
-    getSelectedFolder(selected, feedsById),
-  )
-  useEffect(
-    () => setSelectedFolder(getSelectedFolder(selected, feedsById)),
-    [selected, feedsById],
-  )
+  const [type, id] = selected.split(':')
+  const defaultSelectedFolder =
+    type === 'feed'
+      ? (feedsById.get(Number.parseInt(id))?.folder_id ?? '')
+      : type === 'folder'
+        ? id
+        : ''
 
   const [creatingNewFeed, setCreatingNewFeed] = useState(false)
   const [creatingNewFolder, setCreatingNewFolder] = useState(false)
@@ -124,6 +123,7 @@ export default function FeedList({
   const [deleteFolder, setDeleteFolder] = useState<Folder>()
   const menuRef = useRef<HTMLButtonElement>(null)
   const newFeedLinkRef = useRef<HTMLTextAreaElement>(null)
+  const selectedFolderRef = useRef<HTMLSelectElement>(null)
   const newFolderTitleRef = useRef<HTMLTextAreaElement>(null)
   const refreshRateRef = useRef<HTMLInputElement>(null)
   const opmlFormRef = useRef<HTMLFormElement>(null)
@@ -545,14 +545,16 @@ export default function FeedList({
         title="New Feed"
         callback={async () => {
           const url = newFeedLinkRef.current?.value
-          if (!url) return
+          if (!url || !selectedFolderRef.current) return
           setCreatingNewFeed(true)
           try {
             const feed = await xfetch<Feed>('api/feeds', {
               method: 'POST',
               body: JSON.stringify({
                 url,
-                folder_id: selectedFolder ? Number.parseInt(selectedFolder) : null,
+                folder_id: selectedFolderRef.current.value
+                  ? Number.parseInt(selectedFolderRef.current.value)
+                  : null,
               }),
             })
             await Promise.all([refreshFeeds(), refreshStats(false)])
@@ -575,12 +577,12 @@ export default function FeedList({
             options={[
               { value: '', label: '--' },
               ...(folders ?? []).map(folder => ({
-                value: folder.id.toString(),
+                value: folder.id,
                 label: folder.title,
               })),
             ]}
-            value={selectedFolder}
-            onChange={evt => setSelectedFolder(evt.currentTarget.value)}
+            defaultValue={defaultSelectedFolder}
+            ref={selectedFolderRef}
           />
         </div>
       </Dialog>
@@ -729,13 +731,4 @@ export default function FeedList({
       </Dialog>
     </div>
   )
-}
-
-function getSelectedFolder(selected: string, feedsById: Map<number, Feed>): string {
-  const [type, id] = selected.split(':')
-  return type === 'feed'
-    ? (feedsById.get(Number.parseInt(id))?.folder_id?.toString() ?? '')
-    : type === 'folder'
-      ? id
-      : ''
 }

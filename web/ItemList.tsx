@@ -68,39 +68,6 @@ export default function ItemList({
   const itemListRef = useRef<HTMLDivElement>(null)
   const loaded = useRef<boolean[]>()
 
-  const sentryNodeRef = useRef<Element>()
-  const [isIntersecting, setIsIntersecting] = useState(false)
-  const observer = useRef<IntersectionObserver>()
-  if (!observer.current) {
-    observer.current = new IntersectionObserver(entries => {
-      for (const entry of entries)
-        if (entry.target === sentryNodeRef.current && entry.isIntersecting)
-          setIsIntersecting(true)
-    })
-  }
-  const shouldLoadMore = !loading && isIntersecting && hasMore
-  // biome-ignore lint/correctness/useExhaustiveDependencies(items):
-  // biome-ignore lint/correctness/useExhaustiveDependencies(items.at):
-  // biome-ignore lint/correctness/useExhaustiveDependencies(setItems):
-  useEffect(() => {
-    if (shouldLoadMore) {
-      ;(async () => {
-        if (!items) return
-        setLoading(true)
-        try {
-          const result = await xfetch<Items>(
-            `api/items${param({ ...query(), after: items.at(-1)?.id })}`,
-          )
-          setItems([...items, ...result.list])
-          setHasMore(result.has_more)
-        } finally {
-          setLoading(false)
-          setIsIntersecting(false)
-        }
-      })()
-    }
-  }, [shouldLoadMore])
-
   const [type, s] = selected.split(':')
   const id = Number.parseInt(s)
   const isFeedSelected = type === 'feed'
@@ -116,6 +83,33 @@ export default function ItemList({
     if (search) query.search = search
     return query
   }, [selected, filter])
+
+  const sentryNodeRef = useRef<Element>()
+  const [isIntersecting, setIsIntersecting] = useState(false)
+  const observer = useRef<IntersectionObserver>()
+  if (!observer.current) {
+    observer.current = new IntersectionObserver(entries => {
+      for (const entry of entries)
+        if (entry.target === sentryNodeRef.current && entry.isIntersecting)
+          setIsIntersecting(true)
+    })
+  }
+  if (!loading && isIntersecting && hasMore) {
+    ;(async () => {
+      if (!items) return
+      setLoading(true)
+      try {
+        const result = await xfetch<Items>(
+          `api/items${param({ ...query(), after: items.at(-1)?.id })}`,
+        )
+        setItems([...items, ...result.list])
+        setHasMore(result.has_more)
+      } finally {
+        setLoading(false)
+        setIsIntersecting(false)
+      }
+    })()
+  }
 
   const timerId = useRef<number>()
   const onSearch = () => {

@@ -1,5 +1,5 @@
 import { Divider, FocusStyleManager } from '@blueprintjs/core'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import FeedList from './FeedList'
 import ItemList from './ItemList'
 import ItemShow from './ItemShow'
@@ -33,7 +33,7 @@ export default function App() {
   const [selectedItemDetails, setSelectedItemDetails] = useState<Item>()
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const refreshFeeds = useCallback(async () => {
+  const refreshFeeds = async () => {
     const [folders, feeds, settings] = await Promise.all([
       xfetch<Folder[]>('api/folders'),
       xfetch<Feed[]>('api/feeds'),
@@ -42,8 +42,8 @@ export default function App() {
     setFolders(folders)
     setFeeds(feeds)
     setSettings(settings)
-  }, [])
-  const refreshStats = useCallback(async (loop = true) => {
+  }
+  const refreshStats = async (loop = true) => {
     const [errors, { running, last_refreshed, stats }] = await Promise.all([
       xfetch<Record<string, string>>('api/feeds/errors'),
       xfetch<State & { stats: Record<string, Stats> }>('api/status'),
@@ -59,11 +59,13 @@ export default function App() {
       ),
     })
     if (loop && running) setTimeout(() => refreshStats(), 500)
-  }, [])
+  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats):
   useEffect(() => {
     refreshFeeds()
     refreshStats()
-  }, [refreshFeeds, refreshStats])
+  }, [])
 
   const [foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
     const foldersById = new Map<number, FolderWithFeeds>()
