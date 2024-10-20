@@ -94,7 +94,8 @@ export default function ItemShow({
             title="Mark Unread"
           />
           <AnchorButton
-            icon={<ExternalLink {...iconProps} color={Colors.BLUE3} />}
+            className={Classes.INTENT_PRIMARY}
+            icon={<ExternalLink {...iconProps} />}
             href={selectedItemDetails.link}
             target="_blank"
             title="Open Link"
