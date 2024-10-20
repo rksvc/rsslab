@@ -4,12 +4,11 @@ import {
   CardList,
   Classes,
   Divider,
-  Icon,
   InputGroup,
-  Intent,
   Spinner,
   SpinnerSize,
 } from '@blueprintjs/core'
+import { Record, Star } from '@blueprintjs/icons'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import {
@@ -243,6 +242,10 @@ function CardItem({
 }) {
   const previousStatus = usePrevious(item.status)
   const selected = item.id === selectedItemId
+  const iconProps = {
+    style: { display: 'flex', width: '100%' },
+    className: selected ? undefined : Classes.INTENT_PRIMARY,
+  }
   return (
     <Card
       selected={selected}
@@ -284,22 +287,20 @@ function CardItem({
         style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-          <Icon
-            svgProps={{
-              style: {
-                transitionDuration: '150ms',
-                ...(item.status === 'read' ? { width: 0 } : { marginRight: length(1) }),
-              },
+          <span
+            style={{
+              transitionDuration: '150ms',
+              ...(item.status === 'read'
+                ? { width: 0 }
+                : { width: '10px', marginRight: length(1) }),
             }}
-            icon={
-              // use name string instead of icon element for ineffective animation issue
-              (item.status === 'read' ? previousStatus : item.status) === 'unread'
-                ? 'record'
-                : 'star'
-            }
-            size={10}
-            intent={selected ? Intent.NONE : Intent.PRIMARY}
-          />
+          >
+            {(item.status === 'read' ? previousStatus : item.status) === 'unread' ? (
+              <Record {...iconProps} />
+            ) : (
+              <Star {...iconProps} />
+            )}
+          </span>
           <small
             style={{
               flexGrow: 1,
