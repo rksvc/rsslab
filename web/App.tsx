@@ -27,6 +27,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>()
 
   const [items, setItems] = useState<Item[]>()
+  const [itemsOutdated, setItemsOutdated] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<number>()
 
   const [selectedItemDetails, setSelectedItemDetails] = useState<Item>()
@@ -57,13 +58,16 @@ export default function App() {
         Object.entries(stats).map(([id, stats]) => [Number.parseInt(id), stats]),
       ),
     })
+    setItemsOutdated(true)
     if (loop && running) setTimeout(() => refreshStats(), 500)
   }
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds):
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats):
   useEffect(() => {
-    refreshFeeds()
-    refreshStats()
+    ;(async () => {
+      await Promise.all([refreshFeeds(), refreshStats()])
+      setItemsOutdated(false)
+    })()
   }, [])
 
   const [foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
@@ -96,6 +100,8 @@ export default function App() {
 
     items,
     setItems,
+    itemsOutdated,
+    setItemsOutdated,
     selectedItemId,
     setSelectedItemId,
 

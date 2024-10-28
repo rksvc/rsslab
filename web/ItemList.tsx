@@ -3,6 +3,7 @@ import {
   Card,
   CardList,
   Classes,
+  Colors,
   Divider,
   InputGroup,
   Spinner,
@@ -20,7 +21,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Check, Search } from 'react-feather'
+import { Check, RotateCw, Search } from 'react-feather'
 import type { Feed, Item, Items, Status } from './types'
 import { iconProps, length, panelStyle, param, xfetch } from './utils'
 
@@ -34,6 +35,8 @@ export default function ItemList({
 
   items,
   setItems,
+  itemsOutdated,
+  setItemsOutdated,
   selectedItemId,
   setSelectedItemId,
 
@@ -50,6 +53,8 @@ export default function ItemList({
 
   items?: Item[]
   setItems: Dispatch<SetStateAction<Item[] | undefined>>
+  itemsOutdated: boolean
+  setItemsOutdated: Dispatch<SetStateAction<boolean>>
   selectedItemId?: number
   setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
 
@@ -116,19 +121,22 @@ export default function ItemList({
       const { list, has_more } = await xfetch<Items>(`api/items${param(query())}`)
       setItems(list)
       setHasMore(has_more)
+      setItemsOutdated(false)
     }, 200)
   }
 
+  const refresh = useCallback(async () => {
+    const { list, has_more } = await xfetch<Items>(`api/items${param(query())}`)
+    setItems(list)
+    setSelectedItemId(undefined)
+    setSelectedItemDetails(undefined)
+    setHasMore(has_more)
+    setItemsOutdated(false)
+    itemListRef.current?.scrollTo(0, 0)
+  }, [query, setItems, setSelectedItemId, setSelectedItemDetails, setItemsOutdated])
   useEffect(() => {
-    ;(async () => {
-      const { list, has_more } = await xfetch<Items>(`api/items${param(query())}`)
-      setItems(list)
-      setSelectedItemId(undefined)
-      setSelectedItemDetails(undefined)
-      setHasMore(has_more)
-      itemListRef.current?.scrollTo(0, 0)
-    })()
-  }, [query, setItems, setSelectedItemId, setSelectedItemDetails])
+    refresh()
+  }, [refresh])
 
   return (
     <div style={panelStyle}>
@@ -153,12 +161,29 @@ export default function ItemList({
           fill
         />
         <Button
-          style={{ marginLeft: length(1) }}
-          icon={<Check {...iconProps} />}
-          title="Mark All Read"
+          style={{
+            marginLeft: length(1),
+            color:
+              filter === 'Starred'
+                ? undefined
+                : itemsOutdated
+                  ? Colors.GRAY1
+                  : Colors.DARK_GRAY5,
+          }}
+          icon={
+            !itemsOutdated || filter === 'Starred' ? (
+              <Check {...iconProps} />
+            ) : (
+              <RotateCw {...iconProps} />
+            )
+          }
+          title={
+            !itemsOutdated || filter === 'Starred' ? 'Mark All Read' : 'Refresh Outdated'
+          }
           disabled={filter === 'Starred'}
           minimal
           onClick={async () => {
+            if (itemsOutdated) return await refresh()
             await xfetch(`api/items${param(query())}`, { method: 'PUT' })
             setItems(items =>
               items?.map(item => ({
