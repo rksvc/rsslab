@@ -96,11 +96,11 @@ export default function ItemList({
       if (!items) return
       setLoading(true)
       try {
-        const result = await xfetch<Items>(
+        const { list, has_more } = await xfetch<Items>(
           `api/items${param({ ...query(), after: items.at(-1)?.id })}`,
         )
-        setItems([...items, ...result.list])
-        setHasMore(result.has_more)
+        setItems([...items, ...list])
+        setHasMore(has_more)
       } finally {
         setLoading(false)
         setIsIntersecting(false)
@@ -113,19 +113,19 @@ export default function ItemList({
     clearTimeout(timerId.current)
     timerId.current = setTimeout(async () => {
       timerId.current = undefined
-      const result = await xfetch<Items>(`api/items${param(query())}`)
-      setItems(result.list)
-      setHasMore(result.has_more)
+      const { list, has_more } = await xfetch<Items>(`api/items${param(query())}`)
+      setItems(list)
+      setHasMore(has_more)
     }, 200)
   }
 
   useEffect(() => {
     ;(async () => {
-      const result = await xfetch<Items>(`api/items${param(query())}`)
-      setItems(result.list)
+      const { list, has_more } = await xfetch<Items>(`api/items${param(query())}`)
+      setItems(list)
       setSelectedItemId(undefined)
       setSelectedItemDetails(undefined)
-      setHasMore(result.has_more)
+      setHasMore(has_more)
       itemListRef.current?.scrollTo(0, 0)
     })()
   }, [query, setItems, setSelectedItemId, setSelectedItemDetails])
