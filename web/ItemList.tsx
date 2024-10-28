@@ -159,12 +159,7 @@ export default function ItemList({
           disabled={filter === 'Starred'}
           minimal
           onClick={async () => {
-            const query: Record<string, string> = {}
-            if (selected) {
-              const [type, id] = selected.split(':')
-              query[`${type}_id`] = id
-            }
-            await xfetch(`api/items${param(query)}`, { method: 'PUT' })
+            await xfetch(`api/items${param(query())}`, { method: 'PUT' })
             setItems(items =>
               items?.map(item => ({
                 ...item,
