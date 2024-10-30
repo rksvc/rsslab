@@ -1,5 +1,5 @@
 import { Alert, Divider, FocusStyleManager } from '@blueprintjs/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import FeedList from './FeedList'
 import ItemList from './ItemList'
 import ItemShow from './ItemShow'
@@ -35,30 +35,33 @@ export default function App() {
 
   const [alerts, setAlerts] = useState<string[]>([])
 
-  const xfetch: Xfetch = async <T,>(
-    url: string,
-    options?: RequestInit,
-  ): Promise<T | unknown> => {
-    if (typeof options?.body === 'string')
-      options.headers = { 'Content-Type': 'application/json' }
-    try {
-      const response = await fetch(url, options)
-      const text = await response.text()
-      if (response.ok) return text && text !== 'OK' && JSON.parse(text)
-      throw new Error(text || `${response.status} ${response.statusText}`)
-    } catch (error) {
-      setAlerts(alerts => [...alerts, String(error)])
-      throw error
-    }
-  }
-  const tryDo = (fn: () => Promise<unknown>) => async () => {
-    try {
-      await fn()
-    } catch (error) {
-      setAlerts(alerts => [...alerts, String(error)])
-      throw error
-    }
-  }
+  const xfetch: Xfetch = useCallback(
+    async <T,>(url: string, options?: RequestInit): Promise<T | unknown> => {
+      if (typeof options?.body === 'string')
+        options.headers = { 'Content-Type': 'application/json' }
+      try {
+        const response = await fetch(url, options)
+        const text = await response.text()
+        if (response.ok) return text && text !== 'OK' && JSON.parse(text)
+        throw new Error(text || `${response.status} ${response.statusText}`)
+      } catch (error) {
+        setAlerts(alerts => [...alerts, String(error)])
+        throw error
+      }
+    },
+    [],
+  )
+  const tryDo = useCallback(
+    (fn: () => Promise<unknown>) => async () => {
+      try {
+        await fn()
+      } catch (error) {
+        setAlerts(alerts => [...alerts, String(error)])
+        throw error
+      }
+    },
+    [],
+  )
 
   const refreshFeeds = async () => {
     const [folders, feeds, settings] = await Promise.all([
