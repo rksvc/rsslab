@@ -51,6 +51,14 @@ export default function App() {
       throw error
     }
   }
+  const tryDo = (fn: () => Promise<unknown>) => async () => {
+    try {
+      await fn()
+    } catch (error) {
+      setAlerts(alerts => [...alerts, String(error)])
+      throw error
+    }
+  }
 
   const refreshFeeds = async () => {
     const [folders, feeds, settings] = await Promise.all([
@@ -134,6 +142,7 @@ export default function App() {
     feedsById,
 
     xfetch,
+    tryDo,
   }
 
   return (
@@ -157,6 +166,7 @@ export default function App() {
           key={i}
           isOpen={!!alert}
           canEscapeKeyCancel
+          onOpening={ref => ref.focus()}
           onClose={() => setAlerts(alerts => alerts.with(i, ''))}
         >
           {alert.includes('\n') ? (

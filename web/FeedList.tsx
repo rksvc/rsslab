@@ -86,6 +86,7 @@ export default function FeedList({
   feedsById,
 
   xfetch,
+  tryDo,
 }: {
   filter: string
   setFilter: Dispatch<SetStateAction<string>>
@@ -106,6 +107,7 @@ export default function FeedList({
   feedsById: Map<number, Feed>
 
   xfetch: Xfetch
+  tryDo: (fn: () => Promise<unknown>) => () => Promise<void>
 }) {
   const [type, id] = selected.split(':')
   const defaultSelectedFolder =
@@ -546,9 +548,10 @@ export default function FeedList({
         isOpen={newFeedDialogOpen}
         close={() => setNewFeedDialogOpen(false)}
         title="New Feed"
-        callback={async () => {
+        callback={tryDo(async () => {
           const url = newFeedLinkRef.current?.value
-          if (!url || !selectedFolderRef.current) return
+          if (!url) throw 'Feed link is required'
+          if (!selectedFolderRef.current) return
           setCreatingNewFeed(true)
           try {
             const feed = await xfetch<Feed>('api/feeds', {
@@ -565,7 +568,7 @@ export default function FeedList({
           } finally {
             setCreatingNewFeed(false)
           }
-        }}
+        })}
       >
         <div style={{ display: 'flex' }}>
           <TextArea
@@ -593,9 +596,9 @@ export default function FeedList({
         isOpen={newFolderDialogOpen}
         close={() => setNewFolderDialogOpen(false)}
         title="New Folder"
-        callback={async () => {
+        callback={tryDo(async () => {
           const title = newFolderTitleRef.current?.value
-          if (!title) return
+          if (!title) throw 'Folder title is required'
           setCreatingNewFolder(true)
           try {
             const folder = await xfetch<Folder>('api/folders', {
@@ -613,7 +616,7 @@ export default function FeedList({
           } finally {
             setCreatingNewFolder(false)
           }
-        }}
+        })}
       >
         <TextArea inputRef={newFolderTitleRef} {...textAreaProps} />
       </Dialog>
@@ -645,12 +648,13 @@ export default function FeedList({
         isOpen={renameFeed}
         close={() => setRenameFeed(undefined)}
         title="Rename Feed"
-        callback={async () => {
+        callback={tryDo(async () => {
           if (!renameFeed) return
           const title = feedTitleRef.current?.value
-          if (title && title !== renameFeed.title)
+          if (!title) throw 'Feed name is required'
+          if (title !== renameFeed.title)
             await updateFeedAttr(renameFeed.id, 'title', title)
-        }}
+        })}
       >
         <TextArea
           defaultValue={renameFeed?.title}
@@ -662,12 +666,13 @@ export default function FeedList({
         isOpen={changeLink}
         close={() => setChangeLink(undefined)}
         title="Change Feed Link"
-        callback={async () => {
+        callback={tryDo(async () => {
           if (!changeLink) return
           const feedLink = feedLinkRef.current?.value
-          if (feedLink && feedLink !== changeLink.feed_link)
+          if (!feedLink) throw 'Feed link is required'
+          if (feedLink !== changeLink.feed_link)
             await updateFeedAttr(changeLink.id, 'feed_link', feedLink)
-        }}
+        })}
       >
         <TextArea
           defaultValue={changeLink?.feed_link}
@@ -696,10 +701,11 @@ export default function FeedList({
         isOpen={renameFolder}
         close={() => setRenameFolder(undefined)}
         title="Rename Folder"
-        callback={async () => {
+        callback={tryDo(async () => {
           if (!renameFolder) return
           const title = folderTitleRef.current?.value
-          if (title && title !== renameFolder.title) {
+          if (!title) throw 'Folder title is required'
+          if (title !== renameFolder.title) {
             await xfetch(`api/folders/${renameFolder.id}`, {
               method: 'PUT',
               body: JSON.stringify({ title }),
@@ -710,7 +716,7 @@ export default function FeedList({
               ),
             )
           }
-        }}
+        })}
       >
         <TextArea
           defaultValue={renameFolder?.title}
