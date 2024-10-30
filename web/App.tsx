@@ -1,4 +1,4 @@
-import { Divider, FocusStyleManager } from '@blueprintjs/core'
+import { Alert, Divider, FocusStyleManager } from '@blueprintjs/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import FeedList from './FeedList'
 import ItemList from './ItemList'
@@ -13,7 +13,7 @@ import type {
   Stats,
   Status,
 } from './types'
-import { xfetch } from './utils'
+import type { Xfetch } from './utils'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 
@@ -32,6 +32,25 @@ export default function App() {
 
   const [selectedItemDetails, setSelectedItemDetails] = useState<Item>()
   const contentRef = useRef<HTMLDivElement>(null)
+
+  const [alerts, setAlerts] = useState<string[]>([])
+
+  const xfetch: Xfetch = async <T,>(
+    url: string,
+    options?: RequestInit,
+  ): Promise<T | unknown> => {
+    if (typeof options?.body === 'string')
+      options.headers = { 'Content-Type': 'application/json' }
+    try {
+      const response = await fetch(url, options)
+      const text = await response.text()
+      if (response.ok) return text && text !== 'OK' && JSON.parse(text)
+      throw new Error(text || `${response.status} ${response.statusText}`)
+    } catch (error) {
+      setAlerts(alerts => [...alerts, String(error)])
+      throw error
+    }
+  }
 
   const refreshFeeds = async () => {
     const [folders, feeds, settings] = await Promise.all([
@@ -113,6 +132,8 @@ export default function App() {
     foldersWithFeeds,
     feedsWithoutFolders,
     feedsById,
+
+    xfetch,
   }
 
   return (
@@ -130,6 +151,21 @@ export default function App() {
           <ItemShow {...props} selectedItemDetails={selectedItemDetails} />
         )}
       </div>
+      {alerts.map((alert, i) => (
+        <Alert
+          // biome-ignore lint/suspicious/noArrayIndexKey:
+          key={i}
+          isOpen={!!alert}
+          canEscapeKeyCancel
+          onClose={() => setAlerts(alerts => alerts.with(i, ''))}
+        >
+          {alert.includes('\n') ? (
+            <pre style={{ marginTop: 0, fontFamily: 'inherit' }}>{alert}</pre>
+          ) : (
+            <p>{alert}</p>
+          )}
+        </Alert>
+      ))}
     </div>
   )
 }

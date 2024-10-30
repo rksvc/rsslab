@@ -23,7 +23,7 @@ import {
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
 import type { Feed, Item, Items, Status } from './types'
-import { iconProps, length, panelStyle, param, xfetch } from './utils'
+import { type Xfetch, iconProps, length, panelStyle, param } from './utils'
 
 dayjs.extend(relativeTime)
 
@@ -45,6 +45,8 @@ export default function ItemList({
 
   refreshStats,
   feedsById,
+
+  xfetch,
 }: {
   filter: string
   setStatus: Dispatch<SetStateAction<Status | undefined>>
@@ -63,6 +65,8 @@ export default function ItemList({
 
   refreshStats: (loop?: boolean) => Promise<void>
   feedsById: Map<number, Feed>
+
+  xfetch: Xfetch
 }) {
   const [search, setSearch] = useState('')
   const [hasMore, setHasMore] = useState(false)
@@ -133,7 +137,14 @@ export default function ItemList({
     setHasMore(has_more)
     setItemsOutdated(false)
     itemListRef.current?.scrollTo(0, 0)
-  }, [query, setItems, setSelectedItemId, setSelectedItemDetails, setItemsOutdated])
+  }, [
+    query,
+    xfetch,
+    setItems,
+    setSelectedItemId,
+    setSelectedItemDetails,
+    setItemsOutdated,
+  ])
   useEffect(() => {
     refresh()
   }, [refresh])
@@ -208,6 +219,7 @@ export default function ItemList({
             setSelectedItemDetails={setSelectedItemDetails}
             contentRef={contentRef}
             feedsById={feedsById}
+            xfetch={xfetch}
           />
         ))}
         {(loading || hasMore) && (
@@ -250,6 +262,7 @@ function CardItem({
   setSelectedItemDetails,
   contentRef,
   feedsById,
+  xfetch,
 }: {
   item: Item
   setStatus: Dispatch<SetStateAction<Status | undefined>>
@@ -259,6 +272,7 @@ function CardItem({
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
   feedsById: Map<number, Feed>
+  xfetch: Xfetch
 }) {
   const previousStatus = usePrevious(item.status)
   const selected = item.id === selectedItemId

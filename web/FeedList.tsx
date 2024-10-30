@@ -48,6 +48,7 @@ import {
 import { Dialog } from './Dialog'
 import type { Feed, Folder, FolderWithFeeds, Settings, Stats, Status } from './types'
 import {
+  type Xfetch,
   cn,
   iconProps,
   length,
@@ -55,7 +56,6 @@ import {
   panelStyle,
   popoverProps,
   statusBarStyle,
-  xfetch,
 } from './utils'
 
 const textAreaProps = {
@@ -84,6 +84,8 @@ export default function FeedList({
   foldersWithFeeds,
   feedsWithoutFolders,
   feedsById,
+
+  xfetch,
 }: {
   filter: string
   setFilter: Dispatch<SetStateAction<string>>
@@ -102,6 +104,8 @@ export default function FeedList({
   foldersWithFeeds?: FolderWithFeeds[]
   feedsWithoutFolders?: Feed[]
   feedsById: Map<number, Feed>
+
+  xfetch: Xfetch
 }) {
   const [type, id] = selected.split(':')
   const defaultSelectedFolder =

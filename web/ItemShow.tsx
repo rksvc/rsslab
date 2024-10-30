@@ -10,7 +10,7 @@ import {
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
 import type { Feed, Item, Status } from './types'
-import { cn, iconProps, length, panelStyle, xfetch } from './utils'
+import { type Xfetch, cn, iconProps, length, panelStyle } from './utils'
 
 export default function ItemShow({
   setStatus,
@@ -19,6 +19,7 @@ export default function ItemShow({
   setSelectedItemDetails,
   contentRef,
   feedsById,
+  xfetch,
 }: {
   setStatus: Dispatch<SetStateAction<Status | undefined>>
   setItems: Dispatch<SetStateAction<Item[] | undefined>>
@@ -26,6 +27,7 @@ export default function ItemShow({
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
   feedsById: Map<number, Feed>
+  xfetch: Xfetch
 }) {
   const toggleStatus = (targetStatus: string) => async () => {
     const status = targetStatus === selectedItemDetails.status ? 'read' : targetStatus
