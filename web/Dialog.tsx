@@ -40,7 +40,13 @@ export function Dialog<T>({
       onClose={close}
       canEscapeKeyClose
       canOutsideClickClose
-      onOpening={node => node.querySelector<HTMLElement>('.bp5-input')?.focus()}
+      onOpening={node => {
+        const elem = node.querySelector<HTMLInputElement>('.bp5-input')
+        if (elem) {
+          elem.focus()
+          elem.setSelectionRange(elem.value.length, elem.value.length)
+        }
+      }}
     >
       <DialogBody>
         <div
