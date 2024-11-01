@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"rsslab/cache"
 	"rsslab/rsshub"
 	"rsslab/server"
 	"rsslab/storage"
@@ -17,12 +16,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/redis/go-redis/v9"
 )
 
-var addr, redisUrl, database, routesUrl, srcUrl string
-var cc *cache.Cache
-var db *storage.Storage
+var addr, database, routesUrl, srcUrl string
+var s *storage.Storage
 var api *server.Server
 var rssHub *rsshub.RSSHub
 
@@ -39,21 +36,10 @@ func init() {
 
 func main() {
 	flag.StringVar(&addr, "addr", "127.0.0.1:9854", "address to run server on")
-	flag.StringVar(&redisUrl, "redis", "", "redis `url` like redis://127.0.0.1:6379, omit to use in-memory cache")
 	flag.StringVar(&database, "db", "", "storage file `path`")
 	flag.StringVar(&routesUrl, "routes", "https://raw.githubusercontent.com/DIYgod/RSSHub/gh-pages/build/routes.json", "routes `url`")
 	flag.StringVar(&srcUrl, "src", "https://raw.githubusercontent.com/DIYgod/RSSHub/master", "source code `url` prefix")
 	flag.Parse()
-
-	if redisUrl == "" {
-		cc = cache.NewCache(cache.NewLRU())
-	} else {
-		opt, err := redis.ParseURL(redisUrl)
-		if err != nil {
-			log.Fatal(err)
-		}
-		cc = cache.NewCache(cache.NewRedis(opt))
-	}
 
 	if database == "" {
 		dir, err := os.UserConfigDir()
@@ -67,13 +53,13 @@ func main() {
 		database = filepath.Join(dir, "storage.db")
 	}
 	var err error
-	db, err = storage.New(database)
+	s, err = storage.New(database)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	api = server.New(db)
-	rssHub = rsshub.NewRSSHub(cc, routesUrl, srcUrl)
+	api = server.New(s)
+	rssHub = rsshub.NewRSSHub(s, routesUrl, srcUrl)
 
 	app := engine()
 	app.Use("/", filesystem.New(fsConfig))

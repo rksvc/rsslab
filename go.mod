@@ -8,10 +8,8 @@ require (
 	github.com/dop251/goja_nodejs v0.0.0-20240728170619-29b559befffc
 	github.com/evanw/esbuild v0.24.0
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/karlseguin/ccache/v3 v3.0.6
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/mmcdole/gofeed v1.3.0
-	github.com/redis/go-redis/v9 v9.6.2
 	golang.org/x/net v0.30.0
 	golang.org/x/sync v0.8.0
 	golang.org/x/text v0.19.0
@@ -20,8 +18,6 @@ require (
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.4 // indirect
 	github.com/dop251/base64dec v0.0.0-20231022112746-c6c9f9a96217 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect

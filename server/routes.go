@@ -1,16 +1,13 @@
 package server
 
 import (
-	"crypto/md5"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"rsslab/storage"
 	"rsslab/utils"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -185,45 +182,23 @@ func (s *Server) handleFeedErrorsList(c *fiber.Ctx) error {
 	return c.JSON(errors)
 }
 
-type icon struct {
-	ctype string
-	bytes []byte
-	etag  string
-}
-
 func (s *Server) handleFeedIcon(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.SendStatus(http.StatusBadRequest)
 	}
 
-	val, err := s.cache.TryGet(strconv.Itoa(id), time.Hour, true, func() (any, error) {
-		bytes, err := s.db.GetFeedIcon(id)
-		if err != nil {
-			return nil, err
-		} else if bytes == nil {
-			return nil, nil
-		}
-		return &icon{
-			bytes: bytes,
-			ctype: http.DetectContentType(bytes),
-			etag:  fmt.Sprintf("%x", md5.Sum(bytes)),
-		}, nil
-	})
+	bytes, err := s.db.GetFeedIcon(id)
 	if err != nil {
 		log.Print(err)
 		return c.SendStatus(http.StatusInternalServerError)
-	} else if val == nil {
+	} else if bytes == nil {
 		return c.SendStatus(http.StatusNotFound)
 	}
 
-	icon := val.(*icon)
-	if utils.BytesToString(c.Request().Header.Peek("If-None-Match")) == icon.etag {
-		return c.SendStatus(http.StatusNotModified)
-	}
-	c.Set("Content-Type", icon.ctype)
-	c.Set("Etag", icon.etag)
-	return c.Send(icon.bytes)
+	c.Set("Content-Type", http.DetectContentType(bytes))
+	c.Set("Cache-Control", "max-age=86400") // one day
+	return c.Send(bytes)
 }
 
 func (s *Server) handleFeedRefresh(c *fiber.Ctx) error {

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"rsslab/cache"
+	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
 	"time"
@@ -25,19 +25,19 @@ const (
 
 type RSSHub struct {
 	srcUrl, routesUrl string
-	cache             *cache.Cache
 	client            http.Client
+	s                 *storage.Storage
 }
 
-func NewRSSHub(cache *cache.Cache, routesUrl, srcUrl string) *RSSHub {
+func NewRSSHub(s *storage.Storage, routesUrl, srcUrl string) *RSSHub {
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
 		panic(err)
 	}
 	return &RSSHub{
+		s:         s,
 		srcUrl:    srcUrl,
 		routesUrl: routesUrl,
-		cache:     cache,
 		client: http.Client{
 			Timeout: 30 * time.Second,
 			Jar:     jar,
@@ -102,7 +102,7 @@ func (r *RSSHub) route(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	src, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
+	return r.s.TryGet(storage.SRC, url, srcExpire, false, func() ([]byte, error) {
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
@@ -140,10 +140,6 @@ func (r *RSSHub) route(path string) (string, error) {
 		}
 		return result.Code, nil
 	})
-	if err != nil {
-		return "", err
-	}
-	return utils.BytesToString(src.([]byte)), nil
 }
 
 func (r *RSSHub) file(path string) (string, error) {
@@ -151,7 +147,7 @@ func (r *RSSHub) file(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	file, err := r.cache.TryGet(url, srcExpire, false, func() (any, error) {
+	return r.s.TryGet(storage.SRC, url, srcExpire, false, func() ([]byte, error) {
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
@@ -162,8 +158,4 @@ func (r *RSSHub) file(path string) (string, error) {
 		}
 		return body, nil
 	})
-	if err != nil {
-		return "", err
-	}
-	return utils.BytesToString(file.([]byte)), nil
 }

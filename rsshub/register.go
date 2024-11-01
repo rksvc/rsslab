@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	pathpkg "path"
+	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func (r *RSSHub) Register(app *fiber.App) error {
-	v, err := r.cache.TryGet(r.routesUrl, srcExpire, false, func() (any, error) {
+	val, err := r.s.TryGet(storage.SRC, r.routesUrl, srcExpire, false, func() ([]byte, error) {
 		req, err := http.NewRequest(http.MethodGet, r.routesUrl, nil)
 		if err != nil {
 			return nil, err
@@ -31,7 +32,7 @@ func (r *RSSHub) Register(app *fiber.App) error {
 			Location string `json:"location"`
 		} `json:"routes"`
 	}
-	err = json.Unmarshal(v.([]byte), &routes)
+	err = json.Unmarshal(utils.StringToBytes(val), &routes)
 	if err != nil {
 		return err
 	}

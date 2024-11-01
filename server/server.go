@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"rsslab/cache"
 	"rsslab/storage"
 	"rsslab/utils"
 	"sync"
@@ -23,7 +22,6 @@ type Server struct {
 
 	db            *storage.Storage
 	client        *http.Client
-	cache         *cache.Cache
 	pending       atomic.Int32
 	lastRefreshed atomic.Value
 	refresh       chan storage.Feed
@@ -37,7 +35,6 @@ func New(db *storage.Storage) *Server {
 	s := &Server{
 		db:      db,
 		client:  &http.Client{Timeout: 30 * time.Second},
-		cache:   cache.NewCache(cache.NewLRU()),
 		refresh: make(chan storage.Feed),
 		context: context.Background(),
 		cancel:  func() {},
@@ -52,6 +49,7 @@ func (s *Server) Start() {
 	go func() {
 		for {
 			s.db.DeleteOldItems()
+			s.db.PurgeCache()
 			s.db.Vacuum()
 			s.db.Optimize()
 			time.Sleep(24 * time.Hour)

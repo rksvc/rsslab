@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"path"
 	"reflect"
+	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
 	"time"
@@ -110,21 +111,18 @@ var native = map[string]moduleLoader{
 				if maxAge != nil {
 					ttl = time.Duration(*maxAge) * time.Second
 				}
-				v, err := r.r.cache.TryGet(key, ttl, ex == nil || *ex, func() (any, error) {
+				val, err := r.r.s.TryGet(storage.CONTENT, key, ttl, ex == nil || *ex, func() ([]byte, error) {
 					var w wait
 					w.Add(1)
 					r.jobs <- func() { w.Await(r.vm, f()) }
 					w.Wait()
-					return w.Value, w.Err
+					if w.Err != nil {
+						return nil, w.Err
+					}
+					return json.Marshal(w.Value)
 				})
 				var data any
-				if err == nil {
-					if b, ok := v.([]byte); !ok {
-						data = v
-					} else if json.Unmarshal(b, &data) != nil {
-						data = utils.BytesToString(b)
-					}
-				}
+				err = json.Unmarshal(utils.StringToBytes(val), &data)
 				r.jobs <- func() {
 					if err == nil {
 						resolve(data)
