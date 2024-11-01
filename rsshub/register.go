@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	pathpkg "path"
+	"regexp"
 	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
@@ -14,6 +15,8 @@ import (
 	"github.com/dop251/goja"
 	"github.com/gofiber/fiber/v2"
 )
+
+var regexpCons = regexp.MustCompile(`{.*?}`)
 
 func (r *RSSHub) Register(app *fiber.App) error {
 	val, err := r.s.TryGet(storage.SRC, r.routesUrl, srcExpire, false, func() ([]byte, error) {
@@ -37,10 +40,10 @@ func (r *RSSHub) Register(app *fiber.App) error {
 		return err
 	}
 
-	var total, cnt int
+	var cnt int
 	for namespace, routes := range routes {
 		group := app.Group(namespace)
-		total += len(routes.Routes)
+		cnt += len(routes.Routes)
 	register:
 		for path, route := range routes.Routes {
 			register := func(path, extraParam, key string) {
@@ -97,9 +100,7 @@ func (r *RSSHub) Register(app *fiber.App) error {
 					{"{.*}?", "*"},
 				} {
 					if before, found := strings.CutSuffix(path, pk.pattern); found {
-						if strings.ContainsRune(before, '{') {
-							break
-						}
+						before = regexpCons.ReplaceAllLiteralString(before, "")
 						i := strings.LastIndexByte(before, '/')
 						var extraParam string
 						if after, found := strings.CutPrefix(before[i+1:], ":"); found {
@@ -109,12 +110,12 @@ func (r *RSSHub) Register(app *fiber.App) error {
 						continue register
 					}
 				}
-				log.Printf("skipped %s%s", namespace, path)
+				register(regexpCons.ReplaceAllLiteralString(path, ""), "", "")
 			} else {
 				register(path, "", "")
 			}
 		}
 	}
-	log.Printf("registered %d routes, skipped %d", cnt, total-cnt)
+	log.Printf("registered %d routes", cnt)
 	return nil
 }
