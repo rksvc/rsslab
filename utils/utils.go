@@ -69,12 +69,15 @@ func IsAPossibleLink(s string) bool {
 }
 
 func AbsoluteUrl(href, base string) string {
-	baseUrl, err := url.Parse(base)
+	hrefUrl, err := url.Parse(href)
 	if err != nil {
 		return ""
 	}
-	hrefUrl, err := url.Parse(href)
+	baseUrl, err := url.Parse(base)
 	if err != nil {
+		if hrefUrl.IsAbs() {
+			return href
+		}
 		return ""
 	}
 	return baseUrl.ResolveReference(hrefUrl).String()

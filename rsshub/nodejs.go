@@ -62,16 +62,22 @@ var native = map[string]moduleLoader{
 			return r.vm.ToValue(r.vm.InstanceOf(call.Argument(0), buffer))
 		})
 	},
-	"tty": func(module *goja.Object, r *requireModule) {
-		module.Get("exports").ToObject(r.vm).Set("isatty", func() bool { return false })
-	},
-	"fs": func(module *goja.Object, r *requireModule) {
-		module.Get("exports").ToObject(r.vm).Set("existsSync", func() bool { return false })
-	},
 
 	// RSSHub dependencies
 	"dotenv/config": func(_ *goja.Object, _ *requireModule) {},
 	"ofetch":        func(_ *goja.Object, _ *requireModule) {},
+	"sanitize-html": func(module *goja.Object, r *requireModule) {
+		sanitize := r.vm.ToValue(func(input string, opts *goja.Object) string {
+			if opts == nil || opts.Get("allowedTags").ToObject(r.vm).Get("length").ToBoolean() {
+				return utils.Sanitize("", input)
+			}
+			return utils.ExtractText(input)
+		})
+		sanitize.ToObject(r.vm).Set("defaults", map[string]any{
+			"allowedTags": r.vm.NewArray(),
+		})
+		module.Set("exports", sanitize)
+	},
 
 	// RSSHub source files
 	"@/types": func(module *goja.Object, r *requireModule) {

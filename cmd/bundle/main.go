@@ -71,7 +71,6 @@ func main() {
 			{InputPath: "../node_modules/markdown-it", OutputPath: "third_party/markdown-it"},
 			{InputPath: "../node_modules/query-string", OutputPath: "third_party/query-string"},
 			{InputPath: "../node_modules/query-string", OutputPath: "third_party/querystring"},
-			{InputPath: "../node_modules/sanitize-html", OutputPath: "third_party/sanitize-html"},
 		},
 		Outdir:   ".",
 		External: []string{"html-minifier"},
