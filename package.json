@@ -14,7 +14,6 @@
     "@blueprintjs/icons": "^5.13.0",
     "art-template": "^4.13.2",
     "cheerio": "^1.0.0",
-    "crypto-js": "^4.2.0",
     "dayjs": "^1.11.13",
     "lz-string": "^1.5.0",
     "markdown-it": "^14.1.0",

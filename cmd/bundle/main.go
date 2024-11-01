@@ -67,7 +67,6 @@ func main() {
 		EntryPointsAdvanced: []api.EntryPoint{
 			{InputPath: "../node_modules/art-template/lib", OutputPath: "third_party/art-template"},
 			{InputPath: "../node_modules/cheerio/dist/browser", OutputPath: "third_party/cheerio"},
-			{InputPath: "../node_modules/crypto-js", OutputPath: "third_party/crypto-js"},
 			{InputPath: "../node_modules/lz-string", OutputPath: "third_party/lz-string"},
 			{InputPath: "../node_modules/markdown-it", OutputPath: "third_party/markdown-it"},
 			{InputPath: "../node_modules/query-string", OutputPath: "third_party/query-string"},
