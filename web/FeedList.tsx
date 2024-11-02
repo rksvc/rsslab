@@ -772,6 +772,7 @@ export default function FeedList({
             })
             await Promise.all([refreshFeeds(), refreshStats(false)])
             setSelected(`feed:${feed.id}`)
+            setNewFeedLink('')
           } finally {
             setCreatingNewFeed(false)
           }
