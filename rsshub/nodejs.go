@@ -128,7 +128,9 @@ var native = map[string]moduleLoader{
 					return json.Marshal(w.Value)
 				})
 				var data any
-				err = json.Unmarshal(utils.StringToBytes(val), &data)
+				if err == nil {
+					err = json.Unmarshal(utils.StringToBytes(val), &data)
+				}
 				r.jobs <- func() {
 					if err == nil {
 						resolve(data)
