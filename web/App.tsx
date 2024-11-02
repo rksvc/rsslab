@@ -1,5 +1,5 @@
 import { Alert, Divider, FocusStyleManager } from '@blueprintjs/core'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import FeedList from './FeedList'
 import ItemList from './ItemList'
 import ItemShow from './ItemShow'
@@ -13,7 +13,7 @@ import type {
   Stats,
   Status,
 } from './types'
-import type { Xfetch } from './utils'
+import { xfetch } from './utils'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 
@@ -34,34 +34,13 @@ export default function App() {
   const contentRef = useRef<HTMLDivElement>(null)
 
   const [alerts, setAlerts] = useState<string[]>([])
-
-  const xfetch: Xfetch = useCallback(
-    async <T,>(url: string, options?: RequestInit): Promise<T | unknown> => {
-      if (typeof options?.body === 'string')
-        options.headers = { 'Content-Type': 'application/json' }
-      try {
-        const response = await fetch(url, options)
-        const text = await response.text()
-        if (response.ok) return text && text !== 'OK' && JSON.parse(text)
-        throw new Error(text || `${response.status} ${response.statusText}`)
-      } catch (error) {
-        setAlerts(alerts => [...alerts, String(error)])
-        throw error
-      }
-    },
-    [],
-  )
-  const tryDo = useCallback(
-    (fn: () => Promise<unknown>) => async () => {
-      try {
-        await fn()
-      } catch (error) {
-        setAlerts(alerts => [...alerts, String(error)])
-        throw error
-      }
-    },
-    [],
-  )
+  const caughtErrors = useRef(new Set<any>())
+  window.addEventListener('unhandledrejection', evt => {
+    if (!caughtErrors.current.has(evt.reason)) {
+      caughtErrors.current.add(evt.reason)
+      setAlerts(alerts => [...alerts, String(evt.reason)])
+    }
+  })
 
   const refreshFeeds = async () => {
     const [folders, feeds, settings] = await Promise.all([
@@ -143,9 +122,6 @@ export default function App() {
     foldersWithFeeds,
     feedsWithoutFolders,
     feedsById,
-
-    xfetch,
-    tryDo,
   }
 
   return (

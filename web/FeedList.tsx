@@ -52,7 +52,6 @@ import {
 import { Dialog } from './Dialog'
 import type { Feed, Folder, FolderWithFeeds, Settings, Stats, Status } from './types'
 import {
-  type Xfetch,
   cn,
   iconProps,
   length,
@@ -60,6 +59,7 @@ import {
   panelStyle,
   popoverProps,
   statusBarStyle,
+  xfetch,
 } from './utils'
 
 const textAreaProps = {
@@ -88,9 +88,6 @@ export default function FeedList({
   foldersWithFeeds,
   feedsWithoutFolders,
   feedsById,
-
-  xfetch,
-  tryDo,
 }: {
   filter: string
   setFilter: Dispatch<SetStateAction<string>>
@@ -109,9 +106,6 @@ export default function FeedList({
   foldersWithFeeds?: FolderWithFeeds[]
   feedsWithoutFolders?: Feed[]
   feedsById: Map<number, Feed>
-
-  xfetch: Xfetch
-  tryDo: (fn: () => Promise<unknown>) => () => Promise<void>
 }) {
   const [type, id] = selected.split(':')
   const defaultSelectedFolder =
@@ -689,8 +683,8 @@ export default function FeedList({
             onClick={() => setShowHelper(showHelper => !showHelper)}
           />
         }
-        callback={tryDo(async () => {
-          if (!newFeedLink) throw 'Feed link is required'
+        callback={async () => {
+          if (!newFeedLink) throw new Error('Feed link is required')
           if (!selectedFolderRef.current) return
           setCreatingNewFeed(true)
           try {
@@ -708,7 +702,7 @@ export default function FeedList({
           } finally {
             setCreatingNewFeed(false)
           }
-        })}
+        }}
       >
         <div style={{ display: 'flex' }}>
           <TextArea
@@ -782,9 +776,9 @@ export default function FeedList({
         isOpen={newFolderDialogOpen}
         close={() => setNewFolderDialogOpen(false)}
         title="New Folder"
-        callback={tryDo(async () => {
+        callback={async () => {
           const title = newFolderTitleRef.current?.value
-          if (!title) throw 'Folder title is required'
+          if (!title) throw new Error('Folder title is required')
           setCreatingNewFolder(true)
           try {
             const folder = await xfetch<Folder>('api/folders', {
@@ -802,7 +796,7 @@ export default function FeedList({
           } finally {
             setCreatingNewFolder(false)
           }
-        })}
+        }}
       >
         <TextArea inputRef={newFolderTitleRef} {...textAreaProps} />
       </Dialog>
@@ -834,13 +828,13 @@ export default function FeedList({
         isOpen={renameFeed}
         close={() => setRenameFeed(undefined)}
         title="Rename Feed"
-        callback={tryDo(async () => {
+        callback={async () => {
           if (!renameFeed) return
           const title = feedTitleRef.current?.value
-          if (!title) throw 'Feed name is required'
+          if (!title) throw new Error('Feed name is required')
           if (title !== renameFeed.title)
             await updateFeedAttr(renameFeed.id, 'title', title)
-        })}
+        }}
       >
         <TextArea
           defaultValue={renameFeed?.title}
@@ -852,13 +846,13 @@ export default function FeedList({
         isOpen={changeLink}
         close={() => setChangeLink(undefined)}
         title="Change Feed Link"
-        callback={tryDo(async () => {
+        callback={async () => {
           if (!changeLink) return
           const feedLink = feedLinkRef.current?.value
-          if (!feedLink) throw 'Feed link is required'
+          if (!feedLink) throw new Error('Feed link is required')
           if (feedLink !== changeLink.feed_link)
             await updateFeedAttr(changeLink.id, 'feed_link', feedLink)
-        })}
+        }}
       >
         <TextArea
           defaultValue={changeLink?.feed_link}
@@ -887,10 +881,10 @@ export default function FeedList({
         isOpen={renameFolder}
         close={() => setRenameFolder(undefined)}
         title="Rename Folder"
-        callback={tryDo(async () => {
+        callback={async () => {
           if (!renameFolder) return
           const title = folderTitleRef.current?.value
-          if (!title) throw 'Folder title is required'
+          if (!title) throw new Error('Folder title is required')
           if (title !== renameFolder.title) {
             await xfetch(`api/folders/${renameFolder.id}`, {
               method: 'PUT',
@@ -902,7 +896,7 @@ export default function FeedList({
               ),
             )
           }
-        })}
+        }}
       >
         <TextArea
           defaultValue={renameFolder?.title}
