@@ -16,6 +16,7 @@ import {
   MenuItem,
   NumericInput,
   Popover,
+  RadioGroup,
   Spinner,
   TextArea,
   Tree,
@@ -127,132 +128,204 @@ export default function FeedList({
   const [deleteFolder, setDeleteFolder] = useState<Folder>()
 
   const [showHelper, setShowHelper] = useState(false)
-  const transBase = 'rsshub:rsshub/transform/html/'
+  const [helperType, setHelperType] = useState('html')
   const transUrl = useRef<HTMLInputElement>(null)
-  const transTitle = useRef<HTMLInputElement>(null)
-  const transItem = useRef<HTMLInputElement>(null)
-  const transItemTitle = useRef<HTMLInputElement>(null)
-  const transItemTitleAttr = useRef<HTMLInputElement>(null)
-  const transItemLink = useRef<HTMLInputElement>(null)
-  const transItemLinkAttr = useRef<HTMLInputElement>(null)
-  const transItemDesc = useRef<HTMLInputElement>(null)
-  const transItemDescAttr = useRef<HTMLInputElement>(null)
-  const transItemPubDate = useRef<HTMLInputElement>(null)
-  const transItemPubDateAttr = useRef<HTMLInputElement>(null)
-  const transItemContent = useRef<HTMLInputElement>(null)
-  const transEncoding = useRef<HTMLInputElement>(null)
-  const transParams = [
+  const transHtmlBase = 'rsshub:rsshub/transform/html/'
+  const transHtmlTitle = useRef<HTMLInputElement>(null)
+  const transHtmlItem = useRef<HTMLInputElement>(null)
+  const transHtmlItemTitle = useRef<HTMLInputElement>(null)
+  const transHtmlItemTitleAttr = useRef<HTMLInputElement>(null)
+  const transHtmlItemLink = useRef<HTMLInputElement>(null)
+  const transHtmlItemLinkAttr = useRef<HTMLInputElement>(null)
+  const transHtmlItemDesc = useRef<HTMLInputElement>(null)
+  const transHtmlItemDescAttr = useRef<HTMLInputElement>(null)
+  const transHtmlItemPubDate = useRef<HTMLInputElement>(null)
+  const transHtmlItemPubDateAttr = useRef<HTMLInputElement>(null)
+  const transHtmlItemContent = useRef<HTMLInputElement>(null)
+  const transHtmlEncoding = useRef<HTMLInputElement>(null)
+  const transJsonBase = 'rsshub:rsshub/transform/json/'
+  const transJsonTitle = useRef<HTMLInputElement>(null)
+  const transJsonItem = useRef<HTMLInputElement>(null)
+  const transJsonItemTitle = useRef<HTMLInputElement>(null)
+  const transJsonItemLink = useRef<HTMLInputElement>(null)
+  const transJsonItemLinkPrefix = useRef<HTMLInputElement>(null)
+  const transJsonItemDesc = useRef<HTMLInputElement>(null)
+  const transJsonItemPubDate = useRef<HTMLInputElement>(null)
+  const transHtmlParams = [
     {
-      ref: transTitle,
+      ref: transHtmlTitle,
       key: 'title',
-      desc: <span>Title of RSS</span>,
+      desc: 'Title of RSS',
       placeholder: 'extracted from <title>',
     },
     {
-      ref: transItem,
+      ref: transHtmlItem,
       key: 'item',
       desc: (
         <span>
-          HTML elements as <Code>item</Code> by CSS selector
+          CSS selector targetting <Code>item</Code>
         </span>
       ),
       placeholder: 'html',
     },
     {
-      ref: transItemTitle,
+      ref: transHtmlItemTitle,
       key: 'itemTitle',
       desc: (
         <span>
-          HTML element as <Code>title</Code> in <Code>item</Code> by CSS selector
+          CSS selector targetting <Code>title</Code> in <Code>item</Code>
         </span>
       ),
       placeholder: 'same as item element',
     },
     {
-      ref: transItemTitleAttr,
+      ref: transHtmlItemTitleAttr,
       key: 'itemTitleAttr',
       desc: (
         <span>
-          Attribute of <Code>title</Code> element as title
+          Attribute of <Code>itemTitle</Code> element as <Code>title</Code>
         </span>
       ),
       placeholder: 'element text',
     },
     {
-      ref: transItemLink,
+      ref: transHtmlItemLink,
       key: 'itemLink',
       desc: (
         <span>
-          HTML element as <Code>link</Code> in <Code>item</Code> by CSS selector
+          CSS selector targetting <Code>link</Code> in <Code>item</Code>
         </span>
       ),
       placeholder: 'same as item element',
     },
     {
-      ref: transItemLinkAttr,
+      ref: transHtmlItemLinkAttr,
       key: 'itemLinkAttr',
       desc: (
         <span>
-          Attribute of <Code>link</Code> element as link
+          Attribute of <Code>itemLink</Code> element as <Code>link</Code>
         </span>
       ),
       placeholder: 'href',
     },
     {
-      ref: transItemDesc,
+      ref: transHtmlItemDesc,
       key: 'itemDesc',
       desc: (
         <span>
-          HTML element as <Code>descrption</Code> in <Code>item</Code> by CSS selector
+          CSS selector targetting <Code>descrption</Code> in <Code>item</Code>
         </span>
       ),
       placeholder: 'same as item element',
     },
     {
-      ref: transItemDescAttr,
+      ref: transHtmlItemDescAttr,
       key: 'itemDescAttr',
       desc: (
         <span>
-          Attribute of <Code>descrption</Code> element as description
+          Attribute of <Code>itemDesc</Code> element as <Code>description</Code>
         </span>
       ),
       placeholder: 'element html',
     },
     {
-      ref: transItemPubDate,
+      ref: transHtmlItemPubDate,
       key: 'itemPubDate',
       desc: (
         <span>
-          HTML element as <Code>pubDate</Code> in <Code>item</Code> by CSS selector
+          CSS selector targetting <Code>pubDate</Code> in <Code>item</Code>
         </span>
       ),
       placeholder: 'same as item element',
     },
     {
-      ref: transItemPubDateAttr,
+      ref: transHtmlItemPubDateAttr,
       key: 'itemPubDateAttr',
       desc: (
         <span>
-          Attribute of <Code>pubDate</Code> element as pubDate
+          Attribute of <Code>itemPubDate</Code> element as <Code>pubDate</Code>
         </span>
       ),
       placeholder: 'element html',
     },
     {
-      ref: transItemContent,
+      ref: transHtmlItemContent,
       key: 'itemContent',
       desc: (
         <span>
-          HTML elements in <Code>link</Code> page as <Code>description</Code> in{' '}
-          <Code>item</Code> by CSS selector for full text output
+          CSS selector targetting <Code>description</Code> in <Code>link</Code> page for
+          full text output
         </span>
       ),
     },
     {
-      ref: transEncoding,
+      ref: transHtmlEncoding,
       key: 'encoding',
       desc: 'Encoding of HTML content',
       placeholder: 'utf-8',
+    },
+  ]
+  const transJsonParams = [
+    {
+      ref: transJsonTitle,
+      key: 'title',
+      desc: 'Title of RSS',
+      placeholder: 'extracted from home page of current domain',
+    },
+    {
+      ref: transJsonItem,
+      key: 'item',
+      desc: (
+        <span>
+          JSON path to <Code>item</Code> element
+        </span>
+      ),
+      placeholder: 'entire JSON response',
+    },
+    {
+      ref: transJsonItemTitle,
+      key: 'itemTitle',
+      desc: (
+        <span>
+          JSON path to <Code>title</Code> in <Code>item</Code>
+        </span>
+      ),
+    },
+    {
+      ref: transJsonItemLink,
+      key: 'itemLink',
+      desc: (
+        <span>
+          JSON path to <Code>link</Code> in <Code>item</Code>
+        </span>
+      ),
+    },
+    {
+      ref: transJsonItemLinkPrefix,
+      key: 'itemLinkPrefix',
+      desc: (
+        <span>
+          Optional prefix for <Code>itemLink</Code> value
+        </span>
+      ),
+    },
+    {
+      ref: transJsonItemDesc,
+      key: 'itemDesc',
+      desc: (
+        <span>
+          JSON path to <Code>description</Code> in <Code>item</Code>
+        </span>
+      ),
+    },
+    {
+      ref: transJsonItemPubDate,
+      key: 'itemPubDate',
+      desc: (
+        <span>
+          JSON path to <Code>pubDate</Code> in <Code>item</Code>
+        </span>
+      ),
     },
   ]
 
@@ -728,6 +801,17 @@ export default function FeedList({
         </div>
         <Collapse isOpen={showHelper} keepChildrenMounted>
           <Divider style={{ marginTop: length(5), marginBottom: length(5) }} />
+          <div style={{ textAlign: 'center' }}>
+            <RadioGroup
+              onChange={evt => setHelperType(evt.currentTarget.value)}
+              selectedValue={helperType}
+              options={[
+                { value: 'html', label: 'HTML Transformer' },
+                { value: 'json', label: 'JSON Transformer' },
+              ]}
+              inline
+            />
+          </div>
           {[
             {
               ref: transUrl,
@@ -735,29 +819,32 @@ export default function FeedList({
               desc: undefined,
               placeholder: 'https://example.com',
             },
-            ...transParams,
+            ...(helperType === 'html' ? transHtmlParams : transJsonParams),
           ].map(({ ref, key, desc, placeholder }) => (
             <FormGroup
-              key={key}
+              key={`${helperType}_${key}`}
               label={<Code>{key}</Code>}
-              labelFor={key}
+              labelFor={`${helperType}_${key}`}
               labelInfo={<span style={{ fontSize: '0.9em' }}>{desc}</span>}
               fill
             >
               <InputGroup
-                id={key}
+                id={`${helperType}_${key}`}
                 placeholder={placeholder}
                 inputRef={ref}
                 onValueChange={() => {
+                  const base = helperType === 'html' ? transHtmlBase : transJsonBase
                   const url = encodeURIComponent(transUrl.current?.value ?? '')
-                  const params = transParams
+                  const params = (
+                    helperType === 'html' ? transHtmlParams : transJsonParams
+                  )
                     .filter(({ ref }) => ref.current?.value)
                     .map(
                       ({ key, ref }) =>
                         `${key}=${encodeURIComponent(ref.current!.value)}`,
                     )
                     .join('&')
-                  setNewFeedLink(`${transBase}${url}/${params}`)
+                  setNewFeedLink(`${base}${url}/${params}`)
                 }}
                 round
               />
@@ -765,10 +852,10 @@ export default function FeedList({
           ))}
           Docs:{' '}
           <a
-            href="https://docs.rsshub.app/zh/routes/other#transformation-html"
+            href={`https://docs.rsshub.app/zh/routes/other#transformation-${helperType}`}
             target="_blank"
           >
-            https://docs.rsshub.app/zh/routes/other#transformation-html
+            https://docs.rsshub.app/zh/routes/other#transformation-{helperType}
           </a>
         </Collapse>
       </Dialog>
