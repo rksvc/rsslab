@@ -4,6 +4,7 @@ package rsshub
 import (
 	_ "embed"
 	"errors"
+	"log"
 	"rsslab/utils"
 	"sync"
 
@@ -135,6 +136,12 @@ func (r *RSSHub) handle(path string, ctx *ctx) (any, error) {
 	exports := url.ToObject(vm)
 	vm.Set("URL", exports.Get("URL"))
 	vm.Set("URLSearchParams", exports.Get("URLSearchParams"))
+
+	console := vm.NewObject()
+	console.Set("log", func(args ...any) {
+		log.Print(args...)
+	})
+	vm.Set("console", console)
 
 	val, err := vm.RunProgram(handlerPrg)
 	if err != nil {
