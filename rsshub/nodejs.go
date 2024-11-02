@@ -78,6 +78,12 @@ var native = map[string]moduleLoader{
 		})
 		module.Set("exports", sanitize)
 	},
+	// specifically for /copymanga/comic
+	"tiny-async-pool": func(module *goja.Object, r *requireModule) {
+		module.Set("exports", func() goja.Value {
+			return r.vm.NewArray()
+		})
+	},
 
 	// RSSHub source files
 	"@/types": func(module *goja.Object, r *requireModule) {
