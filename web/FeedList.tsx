@@ -1,11 +1,15 @@
 import {
   Button,
   ButtonGroup,
+  Code,
+  Collapse,
   ContextMenu,
   type ContextMenuChildrenProps,
   Divider,
   FileInput,
+  FormGroup,
   HTMLSelect,
+  InputGroup,
   Intent,
   Menu,
   MenuDivider,
@@ -127,8 +131,139 @@ export default function FeedList({
   const [deleteFeed, setDeleteFeed] = useState<Feed>()
   const [renameFolder, setRenameFolder] = useState<Folder>()
   const [deleteFolder, setDeleteFolder] = useState<Folder>()
+
+  const [showHelper, setShowHelper] = useState(false)
+  const transBase = 'rsshub:rsshub/transform/html/'
+  const transUrl = useRef<HTMLInputElement>(null)
+  const transTitle = useRef<HTMLInputElement>(null)
+  const transItem = useRef<HTMLInputElement>(null)
+  const transItemTitle = useRef<HTMLInputElement>(null)
+  const transItemTitleAttr = useRef<HTMLInputElement>(null)
+  const transItemLink = useRef<HTMLInputElement>(null)
+  const transItemLinkAttr = useRef<HTMLInputElement>(null)
+  const transItemDesc = useRef<HTMLInputElement>(null)
+  const transItemDescAttr = useRef<HTMLInputElement>(null)
+  const transItemPubDate = useRef<HTMLInputElement>(null)
+  const transItemPubDateAttr = useRef<HTMLInputElement>(null)
+  const transItemContent = useRef<HTMLInputElement>(null)
+  const transEncoding = useRef<HTMLInputElement>(null)
+  const transParams = [
+    {
+      ref: transTitle,
+      key: 'title',
+      desc: <span>Title of RSS</span>,
+      placeholder: 'extracted from <title>',
+    },
+    {
+      ref: transItem,
+      key: 'item',
+      desc: (
+        <span>
+          HTML elements as <Code>item</Code> by CSS selector
+        </span>
+      ),
+      placeholder: 'html',
+    },
+    {
+      ref: transItemTitle,
+      key: 'itemTitle',
+      desc: (
+        <span>
+          HTML element as <Code>title</Code> in <Code>item</Code> by CSS selector
+        </span>
+      ),
+      placeholder: 'same as item element',
+    },
+    {
+      ref: transItemTitleAttr,
+      key: 'itemTitleAttr',
+      desc: (
+        <span>
+          Attribute of <Code>title</Code> element as title
+        </span>
+      ),
+      placeholder: 'element text',
+    },
+    {
+      ref: transItemLink,
+      key: 'itemLink',
+      desc: (
+        <span>
+          HTML element as <Code>link</Code> in <Code>item</Code> by CSS selector
+        </span>
+      ),
+      placeholder: 'same as item element',
+    },
+    {
+      ref: transItemLinkAttr,
+      key: 'itemLinkAttr',
+      desc: (
+        <span>
+          Attribute of <Code>link</Code> element as link
+        </span>
+      ),
+      placeholder: 'href',
+    },
+    {
+      ref: transItemDesc,
+      key: 'itemDesc',
+      desc: (
+        <span>
+          HTML element as <Code>descrption</Code> in <Code>item</Code> by CSS selector
+        </span>
+      ),
+      placeholder: 'same as item element',
+    },
+    {
+      ref: transItemDescAttr,
+      key: 'itemDescAttr',
+      desc: (
+        <span>
+          Attribute of <Code>descrption</Code> element as description
+        </span>
+      ),
+      placeholder: 'element html',
+    },
+    {
+      ref: transItemPubDate,
+      key: 'itemPubDate',
+      desc: (
+        <span>
+          HTML element as <Code>pubDate</Code> in <Code>item</Code> by CSS selector
+        </span>
+      ),
+      placeholder: 'same as item element',
+    },
+    {
+      ref: transItemPubDateAttr,
+      key: 'itemPubDateAttr',
+      desc: (
+        <span>
+          Attribute of <Code>pubDate</Code> element as pubDate
+        </span>
+      ),
+      placeholder: 'element html',
+    },
+    {
+      ref: transItemContent,
+      key: 'itemContent',
+      desc: (
+        <span>
+          HTML elements in <Code>link</Code> page as <Code>description</Code> in{' '}
+          <Code>item</Code> by CSS selector for full text output
+        </span>
+      ),
+    },
+    {
+      ref: transEncoding,
+      key: 'encoding',
+      desc: 'Encoding of HTML content',
+      placeholder: 'utf-8',
+    },
+  ]
+
   const menuRef = useRef<HTMLButtonElement>(null)
-  const newFeedLinkRef = useRef<HTMLTextAreaElement>(null)
+  const [newFeedLink, setNewFeedLink] = useState('')
   const selectedFolderRef = useRef<HTMLSelectElement>(null)
   const newFolderTitleRef = useRef<HTMLTextAreaElement>(null)
   const refreshRateRef = useRef<HTMLInputElement>(null)
@@ -548,16 +683,21 @@ export default function FeedList({
         isOpen={newFeedDialogOpen}
         close={() => setNewFeedDialogOpen(false)}
         title="New Feed"
+        extraAction={
+          <Button
+            text={showHelper ? 'Hide helper' : 'Show helper'}
+            onClick={() => setShowHelper(showHelper => !showHelper)}
+          />
+        }
         callback={tryDo(async () => {
-          const url = newFeedLinkRef.current?.value
-          if (!url) throw 'Feed link is required'
+          if (!newFeedLink) throw 'Feed link is required'
           if (!selectedFolderRef.current) return
           setCreatingNewFeed(true)
           try {
             const feed = await xfetch<Feed>('api/feeds', {
               method: 'POST',
               body: JSON.stringify({
-                url,
+                url: newFeedLink,
                 folder_id: selectedFolderRef.current.value
                   ? Number.parseInt(selectedFolderRef.current.value)
                   : null,
@@ -573,7 +713,8 @@ export default function FeedList({
         <div style={{ display: 'flex' }}>
           <TextArea
             placeholder="https://example.com/feed"
-            inputRef={newFeedLinkRef}
+            value={newFeedLink}
+            onChange={evt => setNewFeedLink(evt.target.value)}
             spellCheck={false}
             {...textAreaProps}
           />
@@ -591,6 +732,51 @@ export default function FeedList({
             ref={selectedFolderRef}
           />
         </div>
+        <Collapse isOpen={showHelper} keepChildrenMounted>
+          <Divider style={{ marginTop: length(5), marginBottom: length(5) }} />
+          {[
+            {
+              ref: transUrl,
+              key: 'url',
+              desc: undefined,
+              placeholder: 'https://example.com',
+            },
+            ...transParams,
+          ].map(({ ref, key, desc, placeholder }) => (
+            <FormGroup
+              key={key}
+              label={<Code>{key}</Code>}
+              labelFor={key}
+              labelInfo={<span style={{ fontSize: '0.9em' }}>{desc}</span>}
+              fill
+            >
+              <InputGroup
+                id={key}
+                placeholder={placeholder}
+                inputRef={ref}
+                onValueChange={() => {
+                  const url = encodeURIComponent(transUrl.current?.value ?? '')
+                  const params = transParams
+                    .filter(({ ref }) => ref.current?.value)
+                    .map(
+                      ({ key, ref }) =>
+                        `${key}=${encodeURIComponent(ref.current!.value)}`,
+                    )
+                    .join('&')
+                  setNewFeedLink(`${transBase}${url}/${params}`)
+                }}
+                round
+              />
+            </FormGroup>
+          ))}
+          Docs:{' '}
+          <a
+            href="https://docs.rsshub.app/zh/routes/other#transformation-html"
+            target="_blank"
+          >
+            https://docs.rsshub.app/zh/routes/other#transformation-html
+          </a>
+        </Collapse>
       </Dialog>
       <Dialog
         isOpen={newFolderDialogOpen}

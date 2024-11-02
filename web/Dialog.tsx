@@ -13,6 +13,7 @@ export function Dialog<T>({
   title,
   callback,
   children,
+  extraAction,
   intent = Intent.PRIMARY,
 }: {
   isOpen: T
@@ -20,6 +21,7 @@ export function Dialog<T>({
   title: string
   callback: () => Promise<void>
   children: ReactNode
+  extraAction?: ReactNode
   intent?: Intent
 }) {
   const [loading, setLoading] = useState(false)
@@ -59,6 +61,7 @@ export function Dialog<T>({
       <DialogFooter
         actions={
           <>
+            {extraAction}
             <Button text="Cancel" onClick={close} />
             <Button intent={intent} loading={loading} text="OK" onClick={onConfirm} />
           </>
