@@ -58,7 +58,7 @@ type wait struct {
 	Err   error
 }
 
-func (w *wait) Await(vm *goja.Runtime, promise goja.Value) {
+func (w *wait) ThenDone(vm *goja.Runtime, promise goja.Value) {
 	then, _ := goja.AssertFunction(promise.ToObject(vm).Get("then"))
 	_, err := then(promise, vm.ToValue(func(value goja.Value) {
 		w.Value = value.Export()
@@ -151,13 +151,12 @@ func (r *RSSHub) handle(path string, ctx *ctx) (any, error) {
 	var w wait
 	w.Add(1)
 	jobs <- func() {
-		defer w.Done()
 		val, w.Err = handler(goja.Undefined(), vm.ToValue(path), vm.ToValue(ctx))
 		if w.Err != nil {
+			w.Done()
 			return
 		}
-		w.Add(1)
-		w.Await(vm, val)
+		w.ThenDone(vm, val)
 	}
 	w.Wait()
 	close(jobs)

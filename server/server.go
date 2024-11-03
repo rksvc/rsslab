@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -26,8 +25,7 @@ type Server struct {
 	lastRefreshed atomic.Value
 	refresh       chan storage.Feed
 	ticker        *time.Ticker
-	context       context.Context
-	cancel        context.CancelFunc
+	cancel        chan struct{}
 	mu            sync.Mutex
 }
 
@@ -36,8 +34,7 @@ func New(db *storage.Storage) *Server {
 		db:      db,
 		client:  &http.Client{Timeout: 30 * time.Second},
 		refresh: make(chan storage.Feed),
-		context: context.Background(),
-		cancel:  func() {},
+		cancel:  make(chan struct{}),
 	}
 	for range 10 {
 		go s.worker()
@@ -103,8 +100,8 @@ func (s *Server) FindFeedFavicon(feed storage.Feed) {
 
 func (s *Server) SetRefreshRate(minute int) {
 	s.mu.Lock()
-	s.cancel()
-	s.context, s.cancel = context.WithCancel(context.Background())
+	close(s.cancel)
+	s.cancel = make(chan struct{})
 	if minute <= 0 {
 		if s.ticker != nil {
 			s.ticker.Stop()
@@ -118,6 +115,7 @@ func (s *Server) SetRefreshRate(minute int) {
 	} else {
 		s.ticker = time.NewTicker(d)
 	}
+	cancel := s.cancel
 	s.mu.Unlock()
 
 	log.Printf("auto-refresh %dm: starting", minute)
@@ -126,7 +124,7 @@ func (s *Server) SetRefreshRate(minute int) {
 		case <-s.ticker.C:
 			log.Printf("auto-refresh %dm: firing", minute)
 			go s.RefreshAllFeeds()
-		case <-s.context.Done():
+		case <-cancel:
 			log.Printf("auto-refresh %dm: stopping", minute)
 			return
 		}

@@ -126,7 +126,7 @@ var native = map[string]moduleLoader{
 				val, err := r.r.s.TryGet(storage.CONTENT, key, ttl, ex == nil || *ex, func() ([]byte, error) {
 					var w wait
 					w.Add(1)
-					r.jobs <- func() { w.Await(r.vm, f()) }
+					r.jobs <- func() { w.ThenDone(r.vm, f()) }
 					w.Wait()
 					if w.Err != nil {
 						return nil, w.Err
