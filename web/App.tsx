@@ -67,8 +67,10 @@ export default function App() {
         Object.entries(stats).map(([id, stats]) => [Number.parseInt(id), stats]),
       ),
     })
-    setItemsOutdated(true)
-    if (loop && running) setTimeout(() => refreshStats(), 500)
+    if (loop) {
+      setItemsOutdated(true)
+      if (running) setTimeout(() => refreshStats(), 500)
+    }
   }
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds):
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats):
