@@ -76,11 +76,11 @@ var native = map[string]moduleLoader{
 		sanitize.ToObject(r.vm).Set("defaults", map[string]any{
 			"allowedTags": r.vm.NewArray(),
 		})
-		module.Set("exports", sanitize)
+		module.Get("exports").ToObject(r.vm).Set("default", sanitize)
 	},
 	// specifically for /copymanga/comic
 	"tiny-async-pool": func(module *goja.Object, r *requireModule) {
-		module.Set("exports", func() goja.Value {
+		module.Get("exports").ToObject(r.vm).Set("default", func() goja.Value {
 			return r.vm.NewArray()
 		})
 	},
@@ -89,22 +89,25 @@ var native = map[string]moduleLoader{
 	"@/types": func(module *goja.Object, r *requireModule) {
 		module.Get("exports").ToObject(r.vm).Set("ViewType", r.vm.NewObject())
 	},
-	"@/utils/md5": func(module *goja.Object, _ *requireModule) {
-		module.Set("exports", func(data string) string { return fmt.Sprintf("%x", md5.Sum(utils.StringToBytes(data))) })
+	"@/utils/md5": func(module *goja.Object, r *requireModule) {
+		module.Get("exports").ToObject(r.vm).Set("default", func(data string) string {
+			return fmt.Sprintf("%x", md5.Sum(utils.StringToBytes(data)))
+		})
 	},
-	"@/utils/rand-user-agent": func(module *goja.Object, _ *requireModule) {
-		module.Set("exports", func() string { return utils.USER_AGENT })
+	"@/utils/rand-user-agent": func(module *goja.Object, r *requireModule) {
+		module.Get("exports").ToObject(r.vm).Set("default", func() string { return utils.USER_AGENT })
 	},
 	"@/utils/logger": func(module *goja.Object, r *requireModule) {
-		o := module.Get("exports").ToObject(r.vm)
+		o := r.vm.NewObject()
 		for _, name := range []string{"debug", "info", "warn", "error", "http"} {
 			o.Set(name, func() {})
 		}
+		module.Get("exports").ToObject(r.vm).Set("default", o)
 	},
 	"@/utils/ofetch": func(module *goja.Object, r *requireModule) {
 		ofetch := r.vm.ToValue(func(req, opts goja.Value) *goja.Promise { return fetch(req, opts, "", respFmtOfetch, r) }).ToObject(r.vm)
 		ofetch.Set("raw", func(req, opts goja.Value) *goja.Promise { return fetch(req, opts, "", respFmtOfetchRaw, r) })
-		module.Set("exports", ofetch)
+		module.Get("exports").ToObject(r.vm).Set("default", ofetch)
 	},
 	"@/utils/got": func(module *goja.Object, r *requireModule) {
 		got := r.vm.ToValue(func(req, opts goja.Value) *goja.Promise { return fetch(req, opts, "", respFmtGot, r) }).ToObject(r.vm)
@@ -113,10 +116,11 @@ var native = map[string]moduleLoader{
 				return fetch(req, opts, method, respFmtGot, r)
 			})
 		}
-		module.Set("exports", got)
+		module.Get("exports").ToObject(r.vm).Set("default", got)
 	},
 	"@/utils/cache": func(module *goja.Object, r *requireModule) {
-		module.Get("exports").ToObject(r.vm).Set("tryGet", func(key string, f func() goja.Value, maxAge *int, ex *bool) *goja.Promise {
+		o := r.vm.NewObject()
+		o.Set("tryGet", func(key string, f func() goja.Value, maxAge *int, ex *bool) *goja.Promise {
 			promise, resolve, reject := r.vm.NewPromise()
 			go func() {
 				ttl := contentExpire
@@ -147,6 +151,7 @@ var native = map[string]moduleLoader{
 			}()
 			return promise
 		})
+		module.Get("exports").ToObject(r.vm).Set("default", o)
 	},
 }
 
@@ -222,8 +227,10 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 			if err != nil {
 				return nil, err
 			}
+			exports := r.vm.NewObject()
+			exports.Set("default", val)
 			module = r.vm.NewObject()
-			module.Set("exports", val)
+			module.Set("exports", exports)
 
 		} else {
 			src, err := lib.ReadFile(name + ".js")
@@ -251,6 +258,9 @@ func (r *requireModule) require(p string) (goja.Value, error) {
 
 	if module != nil {
 		module := module.Get("exports")
+		if o := module.ToObject(r.vm); o.Get("default") == nil {
+			o.Set("default", module)
+		}
 		r.modules[p] = module
 		return module, nil
 	}

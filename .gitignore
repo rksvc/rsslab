@@ -2,3 +2,4 @@ node_modules
 /dist
 /rsshub/**/*.js
 !handler.js
+/target

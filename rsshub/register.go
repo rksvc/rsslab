@@ -67,6 +67,14 @@ func (r *RSSHub) Register(app *fiber.App) error {
 						}
 					}
 					path := pathpkg.Join(namespace, strings.TrimSuffix(route.Location, ".ts"))
+					if c.Query("debug") == "src" {
+						src, err := r.route(pathpkg.Join("/lib/routes", path+".ts"))
+						if err != nil {
+							return c.Status(http.StatusInternalServerError).SendString(err.Error())
+						} else {
+							return c.SendString(src)
+						}
+					}
 					data, err := r.handle(path, &ctx{Req: req{
 						Path:    utils.BytesToString(c.Request().URI().Path()),
 						queries: c.Queries(),
@@ -79,7 +87,7 @@ func (r *RSSHub) Register(app *fiber.App) error {
 						log.Print(err)
 						return c.Status(http.StatusInternalServerError).SendString(err.Error())
 					}
-					if c.QueryBool("debug") {
+					if c.Query("debug") == "data" {
 						return c.JSON(data)
 					}
 					feed, err := toJSONFeed(data)

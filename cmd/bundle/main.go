@@ -51,14 +51,19 @@ func main() {
 	wg.Wait()
 
 	opts := api.BuildOptions{
-		Platform:          api.PlatformNode,
-		Sourcemap:         api.SourceMapInline,
-		SourcesContent:    api.SourcesContentExclude,
-		Target:            api.ES2023,
-		Supported:         utils.SupportedSyntaxFeatures,
+		Platform:       api.PlatformNode,
+		Sourcemap:      api.SourceMapInline,
+		SourcesContent: api.SourcesContentExclude,
+		Target:         api.ES2023,
+		Supported: map[string]bool{
+			"async-generator":      false,
+			"for-await":            false,
+			"logical-assignment":   false,
+			"regexp-match-indices": false,
+		},
 		LogLevel:          api.LogLevelInfo,
-		Banner:            map[string]string{"js": utils.IIFE_PREFIX},
-		Footer:            map[string]string{"js": utils.IIFE_SUFFIX},
+		Banner:            map[string]string{"js": "(function(exports,require,module){"},
+		Footer:            map[string]string{"js": "\n})"},
 		Bundle:            true,
 		Write:             true,
 		MinifyWhitespace:  true,

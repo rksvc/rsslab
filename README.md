@@ -25,8 +25,9 @@ Alternatives for some command line argument values:
 ```bash
 pnpm install
 pnpm build
+cargo build --release --target=x86_64-unknown-linux-gnu # or x86_64-pc-windows-gnu
 go generate ./...
-go build -ldflags='-s -w' -tags='sqlite_foreign_keys' -trimpath
+go build -ldflags='-s -w' -tags=sqlite_foreign_keys -trimpath
 ```
 
 ## Credits

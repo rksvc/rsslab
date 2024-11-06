@@ -1,8 +1,15 @@
 package rsshub
 
+// #cgo linux LDFLAGS: -L../target/x86_64-unknown-linux-gnu/release -lrsslab -lm
+// #cgo windows LDFLAGS: -L../target/x86_64-pc-windows-gnu/release -lrsslab -lntdll
+// char *transform(const unsigned char *, int, const unsigned char *, int);
+// void retrieve(char *);
+// #include <stdlib.h>
+import "C"
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -12,8 +19,8 @@ import (
 	"rsslab/utils"
 	"strings"
 	"time"
+	"unsafe"
 
-	"github.com/evanw/esbuild/pkg/api"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -107,38 +114,29 @@ func (r *RSSHub) route(path string) (string, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, body, err := r.do(req, nil)
+		_, src, err := r.do(req, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		code := utils.BytesToString(body)
-		if path == "/lib/config.ts" {
-			code = strings.Replace(code,
-				"import('@/utils/logger')",
-				"{                      }", 1)
+		r := C.transform(
+			(*C.uchar)(unsafe.Pointer(&src[0])),
+			C.int(len(src)),
+			(*C.uchar)(unsafe.Pointer(&utils.StringToBytes(path)[0])),
+			C.int(len(path)))
+		result := C.GoString(r)
+		C.retrieve(r)
+
+		code := result[len(result)-1]
+		result = result[:len(result)-1]
+		if code == '1' {
+			return utils.StringToBytes(result), nil
 		}
-		result := api.Transform(code, api.TransformOptions{
-			Sourcefile:        path,
-			Format:            api.FormatCommonJS,
-			Loader:            api.LoaderTS,
-			Sourcemap:         api.SourceMapInline,
-			SourcesContent:    api.SourcesContentExclude,
-			Target:            api.ES2023,
-			Supported:         utils.SupportedSyntaxFeatures,
-			Define:            map[string]string{"import.meta.url": `"` + path + `"`},
-			Banner:            utils.IIFE_PREFIX,
-			Footer:            utils.IIFE_SUFFIX,
-			MinifyWhitespace:  true,
-			MinifySyntax:      true,
-			MinifyIdentifiers: true,
-		})
-		if len(result.Errors) > 0 {
-			return nil, utils.Errorf(result.Errors)
-		} else if len(result.Warnings) > 0 {
-			log.Print(utils.Errorf(result.Warnings))
+		var errs []error
+		for _, err := range strings.Split(result, "\n") {
+			errs = append(errs, errors.New(err))
 		}
-		return result.Code, nil
+		return nil, errors.Join(errs...)
 	})
 }
 
