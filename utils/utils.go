@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,8 +10,6 @@ import (
 	"unsafe"
 
 	"golang.org/x/net/html"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/encoding"
 )
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
@@ -105,18 +102,4 @@ func ResponseError(resp *http.Response) error {
 
 func IsErrorResponse(statusCode int) bool {
 	return statusCode >= 400
-}
-
-func GetEncoding(resp *http.Response) encoding.Encoding {
-	contentType := resp.Header.Get("Content-Type")
-	_, params, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		return nil
-	}
-	cs, ok := params["charset"]
-	if !ok {
-		return nil
-	}
-	e, _ := charset.Lookup(cs)
-	return e
 }

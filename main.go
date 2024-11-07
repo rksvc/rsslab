@@ -7,38 +7,26 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"rsslab/rsshub"
 	"rsslab/server"
 	"rsslab/storage"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
-var addr, database, routesUrl, srcUrl string
-var s *storage.Storage
-var api *server.Server
-var rssHub *rsshub.RSSHub
-
 //go:embed dist
 var assets embed.FS
-var fsConfig = filesystem.Config{
-	Root:       http.FS(assets),
-	PathPrefix: "dist",
-}
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
 
 func main() {
+	var addr, database string
 	flag.StringVar(&addr, "addr", "127.0.0.1:9854", "address to run server on")
 	flag.StringVar(&database, "db", "", "storage file `path`")
-	flag.StringVar(&routesUrl, "routes", "https://raw.githubusercontent.com/DIYgod/RSSHub/gh-pages/build/routes.json", "routes `url`")
-	flag.StringVar(&srcUrl, "src", "https://raw.githubusercontent.com/DIYgod/RSSHub/master", "source code `url` prefix")
 	flag.Parse()
 
 	if database == "" {
@@ -50,60 +38,24 @@ func main() {
 		if err = os.MkdirAll(dir, 0755); err != nil {
 			log.Fatal(err)
 		}
-		database = filepath.Join(dir, "storage.db")
+		database = filepath.Join(dir, "rsslab.db")
 	}
-	var err error
-	s, err = storage.New(database)
+	s, err := storage.New(database)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	api = server.New(s)
-	rssHub = rsshub.NewRSSHub(s, routesUrl, srcUrl)
-
-	app := engine()
-	app.Use("/", filesystem.New(fsConfig))
-	api.App.Store(app)
-	go serve(app)
-	for !reload() {
-		time.Sleep(10 * time.Second)
-	}
+	api := server.New(s)
 	api.Start()
-	for {
-		time.Sleep(6 * time.Hour)
-		reload()
-	}
-}
 
-func engine() *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	api.Register(app.Group("/api"))
-	return app
-}
+	app.Use("/", filesystem.New(filesystem.Config{
+		Root:       http.FS(assets),
+		PathPrefix: "dist",
+	}))
 
-func reload() bool {
-	log.Printf("loading routes from %s", routesUrl)
-
-	app := engine()
-	err := rssHub.Register(app)
-	if err != nil {
-		log.Print(err)
-		return false
-	}
-	app.Use("/", filesystem.New(fsConfig))
-
-	oldApp := api.App.Swap(app).(*fiber.App)
-	go func() {
-		if err := oldApp.Shutdown(); err != nil {
-			log.Print(err)
-		}
-		serve(app)
-	}()
-	return true
-}
-
-func serve(app *fiber.App) {
 	host, port := addr, ""
 	if i := strings.LastIndexByte(addr, ':'); i != -1 {
 		host, port = addr[:i], addr[i+1:]
@@ -111,9 +63,6 @@ func serve(app *fiber.App) {
 	if host == "" {
 		host = "0.0.0.0"
 	}
-	log.Printf("server started on http://%s:%s (%d handlers)", host, port, app.HandlersCount())
-	err := app.Listen(addr)
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Printf("server started on http://%s:%s", host, port)
+	log.Fatal(app.Listen(addr))
 }

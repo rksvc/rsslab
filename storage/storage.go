@@ -2,17 +2,13 @@ package storage
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/sync/singleflight"
 )
 
 type Storage struct {
-	db    *sql.DB
-	group singleflight.Group
+	db *sql.DB
 }
 
 func New(path string) (*Storage, error) {
@@ -37,15 +33,5 @@ func (s *Storage) Vacuum() {
 	_, err := s.db.Exec("pragma incremental_vacuum")
 	if err != nil {
 		log.Print(err)
-	}
-}
-
-func (s *Storage) PurgeCache() {
-	now := time.Now().UTC()
-	for _, table := range []string{"src_cache", "content_cache"} {
-		_, err := s.db.Exec(fmt.Sprintf(`delete from %s where expire < ?`, table), now)
-		if err != nil {
-			log.Print(err)
-		}
 	}
 }

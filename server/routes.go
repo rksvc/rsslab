@@ -3,15 +3,14 @@ package server
 import (
 	"encoding/xml"
 	"errors"
-	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"rsslab/storage"
 	"rsslab/utils"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/html/charset"
 )
 
@@ -38,6 +37,7 @@ func (s *Server) Register(api fiber.Router) {
 	api.Put("/settings", s.handleSettingsUpdate)
 	api.Post("/opml/import", s.handleOPMLImport)
 	api.Get("/opml/export", s.handleOPMLExport)
+	api.Get("/transform/:type/:params", s.handleTransform)
 }
 
 func (s *Server) handleStatus(c *fiber.Ctx) error {
@@ -130,22 +130,10 @@ func (s *Server) handleFeedCreate(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	req, err := http.NewRequest(http.MethodGet, body.Url, nil)
-	if err != nil {
-		return c.Status(http.StatusBadRequest).SendString(err.Error())
-	}
-	resp, err := s.do(req)
+	var state storage.HTTPState
+	rawFeed, err := s.do(body.Url, &state)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
-	}
-	defer resp.Body.Close()
-	var f io.Reader = resp.Body
-	if e := utils.GetEncoding(resp); e != nil {
-		f = e.NewDecoder().Reader(f)
-	}
-	rawFeed, err := gofeed.NewParser().Parse(f)
-	if err != nil {
-		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 	rawFeed.FeedLink = body.Url
 	feed, err := s.db.CreateFeed(
@@ -161,7 +149,7 @@ func (s *Server) handleFeedCreate(c *fiber.Ctx) error {
 
 	items := convertItems(rawFeed.Items, *feed)
 	lastRefreshed := time.Now()
-	if err = s.db.CreateItems(items, feed.Id, lastRefreshed, getHTTPState(resp)); err != nil {
+	if err = s.db.CreateItems(items, feed.Id, lastRefreshed, &state); err != nil {
 		return c.Status(http.StatusInternalServerError).SendString(err.Error())
 	}
 
@@ -459,4 +447,17 @@ func (s *Server) handleOPMLExport(c *fiber.Ctx) error {
 	e := xml.NewEncoder(c.Response().BodyWriter())
 	e.Indent("", "  ")
 	return e.Encode(opml)
+}
+
+func (s *Server) handleTransform(c *fiber.Ctx) error {
+	params, err := url.PathUnescape(c.Params("params"))
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+	var state storage.HTTPState
+	feed, err := s.do(c.Params("type")+":"+params, &state)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).SendString(err.Error())
+	}
+	return c.JSON(feed, "application/feed+json; charset=UTF-8")
 }

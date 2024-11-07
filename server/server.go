@@ -1,26 +1,30 @@
 package server
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"rsslab/storage"
 	"rsslab/utils"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/mmcdole/gofeed"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/net/publicsuffix"
 )
 
 type Server struct {
-	App atomic.Value
-
 	db            *storage.Storage
-	client        *http.Client
+	client        http.Client
 	pending       atomic.Int32
 	lastRefreshed atomic.Value
 	refresh       chan storage.Feed
@@ -30,9 +34,16 @@ type Server struct {
 }
 
 func New(db *storage.Storage) *Server {
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	if err != nil {
+		panic(err)
+	}
 	s := &Server{
-		db:      db,
-		client:  &http.Client{Timeout: 30 * time.Second},
+		db: db,
+		client: http.Client{
+			Timeout: 30 * time.Second,
+			Jar:     jar,
+		},
 		refresh: make(chan storage.Feed),
 		cancel:  make(chan struct{}),
 	}
@@ -46,7 +57,6 @@ func (s *Server) Start() {
 	go func() {
 		for {
 			s.db.DeleteOldItems()
-			s.db.PurgeCache()
 			s.db.Vacuum()
 			s.db.Optimize()
 			time.Sleep(24 * time.Hour)
@@ -149,24 +159,79 @@ func (s *Server) RefreshFeeds(feeds ...storage.Feed) {
 	}
 }
 
-func (s *Server) do(req *http.Request) (resp *http.Response, err error) {
-	if req.URL.Scheme == "rsshub" {
-		req.URL.RawPath = "/" + req.URL.Opaque
-		req.URL.Opaque = ""
-		req.URL.Path, err = url.PathUnescape(req.URL.RawPath)
+func (s *Server) do(url string, state *storage.HTTPState) (*gofeed.Feed, error) {
+	i := strings.IndexByte(url, ':')
+	if i == -1 {
+		return nil, errors.New("invalid URL")
+	}
+
+	switch url[:i] {
+	case "html":
+		rule := new(HTMLRule)
+		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
 		if err != nil {
-			return
+			return nil, err
 		}
-		resp, err = s.App.Load().(*fiber.App).Test(req, -1)
-	} else {
+		feed, err := s.TransformHTML(rule)
+		if err != nil {
+			return nil, err
+		}
+		return new(gofeed.DefaultJSONTranslator).Translate(feed)
+
+	case "json":
+		rule := new(JSONRule)
+		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
+		if err != nil {
+			return nil, err
+		}
+		feed, err := s.TransformJSON(rule)
+		if err != nil {
+			return nil, err
+		}
+		return new(gofeed.DefaultJSONTranslator).Translate(feed)
+
+	default:
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		if state != nil {
+			if state.LastModified != nil {
+				req.Header.Set("If-Modified-Since", *state.LastModified)
+			}
+			if state.Etag != nil {
+				req.Header.Set("If-None-Match", *state.Etag)
+			}
+		}
 		req.Header.Add("User-Agent", utils.USER_AGENT)
-		resp, err = s.client.Do(req)
+
+		resp, err := s.client.Do(req)
+		if err == nil && utils.IsErrorResponse(resp.StatusCode) {
+			resp.Body.Close()
+			err = utils.ResponseError(resp)
+		}
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		lmod := resp.Header.Get("Last-Modified")
+		etag := resp.Header.Get("Etag")
+		if lmod != "" || etag != "" {
+			state.LastModified = &lmod
+			state.Etag = &etag
+		}
+
+		var f io.Reader = resp.Body
+		if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type")); err == nil {
+			if cs, ok := params["charset"]; ok {
+				if e, _ := charset.Lookup(cs); e != nil {
+					f = e.NewDecoder().Reader(f)
+				}
+			}
+		}
+		return gofeed.NewParser().Parse(f)
 	}
-	if err == nil && utils.IsErrorResponse(resp.StatusCode) {
-		resp.Body.Close()
-		err = utils.ResponseError(resp)
-	}
-	return
 }
 
 func (s *Server) worker() {
@@ -184,39 +249,15 @@ func (s *Server) worker() {
 }
 
 func (s *Server) listItems(f storage.Feed) ([]storage.Item, *storage.HTTPState, error) {
-	req, err := http.NewRequest(http.MethodGet, f.FeedLink, nil)
-	if err != nil {
-		return nil, nil, err
-	}
 	state, err := s.db.GetHTTPState(f.Id)
 	if err != nil {
 		return nil, nil, err
 	}
-	if state.LastModified != nil {
-		req.Header.Set("If-Modified-Since", *state.LastModified)
-	}
-	if state.Etag != nil {
-		req.Header.Set("If-None-Match", *state.Etag)
-	}
-	resp, err := s.do(req)
+	feed, err := s.do(f.FeedLink, &state)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotModified {
-		return nil, nil, nil
-	}
-
-	var body io.Reader = resp.Body
-	if e := utils.GetEncoding(resp); e != nil {
-		body = e.NewDecoder().Reader(body)
-	}
-	feed, err := gofeed.NewParser().Parse(body)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return convertItems(feed.Items, f), getHTTPState(resp), nil
+	return convertItems(feed.Items, f), &state, nil
 }
 
 func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
@@ -248,16 +289,4 @@ func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
 		}
 	}
 	return result
-}
-
-func getHTTPState(resp *http.Response) *storage.HTTPState {
-	lmod := resp.Header.Get("Last-Modified")
-	etag := resp.Header.Get("Etag")
-	if lmod != "" || etag != "" {
-		return &storage.HTTPState{
-			LastModified: &lmod,
-			Etag:         &etag,
-		}
-	}
-	return nil
 }

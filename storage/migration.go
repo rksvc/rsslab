@@ -103,23 +103,4 @@ var migrations = []func(*sql.Tx) error{
 		_, err := tx.Exec(sql)
 		return err
 	},
-	func(tx *sql.Tx) error {
-		sql := `
-			create table src_cache (
-			 key            text primary key,
-			 val            text,
-			 expire         datetime
-			);
-			create table content_cache (
-			 key            text primary key,
-			 val            text,
-			 expire         datetime
-			);
-
-			create index idx_src_cache_key on src_cache(key);
-			create index idx_content_cache_key on content_cache(key);
-		`
-		_, err := tx.Exec(sql)
-		return err
-	},
 }
