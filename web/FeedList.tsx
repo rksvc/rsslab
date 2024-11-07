@@ -141,6 +141,7 @@ export default function FeedList({
   const transHtmlItemDate = useRef<HTMLInputElement>(null)
   const transJsonHomePageUrl = useRef<HTMLInputElement>(null)
   const transJsonTitle = useRef<HTMLInputElement>(null)
+  const transJsonHeaders = useRef<HTMLInputElement>(null)
   const transJsonItems = useRef<HTMLInputElement>(null)
   const transJsonItemTitle = useRef<HTMLInputElement>(null)
   const transJsonItemUrl = useRef<HTMLInputElement>(null)
@@ -205,6 +206,11 @@ export default function FeedList({
       ref: transJsonTitle,
       key: 'title',
       desc: 'Title of RSS',
+    },
+    {
+      ref: transJsonHeaders,
+      key: 'headers',
+      desc: 'HTTP request headers in JSON form',
     },
     {
       ref: transJsonItems,

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -8,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/mmcdole/gofeed/json"
+	jsonfeed "github.com/mmcdole/gofeed/json"
 	"github.com/tidwall/gjson"
 )
 
@@ -26,6 +27,7 @@ type HTMLRule struct {
 type JSONRule struct {
 	URL               string `json:"url"`
 	HomePageURL       string `json:"home_page_url"`
+	Headers           string `json:"headers"`
 	Title             string `json:"title"`
 	Items             string `json:"items"`
 	ItemTitle         string `json:"item_title"`
@@ -35,8 +37,8 @@ type JSONRule struct {
 	ItemDatePublished string `json:"item_date_published"`
 }
 
-func (s *Server) TransformHTML(rule *HTMLRule) (*json.Feed, error) {
-	resp, err := s.tryGet(rule.URL)
+func (s *Server) TransformHTML(rule *HTMLRule) (*jsonfeed.Feed, error) {
+	resp, err := s.tryGet(rule.URL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +48,7 @@ func (s *Server) TransformHTML(rule *HTMLRule) (*json.Feed, error) {
 		return nil, err
 	}
 
-	var feed json.Feed
+	var feed jsonfeed.Feed
 	feed.HomePageURL = rule.URL
 	if rule.Title == "" {
 		feed.Title = utils.CollapseWhitespace(doc.Find("title").First().Text())
@@ -55,7 +57,7 @@ func (s *Server) TransformHTML(rule *HTMLRule) (*json.Feed, error) {
 	}
 
 	for _, item := range doc.Find(rule.Items).EachIter() {
-		var i json.Item
+		var i jsonfeed.Item
 
 		title := item
 		if rule.ItemTitle != "" {
@@ -100,8 +102,14 @@ func (s *Server) TransformHTML(rule *HTMLRule) (*json.Feed, error) {
 	return &feed, nil
 }
 
-func (s *Server) TransformJSON(rule *JSONRule) (*json.Feed, error) {
-	resp, err := s.tryGet(rule.URL)
+func (s *Server) TransformJSON(rule *JSONRule) (*jsonfeed.Feed, error) {
+	var h map[string]string
+	if rule.Headers != "" {
+		if err := json.Unmarshal(utils.StringToBytes(rule.Headers), &h); err != nil {
+			return nil, err
+		}
+	}
+	resp, err := s.tryGet(rule.URL, h)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +120,7 @@ func (s *Server) TransformJSON(rule *JSONRule) (*json.Feed, error) {
 	}
 	j := gjson.ParseBytes(b)
 
-	var feed = json.Feed{
+	var feed = jsonfeed.Feed{
 		Title:       rule.Title,
 		HomePageURL: rule.HomePageURL,
 	}
@@ -122,9 +130,9 @@ func (s *Server) TransformJSON(rule *JSONRule) (*json.Feed, error) {
 	} else {
 		items = j.Get(rule.Items).Array()
 	}
-	feed.Items = make([]*json.Item, 0, len(items))
+	feed.Items = make([]*jsonfeed.Item, 0, len(items))
 	for _, item := range items {
-		var i json.Item
+		var i jsonfeed.Item
 
 		if rule.ItemTitle != "" {
 			i.Title = item.Get(rule.ItemTitle).String()
@@ -167,10 +175,14 @@ var retryStatusCodes = map[int]struct{}{
 	http.StatusGatewayTimeout:      {},
 }
 
-func (s *Server) tryGet(url string) (resp *http.Response, err error) {
+func (s *Server) tryGet(url string, headers map[string]string) (resp *http.Response, err error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
+	}
+	req.Header.Set("User-Agent", utils.USER_AGENT)
+	for key, val := range headers {
+		req.Header.Set(key, val)
 	}
 	const maxTry = 3
 	for attempt := 1; attempt <= maxTry; attempt++ {

@@ -243,7 +243,7 @@ func (s *Server) do(url string, state *storage.HTTPState) (*gofeed.Feed, error) 
 				req.Header.Set("If-None-Match", *state.Etag)
 			}
 		}
-		req.Header.Add("User-Agent", utils.USER_AGENT)
+		req.Header.Set("User-Agent", utils.USER_AGENT)
 
 		resp, err := s.client.Do(req)
 		if err == nil && utils.IsErrorResponse(resp.StatusCode) {
