@@ -47,13 +47,7 @@ func New(db *storage.Storage) *Server {
 		refresh: make(chan storage.Feed),
 		cancel:  make(chan struct{}),
 	}
-	for range 10 {
-		go s.worker()
-	}
-	return s
-}
 
-func (s *Server) Start() {
 	go func() {
 		for {
 			s.db.DeleteOldItems()
@@ -62,17 +56,63 @@ func (s *Server) Start() {
 			time.Sleep(24 * time.Hour)
 		}
 	}()
+	for range 10 {
+		go s.worker()
+	}
 
 	go s.FindFavicons()
 	settings, err := s.db.GetSettings()
-	if err != nil {
+	if err == nil {
+		go s.SetRefreshRate(settings.RefreshRate)
+		if settings.RefreshRate > 0 {
+			go s.RefreshAllFeeds()
+		}
+	} else {
 		log.Print(err)
-		return
 	}
-	go s.SetRefreshRate(settings.RefreshRate)
-	if settings.RefreshRate > 0 {
-		go s.RefreshAllFeeds()
+
+	return s
+}
+
+func (s *Server) Start(addr string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET    /api/status", wrap(s.handleStatus))
+	mux.HandleFunc("GET    /api/folders", wrap(s.handleFolderList))
+	mux.HandleFunc("POST   /api/folders", wrap(s.handleFolderCreate))
+	mux.HandleFunc("PUT    /api/folders/{id}", wrap(s.handleFolderUpdate))
+	mux.HandleFunc("DELETE /api/folders/{id}", wrap(s.handleFolderDelete))
+	mux.HandleFunc("POST   /api/folders/{id}/refresh", wrap(s.handleFolderRefresh))
+	mux.HandleFunc("GET    /api/feeds", wrap(s.handleFeedList))
+	mux.HandleFunc("POST   /api/feeds", wrap(s.handleFeedCreate))
+	mux.HandleFunc("POST   /api/feeds/refresh", wrap(s.handleFeedsRefresh))
+	mux.HandleFunc("GET    /api/feeds/errors", wrap(s.handleFeedErrorsList))
+	mux.HandleFunc("GET    /api/feeds/{id}/icon", wrap(s.handleFeedIcon))
+	mux.HandleFunc("POST   /api/feeds/{id}/refresh", wrap(s.handleFeedRefresh))
+	mux.HandleFunc("PUT    /api/feeds/{id}", wrap(s.handleFeedUpdate))
+	mux.HandleFunc("DELETE /api/feeds/{id}", wrap(s.handleFeedDelete))
+	mux.HandleFunc("GET    /api/items", wrap(s.handleItemList))
+	mux.HandleFunc("PUT    /api/items", wrap(s.handleItemRead))
+	mux.HandleFunc("GET    /api/items/{id}", wrap(s.handleItem))
+	mux.HandleFunc("PUT    /api/items/{id}", wrap(s.handleItemUpdate))
+	mux.HandleFunc("GET    /api/settings", wrap(s.handleSettings))
+	mux.HandleFunc("PUT    /api/settings", wrap(s.handleSettingsUpdate))
+	mux.HandleFunc("POST   /api/opml/import", wrap(s.handleOPMLImport))
+	mux.HandleFunc("GET    /api/opml/export", wrap(s.handleOPMLExport))
+	mux.HandleFunc("GET    /api/transform/{type}/{params}", wrap(s.handleTransform))
+	mux.HandleFunc("GET    /", wrap(s.handleIndex))
+
+	host, port := addr, ""
+	if i := strings.LastIndexByte(addr, ':'); i != -1 {
+		host, port = addr[:i], addr[i+1:]
 	}
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	log.Printf("server started on http://%s:%s", host, port)
+	return (&http.Server{
+		Addr:    addr,
+		Handler: mux,
+	}).ListenAndServe()
 }
 
 func (s *Server) FindFavicons() {
