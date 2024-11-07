@@ -22,6 +22,27 @@ export function length(n: number) {
   return `${n * 0.25}rem`
 }
 
+export function fromNow(date: Date) {
+  let secs = (new Date().getTime() - date.getTime()) / 1000
+  const neg = secs < 0
+
+  secs = Math.abs(secs)
+  const repr =
+    secs < 45 * 60
+      ? `${Math.round(secs / 60)}m`
+      : secs < 24 * 60 * 60
+        ? `${Math.round(secs / 3600)}h`
+        : secs < 7 * 24 * 60 * 60
+          ? `${Math.round(secs / 86400)}d`
+          : date.toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })
+
+  return neg ? `-${repr}` : repr
+}
+
 export function param(query: Record<string, string | number | boolean | undefined>) {
   const keys = Object.keys(query)
   if (!keys.length) return ''

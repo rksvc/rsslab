@@ -10,8 +10,6 @@ import {
   SpinnerSize,
 } from '@blueprintjs/core'
 import { Record, Star } from '@blueprintjs/icons'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
 import {
   type Dispatch,
   type RefObject,
@@ -23,9 +21,7 @@ import {
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
 import type { Feed, Item, Items, Status } from './types'
-import { iconProps, length, panelStyle, param, xfetch } from './utils'
-
-dayjs.extend(relativeTime)
+import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils'
 
 export default function ItemList({
   filter,
@@ -333,7 +329,7 @@ function CardItem({
           </small>
           <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
             <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
-              {dayjs(item.date).fromNow(true)}
+              {fromNow(new Date(item.date))}
             </time>
           </small>
         </div>
