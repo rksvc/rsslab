@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -27,16 +26,16 @@ type HTMLRule struct {
 }
 
 type JSONRule struct {
-	URL               string `json:"url"`
-	HomePageURL       string `json:"home_page_url"`
-	Headers           string `json:"headers"`
-	Title             string `json:"title"`
-	Items             string `json:"items"`
-	ItemTitle         string `json:"item_title"`
-	ItemUrl           string `json:"item_url"`
-	ItemUrlPrefix     string `json:"item_url_prefix"`
-	ItemContent       string `json:"item_content"`
-	ItemDatePublished string `json:"item_date_published"`
+	URL               string            `json:"url"`
+	HomePageURL       string            `json:"home_page_url"`
+	Headers           map[string]string `json:"headers"`
+	Title             string            `json:"title"`
+	Items             string            `json:"items"`
+	ItemTitle         string            `json:"item_title"`
+	ItemUrl           string            `json:"item_url"`
+	ItemUrlPrefix     string            `json:"item_url_prefix"`
+	ItemContent       string            `json:"item_content"`
+	ItemDatePublished string            `json:"item_date_published"`
 }
 
 func (s *Server) TransformHTML(rule *HTMLRule) (*jsonfeed.Feed, error) {
@@ -102,13 +101,7 @@ func (s *Server) TransformHTML(rule *HTMLRule) (*jsonfeed.Feed, error) {
 }
 
 func (s *Server) TransformJSON(rule *JSONRule) (*jsonfeed.Feed, error) {
-	var h map[string]string
-	if rule.Headers != "" {
-		if err := json.Unmarshal(utils.StringToBytes(rule.Headers), &h); err != nil {
-			return nil, err
-		}
-	}
-	resp, err := s.tryGet(rule.URL, h)
+	resp, err := s.tryGet(rule.URL, rule.Headers)
 	if err != nil {
 		return nil, err
 	}

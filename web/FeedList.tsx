@@ -73,6 +73,14 @@ const textAreaProps = {
     evt.key === 'Enter' && evt.preventDefault(),
 } as const
 
+type Param = {
+  ref: React.RefObject<HTMLInputElement>
+  key: string
+  desc: string | JSX.Element
+  parse?: (input: string) => any
+  placeholder?: string
+}
+
 export default function FeedList({
   filter,
   setFilter,
@@ -148,7 +156,7 @@ export default function FeedList({
   const transJsonItemUrlPrefix = useRef<HTMLInputElement>(null)
   const transJsonItemContent = useRef<HTMLInputElement>(null)
   const transJsonItemDatePublished = useRef<HTMLInputElement>(null)
-  const transHtmlParams = useRef([
+  const transHtmlParams = useRef<Param[]>([
     {
       ref: transHtmlTitle,
       key: 'title',
@@ -196,7 +204,7 @@ export default function FeedList({
       placeholder: 'same as item element',
     },
   ])
-  const transJsonParams = useRef([
+  const transJsonParams = useRef<Param[]>([
     {
       ref: transJsonHomePageUrl,
       key: 'home_page_url',
@@ -211,6 +219,13 @@ export default function FeedList({
       ref: transJsonHeaders,
       key: 'headers',
       desc: 'HTTP request headers in JSON form',
+      parse: (input: string) => {
+        try {
+          return JSON.parse(input)
+        } catch {
+          return null
+        }
+      },
     },
     {
       ref: transJsonItems,
@@ -251,7 +266,11 @@ export default function FeedList({
         ...Object.fromEntries(
           (generatorType === 'html' ? transHtmlParams : transJsonParams).current
             .filter(({ ref }) => ref.current?.value)
-            .map(({ key, ref }) => [key, ref.current!.value]),
+            .map(({ key, ref, parse }) => [
+              key,
+              parse ? parse(ref.current!.value) : ref.current!.value,
+            ])
+            .filter(([_, val]) => val),
         ),
       }),
     [generatorType],
