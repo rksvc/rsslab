@@ -402,7 +402,9 @@ export default function FeedList({
         src={`api/feeds/${feed.id}/icon`}
       />
     ) : (
-      <Rss style={{ marginRight: '6px' }} {...iconProps} />
+      <span style={{ display: 'flex' }}>
+        <Rss style={{ marginRight: '6px' }} {...iconProps} />
+      </span>
     ),
     isSelected: selected === `feed:${feed.id}`,
     secondaryLabel: secondaryLabel(
