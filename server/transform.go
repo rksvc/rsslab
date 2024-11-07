@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"rsslab/utils"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	jsonfeed "github.com/mmcdole/gofeed/json"
@@ -90,15 +92,12 @@ func (s *Server) TransformHTML(rule *HTMLRule) (*jsonfeed.Feed, error) {
 		if rule.ItemDatePublished != "" {
 			date = item.Find(rule.ItemDatePublished).First()
 		}
-		if t, ok := utils.ParseDate(date.Text()); ok {
-			if b, err := t.MarshalJSON(); err == nil {
-				i.DatePublished = utils.BytesToString(b)
-			}
-		}
+		i.DatePublished = date.Text()
 
 		feed.Items = append(feed.Items, &i)
 	}
 
+	sanitize(&feed)
 	return &feed, nil
 }
 
@@ -151,16 +150,13 @@ func (s *Server) TransformJSON(rule *JSONRule) (*jsonfeed.Feed, error) {
 		}
 
 		if rule.ItemDatePublished != "" {
-			if t, ok := utils.ParseDate(item.Get(rule.ItemDatePublished).String()); ok {
-				if b, err := t.MarshalJSON(); err == nil {
-					i.DatePublished = utils.BytesToString(b)
-				}
-			}
+			i.DatePublished = item.Get(rule.ItemDatePublished).String()
 		}
 
 		feed.Items = append(feed.Items, &i)
 	}
 
+	sanitize(&feed)
 	return &feed, nil
 }
 
@@ -202,4 +198,29 @@ func (s *Server) tryGet(url string, headers map[string]string) (resp *http.Respo
 		}
 	}
 	return
+}
+
+func sanitize(feed *jsonfeed.Feed) {
+	date := make([]*time.Time, len(feed.Items))
+	for i := range feed.Items {
+		if d := &feed.Items[i].DatePublished; *d != "" {
+			if t, ok := utils.ParseDate(*d); ok {
+				if b, err := t.MarshalText(); err == nil {
+					*d = utils.BytesToString(b)
+					date[i] = &t
+					continue
+				}
+			}
+			*d = ""
+		}
+	}
+
+	sort.SliceStable(feed.Items, func(i, j int) bool {
+		if date[i] == nil {
+			return true
+		} else if date[j] == nil {
+			return false
+		}
+		return date[j].Compare(*date[i]) < 0
+	})
 }
