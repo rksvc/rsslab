@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"unsafe"
@@ -13,19 +12,6 @@ import (
 )
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-
-var Env = make(map[string]string)
-
-func init() {
-	for _, env := range os.Environ() {
-		i := strings.IndexByte(env, '=')
-		if i >= 0 {
-			Env[env[:i]] = env[i+1:]
-		} else {
-			Env[env] = ""
-		}
-	}
-}
 
 func BytesToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
