@@ -130,10 +130,14 @@ func (s *Server) FindFeedFavicon(feed storage.Feed) {
 		}
 		resp, err := s.client.Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
 		if err != nil {
+			log.Print(err)
 			continue
 		}
 		defer resp.Body.Close()
 		if utils.IsErrorResponse(resp.StatusCode) {
+			if resp.StatusCode != http.StatusNotFound {
+				log.Print(utils.ResponseError(resp))
+			}
 			continue
 		}
 		icon, err = io.ReadAll(resp.Body)
