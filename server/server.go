@@ -254,6 +254,9 @@ func (s *Server) do(url string, state *storage.HTTPState) (*gofeed.Feed, error) 
 			return nil, err
 		}
 		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusNotModified {
+			return nil, nil
+		}
 
 		lmod := resp.Header.Get("Last-Modified")
 		etag := resp.Header.Get("Etag")
@@ -262,15 +265,15 @@ func (s *Server) do(url string, state *storage.HTTPState) (*gofeed.Feed, error) 
 			state.Etag = &etag
 		}
 
-		var f io.Reader = resp.Body
+		var b io.Reader = resp.Body
 		if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type")); err == nil {
 			if cs, ok := params["charset"]; ok {
 				if e, _ := charset.Lookup(cs); e != nil {
-					f = e.NewDecoder().Reader(f)
+					b = e.NewDecoder().Reader(b)
 				}
 			}
 		}
-		return gofeed.NewParser().Parse(f)
+		return gofeed.NewParser().Parse(b)
 	}
 }
 
@@ -294,7 +297,7 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, *storage.HTTPState, 
 		return nil, nil, err
 	}
 	feed, err := s.do(f.FeedLink, &state)
-	if err != nil {
+	if err != nil || feed == nil {
 		return nil, nil, err
 	}
 	return convertItems(feed.Items, f), &state, nil
