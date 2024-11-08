@@ -27,7 +27,6 @@ import {
   type Dispatch,
   type KeyboardEvent,
   type SetStateAction,
-  useCallback,
   useMemo,
   useRef,
   useState,
@@ -74,7 +73,8 @@ const textAreaProps = {
 } as const
 
 type Param = {
-  ref: React.RefObject<HTMLInputElement>
+  value: string
+  setValue: Dispatch<SetStateAction<string>>
   key: string
   desc: string | JSX.Element
   parse?: (input: string) => any
@@ -138,51 +138,56 @@ export default function FeedList({
   const [deleteFolder, setDeleteFolder] = useState<Folder>()
 
   const [showGenerator, setShowGenerator] = useState(false)
-  const [generatorType, setGeneratorType] = useState('html')
-  const transUrl = useRef<HTMLInputElement>(null)
-  const transHtmlTitle = useRef<HTMLInputElement>(null)
-  const transHtmlItems = useRef<HTMLInputElement>(null)
-  const transHtmlItemTitle = useRef<HTMLInputElement>(null)
-  const transHtmlItemUrl = useRef<HTMLInputElement>(null)
-  const transHtmlItemUrlAttr = useRef<HTMLInputElement>(null)
-  const transHtmlItemContent = useRef<HTMLInputElement>(null)
-  const transHtmlItemDate = useRef<HTMLInputElement>(null)
-  const transJsonHomePageUrl = useRef<HTMLInputElement>(null)
-  const transJsonTitle = useRef<HTMLInputElement>(null)
-  const transJsonHeaders = useRef<HTMLInputElement>(null)
-  const transJsonItems = useRef<HTMLInputElement>(null)
-  const transJsonItemTitle = useRef<HTMLInputElement>(null)
-  const transJsonItemUrl = useRef<HTMLInputElement>(null)
-  const transJsonItemUrlPrefix = useRef<HTMLInputElement>(null)
-  const transJsonItemContent = useRef<HTMLInputElement>(null)
-  const transJsonItemDatePublished = useRef<HTMLInputElement>(null)
-  const transHtmlParams = useRef<Param[]>([
+  const [transType, setTransType] = useState('html')
+  const [transUrl, setTransUrl] = useState('')
+  const [transHtmlTitle, setTransHtmlTitle] = useState('')
+  const [transHtmlItems, setTransHtmlItems] = useState('')
+  const [transHtmlItemTitle, setTransHtmlItemTitle] = useState('')
+  const [transHtmlItemUrl, setTransHtmlItemUrl] = useState('')
+  const [transHtmlItemUrlAttr, setTransHtmlItemUrlAttr] = useState('')
+  const [transHtmlItemContent, setTransHtmlItemContent] = useState('')
+  const [transHtmlItemDate, setTransHtmlItemDate] = useState('')
+  const [transJsonHomePageUrl, setTransJsonHomePageUrl] = useState('')
+  const [transJsonTitle, setTransJsonTitle] = useState('')
+  const [transJsonHeaders, setTransJsonHeaders] = useState('')
+  const [transJsonItems, setTransJsonItems] = useState('')
+  const [transJsonItemTitle, setTransJsonItemTitle] = useState('')
+  const [transJsonItemUrl, setTransJsonItemUrl] = useState('')
+  const [transJsonItemUrlPrefix, setTransJsonItemUrlPrefix] = useState('')
+  const [transJsonItemContent, setTransJsonItemContent] = useState('')
+  const [transJsonItemDatePublished, setTransJsonItemDatePublished] = useState('')
+  const transHtmlParams: Param[] = [
     {
-      ref: transHtmlTitle,
+      value: transHtmlTitle,
+      setValue: setTransHtmlTitle,
       key: 'title',
       desc: 'Title of RSS',
       placeholder: 'extracted from <title>',
     },
     {
-      ref: transHtmlItems,
+      value: transHtmlItems,
+      setValue: setTransHtmlItems,
       key: 'items',
       desc: 'CSS selector targetting items',
       placeholder: 'html',
     },
     {
-      ref: transHtmlItemTitle,
+      value: transHtmlItemTitle,
+      setValue: setTransHtmlItemTitle,
       key: 'item_title',
       desc: 'CSS selector targetting title of item',
       placeholder: 'same as item element',
     },
     {
-      ref: transHtmlItemUrl,
+      value: transHtmlItemUrl,
+      setValue: setTransHtmlItemUrl,
       key: 'item_url',
       desc: 'CSS selector targetting URL of item',
       placeholder: 'same as item element',
     },
     {
-      ref: transHtmlItemUrlAttr,
+      value: transHtmlItemUrlAttr,
+      setValue: setTransHtmlItemUrlAttr,
       key: 'item_url_attr',
       desc: (
         <span>
@@ -192,31 +197,36 @@ export default function FeedList({
       placeholder: 'href',
     },
     {
-      ref: transHtmlItemContent,
+      value: transHtmlItemContent,
+      setValue: setTransHtmlItemContent,
       key: 'item_content',
       desc: 'CSS selector targetting content of item',
       placeholder: 'same as item element',
     },
     {
-      ref: transHtmlItemDate,
+      value: transHtmlItemDate,
+      setValue: setTransHtmlItemDate,
       key: 'item_date_published',
       desc: 'CSS selector targetting publication date of item',
       placeholder: 'same as item element',
     },
-  ])
-  const transJsonParams = useRef<Param[]>([
+  ]
+  const transJsonParams: Param[] = [
     {
-      ref: transJsonHomePageUrl,
+      value: transJsonHomePageUrl,
+      setValue: setTransJsonHomePageUrl,
       key: 'home_page_url',
       desc: 'Home page URL of RSS',
     },
     {
-      ref: transJsonTitle,
+      value: transJsonTitle,
+      setValue: setTransJsonTitle,
       key: 'title',
       desc: 'Title of RSS',
     },
     {
-      ref: transJsonHeaders,
+      value: transJsonHeaders,
+      setValue: setTransJsonHeaders,
       key: 'headers',
       desc: 'HTTP request headers in JSON form',
       parse: (input: string) => {
@@ -228,53 +238,51 @@ export default function FeedList({
       },
     },
     {
-      ref: transJsonItems,
+      value: transJsonItems,
+      setValue: setTransJsonItems,
       key: 'items',
       desc: 'JSON path to items',
       placeholder: 'entire JSON response',
     },
     {
-      ref: transJsonItemTitle,
+      value: transJsonItemTitle,
+      setValue: setTransJsonItemTitle,
       key: 'item_title',
       desc: 'JSON path to title of item',
     },
     {
-      ref: transJsonItemUrl,
+      value: transJsonItemUrl,
+      setValue: setTransJsonItemUrl,
       key: 'item_url',
       desc: 'JSON path to URL of item',
     },
     {
-      ref: transJsonItemUrlPrefix,
+      value: transJsonItemUrlPrefix,
+      setValue: setTransJsonItemUrlPrefix,
       key: 'item_url_prefix',
       desc: 'Optional prefix for URL',
     },
     {
-      ref: transJsonItemContent,
+      value: transJsonItemContent,
+      setValue: setTransJsonItemContent,
       key: 'item_content',
       desc: 'JSON path to content of item',
     },
     {
-      ref: transJsonItemDatePublished,
+      value: transJsonItemDatePublished,
+      setValue: setTransJsonItemDatePublished,
       key: 'item_date_published',
       desc: 'JSON path to publication date of item',
     },
-  ])
-  const transParams = useCallback(
-    () =>
-      JSON.stringify({
-        url: transUrl.current?.value,
-        ...Object.fromEntries(
-          (generatorType === 'html' ? transHtmlParams : transJsonParams).current
-            .filter(({ ref }) => ref.current?.value)
-            .map(({ key, ref, parse }) => [
-              key,
-              parse ? parse(ref.current!.value) : ref.current!.value,
-            ])
-            .filter(([_, val]) => val),
-        ),
-      }),
-    [generatorType],
-  )
+  ]
+  const transParams = JSON.stringify({
+    url: transUrl,
+    ...Object.fromEntries(
+      (transType === 'html' ? transHtmlParams : transJsonParams)
+        .map(({ key, value, parse }) => [key, parse ? parse(value) : value])
+        .filter(([_, value]) => value),
+    ),
+  })
 
   const menuRef = useRef<HTMLButtonElement>(null)
   const [newFeedLink, setNewFeedLink] = useState('')
@@ -285,6 +293,10 @@ export default function FeedList({
   const feedTitleRef = useRef<HTMLTextAreaElement>(null)
   const feedLinkRef = useRef<HTMLTextAreaElement>(null)
   const folderTitleRef = useRef<HTMLTextAreaElement>(null)
+  const [isTypingTransParams, setIsTypingTransParams] = useState(false)
+  const autoNewFeedLink = isTypingTransParams
+    ? `${transType}:${transParams}`
+    : newFeedLink
 
   const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
     id: number,
@@ -713,14 +725,14 @@ export default function FeedList({
           />
         }
         callback={async () => {
-          if (!newFeedLink) throw new Error('Feed link is required')
+          if (!autoNewFeedLink) throw new Error('Feed link is required')
           if (!selectedFolderRef.current) return
           setCreatingNewFeed(true)
           try {
             const feed = await xfetch<Feed>('api/feeds', {
               method: 'POST',
               body: JSON.stringify({
-                url: newFeedLink,
+                url: autoNewFeedLink,
                 folder_id: selectedFolderRef.current.value
                   ? Number.parseInt(selectedFolderRef.current.value)
                   : null,
@@ -737,8 +749,35 @@ export default function FeedList({
         <div style={{ display: 'flex' }}>
           <TextArea
             placeholder="https://example.com/feed"
-            value={newFeedLink}
-            onChange={evt => setNewFeedLink(evt.target.value)}
+            value={autoNewFeedLink}
+            onChange={evt => {
+              const feedLink = evt.target.value
+              setNewFeedLink(feedLink)
+              setIsTypingTransParams(false)
+              const i = feedLink.indexOf(':')
+              if (i === -1) return
+              const scheme = feedLink.slice(0, i)
+              switch (scheme) {
+                case 'html':
+                case 'json': {
+                  const list = scheme === 'html' ? transHtmlParams : transJsonParams
+                  try {
+                    const params: Record<string, any> = JSON.parse(feedLink.slice(i + 1))
+                    for (const key in params) {
+                      const param = list.find(param => param.key === key)
+                      if (param) {
+                        const value = params[key]
+                        param.setValue(
+                          typeof value === 'string' ? value : JSON.stringify(value),
+                        )
+                      }
+                    }
+                    setTransUrl(params.url ?? '')
+                    setTransType(scheme)
+                  } catch {}
+                }
+              }
+            }}
             spellCheck={false}
             {...textAreaProps}
           />
@@ -760,8 +799,8 @@ export default function FeedList({
           <Divider style={{ marginTop: length(5), marginBottom: length(5) }} />
           <div style={{ textAlign: 'center' }}>
             <RadioGroup
-              onChange={evt => setGeneratorType(evt.currentTarget.value)}
-              selectedValue={generatorType}
+              onChange={evt => setTransType(evt.currentTarget.value)}
+              selectedValue={transType}
               options={[
                 { value: 'html', label: 'HTML Transformer' },
                 { value: 'json', label: 'JSON Transformer' },
@@ -771,32 +810,36 @@ export default function FeedList({
           </div>
           {[
             {
-              ref: transUrl,
+              value: transUrl,
+              setValue: setTransUrl,
               key: 'url',
               desc: undefined,
               placeholder: 'https://example.com',
             },
-            ...(generatorType === 'html' ? transHtmlParams : transJsonParams).current,
-          ].map(({ ref, key, desc, placeholder }) => (
+            ...(transType === 'html' ? transHtmlParams : transJsonParams),
+          ].map(({ value, setValue, key, desc, placeholder }) => (
             <FormGroup
-              key={`${generatorType}_${key}`}
+              key={`${transType}_${key}`}
               label={<Code>{key}</Code>}
-              labelFor={`${generatorType}_${key}`}
+              labelFor={`${transType}_${key}`}
               labelInfo={<span style={{ fontSize: '0.9em' }}>{desc}</span>}
               fill
             >
               <InputGroup
-                id={`${generatorType}_${key}`}
+                value={value}
+                id={`${transType}_${key}`}
                 placeholder={placeholder}
-                inputRef={ref}
-                onValueChange={() => setNewFeedLink(`${generatorType}:${transParams()}`)}
+                onValueChange={value => {
+                  setValue(value)
+                  setIsTypingTransParams(true)
+                }}
                 round
               />
             </FormGroup>
           ))}
           <AnchorButton
             text="Preview"
-            href={`api/transform/${generatorType}/${encodeURIComponent(transParams())}`}
+            href={`api/transform/${transType}/${encodeURIComponent(transParams)}`}
             target="_blank"
             intent={Intent.PRIMARY}
             rightIcon={<ExternalLink {...iconProps} />}
