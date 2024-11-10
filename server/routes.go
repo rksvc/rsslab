@@ -10,15 +10,14 @@ import (
 	"mime"
 	"net/http"
 	"path"
+	"rsslab/rss"
 	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
 	"time"
-
-	"golang.org/x/net/html/charset"
 )
 
-type M = map[string]any
+type dict = map[string]any
 
 type badRequest struct {
 	Err error
@@ -69,7 +68,7 @@ func (s *Server) handleStatus(c context) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(M{
+	return c.JSON(dict{
 		"stats":          stats,
 		"running":        s.pending.Load(),
 		"last_refreshed": s.lastRefreshed.Load(),
@@ -153,11 +152,10 @@ func (s *Server) handleFeedCreate(c context) error {
 	if err != nil {
 		return err
 	}
-	rawFeed.FeedLink = body.Url
 	feed, err := s.db.CreateFeed(
 		rawFeed.Title,
-		rawFeed.Link,
-		rawFeed.FeedLink,
+		rawFeed.SiteURL,
+		body.Url,
 		body.FolderId,
 	)
 	if err != nil {
@@ -274,7 +272,7 @@ func (s *Server) handleItemList(c context) error {
 		hasMore = true
 		items = items[:PER_PAGE]
 	}
-	return c.JSON(M{
+	return c.JSON(dict{
 		"list":     items,
 		"has_more": hasMore,
 	})
@@ -348,11 +346,9 @@ func (s *Server) handleOPMLImport(c context) error {
 	if err != nil {
 		return &badRequest{err}
 	}
-	d := xml.NewDecoder(file)
+	d := utils.XMLDecoder(file)
 	d.Entity = xml.HTMLEntity
-	d.Strict = false
-	d.CharsetReader = charset.NewReaderLabel
-	var opml OPML
+	var opml rss.OPML
 	err = d.Decode(&opml)
 	if err != nil {
 		return &badRequest{err}
@@ -360,7 +356,7 @@ func (s *Server) handleOPMLImport(c context) error {
 
 	var errs []error
 	for _, o := range opml.Outlines {
-		if o.isFolder() {
+		if o.IsFolder() {
 			title := o.Title
 			if title == "" {
 				title = o.Title2
@@ -370,7 +366,7 @@ func (s *Server) handleOPMLImport(c context) error {
 				errs = append(errs, err)
 				continue
 			}
-			for _, o := range o.allFeeds() {
+			for _, o := range o.AllFeeds() {
 				_, err = s.db.CreateFeed(o.Title, o.SiteUrl, o.FeedUrl, &folder.Id)
 				if err != nil {
 					errs = append(errs, err)
@@ -395,7 +391,7 @@ func (s *Server) handleOPMLImport(c context) error {
 }
 
 func (s *Server) handleOPMLExport(c context) error {
-	opml := OPML{
+	opml := rss.OPML{
 		Version: "1.1",
 		Title:   "subscriptions",
 	}
@@ -407,7 +403,7 @@ func (s *Server) handleOPMLExport(c context) error {
 	}
 	for _, feed := range feeds {
 		if feed.FolderId == nil {
-			opml.Outlines = append(opml.Outlines, Outline{
+			opml.Outlines = append(opml.Outlines, rss.Outline{
 				Type:    "rss",
 				Title:   feed.Title,
 				FeedUrl: feed.FeedLink,
@@ -428,9 +424,9 @@ func (s *Server) handleOPMLExport(c context) error {
 		if len(feeds) == 0 {
 			continue
 		}
-		folder := Outline{Title: folder.Title}
+		folder := rss.Outline{Title: folder.Title}
 		for _, feed := range feeds {
-			folder.Outlines = append(folder.Outlines, Outline{
+			folder.Outlines = append(folder.Outlines, rss.Outline{
 				Type:    "rss",
 				Title:   feed.Title,
 				FeedUrl: feed.FeedLink,

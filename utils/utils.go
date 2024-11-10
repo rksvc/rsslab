@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"encoding/xml"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -9,6 +11,7 @@ import (
 	"unsafe"
 
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/charset"
 )
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
@@ -88,4 +91,15 @@ func ResponseError(resp *http.Response) error {
 
 func IsErrorResponse(statusCode int) bool {
 	return statusCode >= 400
+}
+
+func XMLDecoder(r io.Reader) *xml.Decoder {
+	d := xml.NewDecoder(r)
+	d.Strict = false
+	d.CharsetReader = charset.NewReaderLabel
+	return d
+}
+
+func AddrOf[T any](val T) *T {
+	return &val
 }

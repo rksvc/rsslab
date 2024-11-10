@@ -1,16 +1,14 @@
-package server
+package rss
 
 import (
 	"io"
 	"log"
 	"net/http"
 	"rsslab/utils"
-	"sort"
+	"slices"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	jsonfeed "github.com/mmcdole/gofeed/json"
 	"github.com/tidwall/gjson"
 )
 
@@ -38,8 +36,8 @@ type JSONRule struct {
 	ItemDatePublished string            `json:"item_date_published"`
 }
 
-func (s *Server) TransformHTML(rule *HTMLRule) (*jsonfeed.Feed, error) {
-	resp, err := s.tryGet(rule.URL, nil)
+func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
+	resp, err := tryGet(rule.URL, nil, client)
 	if err != nil {
 		return nil, err
 	}
@@ -49,16 +47,18 @@ func (s *Server) TransformHTML(rule *HTMLRule) (*jsonfeed.Feed, error) {
 		return nil, err
 	}
 
-	var feed jsonfeed.Feed
-	feed.HomePageURL = rule.URL
+	var feed Feed
+	feed.SiteURL = rule.URL
 	if rule.Title == "" {
 		feed.Title = utils.CollapseWhitespace(doc.Find("title").First().Text())
 	} else {
 		feed.Title = rule.Title
 	}
 
-	for _, item := range doc.Find(rule.Items).EachIter() {
-		var i jsonfeed.Item
+	items := doc.Find(rule.Items)
+	feed.Items = make([]Item, 0, items.Length())
+	for _, item := range items.EachIter() {
+		var i Item
 
 		title := item
 		if rule.ItemTitle != "" {
@@ -75,33 +75,33 @@ func (s *Server) TransformHTML(rule *HTMLRule) (*jsonfeed.Feed, error) {
 		}
 		i.URL = url.AttrOr(rule.ItemUrlAttr, "")
 		i.URL = utils.AbsoluteUrl(i.URL, rule.URL)
-		i.ID = i.URL
+		i.GUID = i.URL
 
 		content := item
 		if rule.ItemContent != "" {
 			content = item.Find(rule.ItemContent)
 		}
-		i.ContentHTML, err = content.Html()
+		i.Content, err = content.Html()
 		if err != nil {
 			return nil, err
 		}
-		i.ContentHTML = strings.TrimSpace(utils.Sanitize(rule.URL, i.ContentHTML))
+		i.Content = strings.TrimSpace(utils.Sanitize(rule.URL, i.Content))
 
 		date := item
 		if rule.ItemDatePublished != "" {
 			date = item.Find(rule.ItemDatePublished).First()
 		}
-		i.DatePublished = date.Text()
+		i.Date = utils.ParseDate(date.Text())
 
-		feed.Items = append(feed.Items, &i)
+		feed.Items = append(feed.Items, i)
 	}
 
-	sanitize(&feed)
+	slices.SortStableFunc(feed.Items, cmpItem)
 	return &feed, nil
 }
 
-func (s *Server) TransformJSON(rule *JSONRule) (*jsonfeed.Feed, error) {
-	resp, err := s.tryGet(rule.URL, rule.Headers)
+func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
+	resp, err := tryGet(rule.URL, rule.Headers, client)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +112,9 @@ func (s *Server) TransformJSON(rule *JSONRule) (*jsonfeed.Feed, error) {
 	}
 	j := gjson.ParseBytes(b)
 
-	var feed = jsonfeed.Feed{
-		Title:       rule.Title,
-		HomePageURL: rule.HomePageURL,
+	var feed = Feed{
+		Title:   rule.Title,
+		SiteURL: rule.HomePageURL,
 	}
 	var items []gjson.Result
 	if rule.Items == "" {
@@ -122,9 +122,9 @@ func (s *Server) TransformJSON(rule *JSONRule) (*jsonfeed.Feed, error) {
 	} else {
 		items = j.Get(rule.Items).Array()
 	}
-	feed.Items = make([]*jsonfeed.Item, 0, len(items))
+	feed.Items = make([]Item, 0, len(items))
 	for _, item := range items {
-		var i jsonfeed.Item
+		var i Item
 
 		if rule.ItemTitle != "" {
 			i.Title = item.Get(rule.ItemTitle).String()
@@ -135,21 +135,21 @@ func (s *Server) TransformJSON(rule *JSONRule) (*jsonfeed.Feed, error) {
 			if rule.ItemUrlPrefix != "" {
 				i.URL = rule.ItemUrlPrefix + i.URL
 			}
-			i.ID = i.URL
+			i.GUID = i.URL
 		}
 
 		if rule.ItemContent != "" {
-			i.ContentHTML = item.Get(rule.ItemContent).String()
+			i.Content = item.Get(rule.ItemContent).String()
 		}
 
 		if rule.ItemDatePublished != "" {
-			i.DatePublished = item.Get(rule.ItemDatePublished).String()
+			i.Date = utils.ParseDate(item.Get(rule.ItemDatePublished).String())
 		}
 
-		feed.Items = append(feed.Items, &i)
+		feed.Items = append(feed.Items, i)
 	}
 
-	sanitize(&feed)
+	slices.SortStableFunc(feed.Items, cmpItem)
 	return &feed, nil
 }
 
@@ -164,7 +164,7 @@ var retryStatusCodes = map[int]struct{}{
 	http.StatusGatewayTimeout:      {},
 }
 
-func (s *Server) tryGet(url string, headers map[string]string) (resp *http.Response, err error) {
+func tryGet(url string, headers map[string]string, client *http.Client) (resp *http.Response, err error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func (s *Server) tryGet(url string, headers map[string]string) (resp *http.Respo
 	}
 	const maxTry = 3
 	for attempt := 1; attempt <= maxTry; attempt++ {
-		resp, err = s.client.Do(req)
+		resp, err = client.Do(req)
 		if err == nil {
 			if !utils.IsErrorResponse(resp.StatusCode) {
 				return
@@ -193,27 +193,14 @@ func (s *Server) tryGet(url string, headers map[string]string) (resp *http.Respo
 	return
 }
 
-func sanitize(feed *jsonfeed.Feed) {
-	date := make([]*time.Time, len(feed.Items))
-	for i := range feed.Items {
-		if d := &feed.Items[i].DatePublished; *d != "" {
-			if t, ok := utils.ParseDate(*d); ok {
-				if b, err := t.MarshalText(); err == nil {
-					*d = utils.BytesToString(b)
-					date[i] = &t
-					continue
-				}
-			}
-			*d = ""
+func cmpItem(a, b Item) int {
+	if b.Date == nil {
+		if a.Date == nil {
+			return 0
 		}
+		return -1
+	} else if a.Date == nil {
+		return 1
 	}
-
-	sort.SliceStable(feed.Items, func(i, j int) bool {
-		if date[i] == nil {
-			return true
-		} else if date[j] == nil {
-			return false
-		}
-		return date[j].Compare(*date[i]) < 0
-	})
+	return b.Date.Compare(*a.Date)
 }

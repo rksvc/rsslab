@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"rsslab/rss"
 	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/net/publicsuffix"
 )
@@ -203,7 +203,7 @@ func (s *Server) RefreshFeeds(feeds ...storage.Feed) {
 	}
 }
 
-func (s *Server) do(url string, state *storage.HTTPState) (*gofeed.Feed, error) {
+func (s *Server) do(url string, state *storage.HTTPState) (*rss.Feed, error) {
 	i := strings.IndexByte(url, ':')
 	if i == -1 {
 		return nil, errors.New("invalid URL")
@@ -211,28 +211,20 @@ func (s *Server) do(url string, state *storage.HTTPState) (*gofeed.Feed, error) 
 
 	switch url[:i] {
 	case "html":
-		rule := new(HTMLRule)
+		rule := new(rss.HTMLRule)
 		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
 		if err != nil {
 			return nil, err
 		}
-		feed, err := s.TransformHTML(rule)
-		if err != nil {
-			return nil, err
-		}
-		return new(gofeed.DefaultJSONTranslator).Translate(feed)
+		return rss.TransformHTML(rule, &s.client)
 
 	case "json":
-		rule := new(JSONRule)
+		rule := new(rss.JSONRule)
 		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
 		if err != nil {
 			return nil, err
 		}
-		feed, err := s.TransformJSON(rule)
-		if err != nil {
-			return nil, err
-		}
-		return new(gofeed.DefaultJSONTranslator).Translate(feed)
+		return rss.TransformJSON(rule, &s.client)
 
 	default:
 		req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -277,7 +269,7 @@ func (s *Server) do(url string, state *storage.HTTPState) (*gofeed.Feed, error) 
 				}
 			}
 		}
-		return gofeed.NewParser().Parse(b)
+		return rss.Parse(b, url)
 	}
 }
 
@@ -307,32 +299,25 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, *storage.HTTPState, 
 	return convertItems(feed.Items, f), &state, nil
 }
 
-func convertItems(items []*gofeed.Item, feed storage.Feed) []storage.Item {
+func convertItems(items []rss.Item, feed storage.Feed) []storage.Item {
 	result := make([]storage.Item, len(items))
 	now := time.Now()
 	for i, item := range items {
-		links := append([]string{item.Link}, item.Links...)
-		link := utils.FirstNonEmpty(links...)
-		if !utils.IsAPossibleLink(link) {
-			link = utils.AbsoluteUrl(link, feed.Link)
-		}
 		result[i] = storage.Item{
-			GUID:    utils.FirstNonEmpty(item.GUID, item.Link),
+			GUID:    utils.FirstNonEmpty(item.GUID, item.URL),
 			FeedId:  feed.Id,
 			Title:   item.Title,
-			Link:    link,
-			Content: utils.FirstNonEmpty(item.Content, item.Description),
+			Link:    item.URL,
+			Content: item.Content,
 			Status:  storage.UNREAD,
 		}
-		if item.PublishedParsed != nil {
-			result[i].Date = *item.PublishedParsed
-		} else if item.UpdatedParsed != nil {
-			result[i].Date = *item.UpdatedParsed
-		} else {
+		if item.Date == nil {
 			result[i].Date = now
+		} else {
+			result[i].Date = *item.Date
 		}
-		if item.Image != nil {
-			result[i].ImageURL = &item.Image.URL
+		if item.ImageURL != "" {
+			result[i].ImageURL = &item.ImageURL
 		}
 	}
 	return result

@@ -428,13 +428,13 @@ func parseDateOtherString(s string) (date, bool) {
 	return d, d.month > 0 && d.day > 0
 }
 
-func ParseDate(date string) (t time.Time, ok bool) {
+func ParseDate(date string) *time.Time {
 	d, ok := parseDateISOString(date)
 	if !ok {
 		d, ok = parseDateOtherString(date)
 	}
 	if !ok {
-		return
+		return nil
 	}
 	if d.month > 12 ||
 		d.day > 31 ||
@@ -443,18 +443,21 @@ func ParseDate(date string) (t time.Time, ok bool) {
 		d.sec > 59 ||
 		// special case 24:00:00.000
 		(d.hour == 24 && (d.min != 0 || d.sec != 0 || d.msec != 0)) {
-		ok = false
-		return
+		return nil
 	}
 	var loc *time.Location
 	if d.isLocal {
 		loc = time.Local
+	} else if d.timeZoneOffset == 0 {
+		loc = time.UTC
 	} else {
 		loc = time.FixedZone("", d.timeZoneOffset*60)
 	}
-	t = time.Date(d.year, time.Month(d.month), d.day, d.hour, d.min, d.sec, d.msec*1e6, loc)
+	t := time.Date(d.year, time.Month(d.month), d.day, d.hour, d.min, d.sec, d.msec*1e6, loc)
 	unixMilli := t.UnixMilli()
 	const MAX_TIME = 8.64e15
-	ok = unixMilli >= -MAX_TIME && unixMilli <= MAX_TIME
-	return
+	if unixMilli >= -MAX_TIME && unixMilli <= MAX_TIME {
+		return &t
+	}
+	return nil
 }
