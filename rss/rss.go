@@ -12,7 +12,7 @@ type rssFeed struct {
 	XMLName xml.Name  `xml:"rss"`
 	Version string    `xml:"version,attr"`
 	Title   string    `xml:"channel>title"`
-	Link    string    `xml:"channel>link"`
+	Link    string    `xml:"rss channel>link"`
 	Items   []rssItem `xml:"channel>item"`
 }
 
