@@ -239,3 +239,40 @@ func (s *Storage) GetHTTPState(feedId int) (state HTTPState, err error) {
 	}
 	return
 }
+
+type FeedState struct {
+	Id      int     `json:"id"`
+	Error   *string `json:"error"`
+	Unread  int     `json:"unread"`
+	Starred int     `json:"starred"`
+}
+
+func (s *Storage) FeedState() ([]FeedState, error) {
+	rows, err := s.db.Query(fmt.Sprintf(`
+		select
+			feeds.id,
+			error,
+			sum(iif(status = %d, 1, 0)),
+			sum(iif(status = %d, 1, 0))
+		from feeds
+		left join items
+		on feeds.id = items.feed_id
+		group by feeds.id
+	`, UNREAD, STARRED))
+	if err != nil {
+		return nil, utils.NewError(err)
+	}
+	result := make([]FeedState, 0)
+	for rows.Next() {
+		var s FeedState
+		err = rows.Scan(&s.Id, &s.Error, &s.Unread, &s.Starred)
+		if err != nil {
+			return nil, utils.NewError(err)
+		}
+		result = append(result, s)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, utils.NewError(err)
+	}
+	return result, nil
+}

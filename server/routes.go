@@ -64,7 +64,7 @@ func (s *Server) handleIndex(c context) error {
 }
 
 func (s *Server) handleStatus(c context) error {
-	state, err := s.db.FeedStats()
+	state, err := s.db.FeedState()
 	if err != nil {
 		return err
 	}

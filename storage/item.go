@@ -256,43 +256,6 @@ func (s *Storage) MarkItemsRead(filter ItemFilter) error {
 	return nil
 }
 
-type FeedStat struct {
-	Error        *string `json:"error"`
-	UnreadCount  int     `json:"unread"`
-	StarredCount int     `json:"starred"`
-}
-
-func (s *Storage) FeedStats() (map[int]FeedStat, error) {
-	rows, err := s.db.Query(fmt.Sprintf(`
-		select
-			feeds.id,
-			error,
-			sum(iif(status = %d, 1, 0)),
-			sum(iif(status = %d, 1, 0))
-		from feeds
-		left join items
-		on feeds.id = items.feed_id
-		group by feeds.id
-	`, UNREAD, STARRED))
-	if err != nil {
-		return nil, utils.NewError(err)
-	}
-	result := make(map[int]FeedStat)
-	for rows.Next() {
-		var id int
-		var s FeedStat
-		err = rows.Scan(&id, &s.Error, &s.UnreadCount, &s.StarredCount)
-		if err != nil {
-			return nil, utils.NewError(err)
-		}
-		result[id] = s
-	}
-	if err = rows.Err(); err != nil {
-		return nil, utils.NewError(err)
-	}
-	return result, nil
-}
-
 const (
 	ITEMS_KEEP_SIZE = 50
 	ITEMS_KEEP_DAYS = 90
