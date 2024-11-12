@@ -41,7 +41,7 @@ export type Item = {
   feed_id: number
   title: string
   link: string
-  content: string
+  content?: string
   date: string
   status: ItemStatus
   image?: string

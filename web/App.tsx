@@ -30,9 +30,8 @@ export default function App() {
 
   const [items, setItems] = useState<Items>()
   const [itemsOutdated, setItemsOutdated] = useState(false)
-  const [selectedItemId, setSelectedItemId] = useState<number>()
+  const [selectedItem, setSelectedItem] = useState<Item>()
 
-  const [selectedItemDetails, setSelectedItemDetails] = useState<Item>()
   const contentRef = useRef<HTMLDivElement>(null)
 
   const [alerts, setAlerts] = useState<string[]>([])
@@ -112,10 +111,9 @@ export default function App() {
     setItems,
     itemsOutdated,
     setItemsOutdated,
-    selectedItemId,
-    setSelectedItemId,
+    selectedItem,
+    setSelectedItem,
 
-    setSelectedItemDetails,
     contentRef,
 
     refreshFeeds,
@@ -137,8 +135,11 @@ export default function App() {
       </div>
       <Divider />
       <div style={{ flexGrow: 1, minWidth: 0 }}>
-        {selectedItemDetails && (
-          <ItemShow {...props} selectedItemDetails={selectedItemDetails} />
+        {selectedItem?.content != null && (
+          <ItemShow
+            {...props}
+            selectedItem={{ ...selectedItem, content: selectedItem.content }}
+          />
         )}
       </div>
       {alerts.map((alert, i) => (

@@ -33,10 +33,9 @@ export default function ItemList({
   setItems,
   itemsOutdated,
   setItemsOutdated,
-  selectedItemId,
-  setSelectedItemId,
+  selectedItem,
+  setSelectedItem,
 
-  setSelectedItemDetails,
   contentRef,
 
   refreshStats,
@@ -51,10 +50,9 @@ export default function ItemList({
   setItems: Dispatch<SetStateAction<Items | undefined>>
   itemsOutdated: boolean
   setItemsOutdated: Dispatch<SetStateAction<boolean>>
-  selectedItemId?: number
-  setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
+  selectedItem?: Item
+  setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
 
-  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
 
   refreshStats: (loop?: boolean) => Promise<void>
@@ -105,11 +103,10 @@ export default function ItemList({
 
   const refresh = useCallback(async () => {
     setItems(await xfetch<Items>(`api/items${param(query())}`))
-    setSelectedItemId(undefined)
-    setSelectedItemDetails(undefined)
+    setSelectedItem(undefined)
     setItemsOutdated(false)
     itemListRef.current?.scrollTo(0, 0)
-  }, [query, setItems, setSelectedItemId, setSelectedItemDetails, setItemsOutdated])
+  }, [query, setItems, setSelectedItem, setItemsOutdated])
   useEffect(() => {
     refresh()
   }, [refresh])
@@ -189,9 +186,8 @@ export default function ItemList({
             item={item}
             setStatus={setStatus}
             setItems={setItems}
-            selectedItemId={selectedItemId}
-            setSelectedItemId={setSelectedItemId}
-            setSelectedItemDetails={setSelectedItemDetails}
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
             contentRef={contentRef}
             feedsById={feedsById}
           />
@@ -234,23 +230,21 @@ function CardItem({
   item,
   setItems,
   setStatus,
-  selectedItemId,
-  setSelectedItemId,
-  setSelectedItemDetails,
+  selectedItem,
+  setSelectedItem,
   contentRef,
   feedsById,
 }: {
   item: Item
   setItems: Dispatch<SetStateAction<Items | undefined>>
   setStatus: Dispatch<SetStateAction<Status | undefined>>
-  selectedItemId?: number
-  setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
-  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
+  selectedItem?: Item
+  setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
   feedsById: Map<number, Feed>
 }) {
   const prevStatus = usePrevious(item.status)
-  const isSelected = item.id === selectedItemId
+  const isSelected = item.id === selectedItem?.id
   const iconProps = {
     style: { display: 'flex', width: '100%' },
     className: isSelected ? undefined : Classes.INTENT_PRIMARY,
@@ -261,8 +255,7 @@ function CardItem({
       interactive
       onClick={async () => {
         if (isSelected) return
-        setSelectedItemId(item.id)
-        setSelectedItemDetails(await xfetch<Item>(`api/items/${item.id}`))
+        setSelectedItem(await xfetch<Item>(`api/items/${item.id}`))
         contentRef.current?.scrollTo(0, 0)
         if (item.status === 'unread') {
           await xfetch(`api/items/${item.id}`, {
@@ -285,7 +278,7 @@ function CardItem({
                 has_more: items.has_more,
               },
           )
-          setSelectedItemDetails(item => item && { ...item, status: 'read' })
+          setSelectedItem(item => item && { ...item, status: 'read' })
         }
       }}
     >

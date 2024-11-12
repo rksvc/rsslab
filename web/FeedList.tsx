@@ -59,6 +59,7 @@ import type {
   Filter,
   Folder,
   FolderWithFeeds,
+  Item,
   Selected,
   Settings,
   Status,
@@ -104,6 +105,8 @@ export default function FeedList({
   settings,
   setSettings,
 
+  selectedItem,
+
   refreshFeeds,
   refreshStats,
   errorCount,
@@ -121,6 +124,8 @@ export default function FeedList({
   setSelected: Dispatch<SetStateAction<Selected>>
   settings?: Settings
   setSettings: Dispatch<SetStateAction<Settings | undefined>>
+
+  selectedItem?: Item
 
   refreshFeeds: () => Promise<void>
   refreshStats: (loop?: boolean) => Promise<void>
@@ -500,6 +505,7 @@ export default function FeedList({
             feeds: folder.feeds.filter(
               feed =>
                 selected?.feed_id === feed.id ||
+                selectedItem?.feed_id === feed.id ||
                 ((filter === 'Unread'
                   ? status?.state.get(feed.id)?.unread
                   : status?.state.get(feed.id)?.starred) ?? 0) > 0,

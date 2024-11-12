@@ -15,32 +15,32 @@ import { cn, iconProps, length, panelStyle, xfetch } from './utils'
 export default function ItemShow({
   setStatus,
   setItems,
-  selectedItemDetails,
-  setSelectedItemDetails,
+  selectedItem,
+  setSelectedItem,
   contentRef,
   feedsById,
 }: {
   setStatus: Dispatch<SetStateAction<Status | undefined>>
   setItems: Dispatch<SetStateAction<Items | undefined>>
-  selectedItemDetails: Item
-  setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
+  selectedItem: Item & { content: string }
+  setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
   feedsById: Map<number, Feed>
 }) {
   const toggleStatus = (targetStatus: ItemStatus) => async () => {
-    const status = targetStatus === selectedItemDetails.status ? 'read' : targetStatus
-    await xfetch(`api/items/${selectedItemDetails.id}`, {
+    const status = targetStatus === selectedItem.status ? 'read' : targetStatus
+    await xfetch(`api/items/${selectedItem.id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     })
     const diff = (s: ItemStatus) =>
-      status === s ? +1 : selectedItemDetails.status === s ? -1 : 0
+      status === s ? +1 : selectedItem.status === s ? -1 : 0
     setStatus(status => {
       if (!status) return
       const state = new Map(status.state)
-      const s = state.get(selectedItemDetails.feed_id)
+      const s = state.get(selectedItem.feed_id)
       if (s)
-        state.set(selectedItemDetails.feed_id, {
+        state.set(selectedItem.feed_id, {
           ...s,
           starred: s.starred + diff('starred'),
           unread: s.unread + diff('unread'),
@@ -50,13 +50,11 @@ export default function ItemShow({
     setItems(
       items =>
         items && {
-          list: items.list.map(i =>
-            i.id === selectedItemDetails.id ? { ...i, status } : i,
-          ),
+          list: items.list.map(i => (i.id === selectedItem.id ? { ...i, status } : i)),
           has_more: items.has_more,
         },
     )
-    setSelectedItemDetails({ ...selectedItemDetails, status })
+    setSelectedItem({ ...selectedItem, status })
   }
 
   return (
@@ -68,9 +66,7 @@ export default function ItemShow({
               <Star
                 {...iconProps}
                 fill={
-                  selectedItemDetails.status === 'starred'
-                    ? Colors.DARK_GRAY1
-                    : Colors.WHITE
+                  selectedItem.status === 'starred' ? Colors.DARK_GRAY1 : Colors.WHITE
                 }
               />
             }
@@ -81,11 +77,7 @@ export default function ItemShow({
             icon={
               <Circle
                 {...iconProps}
-                fill={
-                  selectedItemDetails.status === 'unread'
-                    ? Colors.DARK_GRAY1
-                    : Colors.WHITE
-                }
+                fill={selectedItem.status === 'unread' ? Colors.DARK_GRAY1 : Colors.WHITE}
               />
             }
             onClick={toggleStatus('unread')}
@@ -94,7 +86,7 @@ export default function ItemShow({
           <AnchorButton
             className={Classes.INTENT_PRIMARY}
             icon={<ExternalLink {...iconProps} />}
-            href={selectedItemDetails.link}
+            href={selectedItem.link}
             target="_blank"
             title="Open Link"
           />
@@ -105,18 +97,16 @@ export default function ItemShow({
         style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }}
         ref={contentRef}
       >
-        <H2 style={{ fontWeight: 700 }}>{selectedItemDetails.title || 'untitled'}</H2>
+        <H2 style={{ fontWeight: 700 }}>{selectedItem.title || 'untitled'}</H2>
+        <div style={{ opacity: 0.95 }}>{feedsById.get(selectedItem.feed_id)?.title}</div>
         <div style={{ opacity: 0.95 }}>
-          {feedsById.get(selectedItemDetails.feed_id)?.title}
-        </div>
-        <div style={{ opacity: 0.95 }}>
-          {new Date(selectedItemDetails.date).toLocaleString()}
+          {new Date(selectedItem.date).toLocaleString()}
         </div>
         <Divider style={{ marginTop: length(3), marginBottom: length(3) }} />
         <div
           style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
           className={cn(Classes.RUNNING_TEXT, 'content')}
-          dangerouslySetInnerHTML={{ __html: selectedItemDetails.content }}
+          dangerouslySetInnerHTML={{ __html: selectedItem.content }}
         />
       </div>
     </div>
