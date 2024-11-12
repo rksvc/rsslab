@@ -39,16 +39,16 @@ export default function ItemShow({
       status =>
         status && {
           ...status,
-          stats: new Map([
-            ...status.stats,
+          state: new Map([
+            ...status.state,
             [
               selectedItemDetails.feed_id,
               {
                 starred:
-                  (status.stats.get(selectedItemDetails.feed_id)?.starred ?? 0) +
+                  (status.state.get(selectedItemDetails.feed_id)?.starred ?? 0) +
                   diff('starred'),
                 unread:
-                  (status.stats.get(selectedItemDetails.feed_id)?.unread ?? 0) +
+                  (status.state.get(selectedItemDetails.feed_id)?.unread ?? 0) +
                   diff('unread'),
               },
             ],

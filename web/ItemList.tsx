@@ -25,8 +25,8 @@ import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils'
 
 export default function ItemList({
   filter,
+  status,
   setStatus,
-  errors,
   selected,
 
   items,
@@ -43,9 +43,9 @@ export default function ItemList({
   feedsById,
 }: {
   filter: string
+  status?: Status
   setStatus: Dispatch<SetStateAction<Status | undefined>>
   selected: Selected
-  errors?: Map<number, string>
 
   items?: Item[]
   setItems: Dispatch<SetStateAction<Item[] | undefined>>
@@ -128,6 +128,7 @@ export default function ItemList({
     refresh()
   }, [refresh])
 
+  const error = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
   return (
     <div style={panelStyle}>
       <div
@@ -217,13 +218,13 @@ export default function ItemList({
           </div>
         )}
       </CardList>
-      {selected?.feed_id != null && errors?.get(selected.feed_id) && (
+      {error && (
         <>
           <Divider />
           <div
             style={{ padding: length(3), overflowWrap: 'break-word', color: '#dc2626' }}
           >
-            {errors.get(selected.feed_id)}
+            {error}
           </div>
         </>
       )}
@@ -274,13 +275,13 @@ function CardItem({
             status =>
               status && {
                 ...status,
-                stats: new Map([
-                  ...status.stats,
+                state: new Map([
+                  ...status.state,
                   [
                     item.feed_id,
                     {
-                      starred: status.stats.get(item.feed_id)?.starred ?? 0,
-                      unread: (status.stats.get(item.feed_id)?.unread ?? 0) - 1,
+                      starred: status.state.get(item.feed_id)?.starred ?? 0,
+                      unread: (status.state.get(item.feed_id)?.unread ?? 0) - 1,
                     },
                   ],
                 ]),

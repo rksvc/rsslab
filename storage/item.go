@@ -257,18 +257,22 @@ func (s *Storage) MarkItemsRead(filter ItemFilter) error {
 }
 
 type FeedStat struct {
-	UnreadCount  int `json:"unread"`
-	StarredCount int `json:"starred"`
+	Error        *string `json:"error"`
+	UnreadCount  int     `json:"unread"`
+	StarredCount int     `json:"starred"`
 }
 
 func (s *Storage) FeedStats() (map[int]FeedStat, error) {
 	rows, err := s.db.Query(fmt.Sprintf(`
 		select
-			feed_id,
+			feeds.id,
+			error,
 			sum(iif(status = %d, 1, 0)),
 			sum(iif(status = %d, 1, 0))
-		from items
-		group by feed_id
+		from feeds
+		left join items
+		on feeds.id = items.feed_id
+		group by feeds.id
 	`, UNREAD, STARRED))
 	if err != nil {
 		return nil, utils.NewError(err)
@@ -277,7 +281,7 @@ func (s *Storage) FeedStats() (map[int]FeedStat, error) {
 	for rows.Next() {
 		var id int
 		var s FeedStat
-		err = rows.Scan(&id, &s.UnreadCount, &s.StarredCount)
+		err = rows.Scan(&id, &s.Error, &s.UnreadCount, &s.StarredCount)
 		if err != nil {
 			return nil, utils.NewError(err)
 		}

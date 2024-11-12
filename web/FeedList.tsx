@@ -54,11 +54,11 @@ import {
 import { Dialog } from './Dialog'
 import type {
   Feed,
+  FeedState,
   Folder,
   FolderWithFeeds,
   Selected,
   Settings,
-  Stats,
   Status,
 } from './types'
 import {
@@ -96,7 +96,6 @@ export default function FeedList({
   setFolders,
   setFeeds,
   status,
-  errors,
   selected,
   setSelected,
   settings,
@@ -104,6 +103,7 @@ export default function FeedList({
 
   refreshFeeds,
   refreshStats,
+  errorCount,
   foldersWithFeeds,
   feedsWithoutFolders,
   feedsById,
@@ -114,7 +114,6 @@ export default function FeedList({
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   status?: Status
-  errors?: Map<number, string>
   selected: Selected
   setSelected: Dispatch<SetStateAction<Selected>>
   settings?: Settings
@@ -122,6 +121,7 @@ export default function FeedList({
 
   refreshFeeds: () => Promise<void>
   refreshStats: (loop?: boolean) => Promise<void>
+  errorCount?: number
   foldersWithFeeds?: FolderWithFeeds[]
   feedsWithoutFolders?: Feed[]
   feedsById: Map<number, Feed>
@@ -311,12 +311,12 @@ export default function FeedList({
       feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)),
     )
   }
-  const secondaryLabel = (stats?: Stats, error?: boolean, lastRefreshed?: string) =>
+  const secondaryLabel = (state?: FeedState, lastRefreshed?: string) =>
     filter === 'Unread' ? (
-      `${stats?.unread ?? ''}`
+      `${state?.unread ?? ''}`
     ) : filter === 'Starred' ? (
-      `${stats?.starred ?? ''}`
-    ) : error ? (
+      `${state?.starred ?? ''}`
+    ) : state?.error ? (
       <span
         style={{ display: 'flex' }}
         title={
@@ -445,11 +445,7 @@ export default function FeedList({
         </span>
       ),
       isSelected: selected?.feed_id === feed.id,
-      secondaryLabel: secondaryLabel(
-        status?.stats.get(feed.id),
-        !!errors?.get(feed.id),
-        feed.last_refreshed,
-      ),
+      secondaryLabel: secondaryLabel(status?.state.get(feed.id), feed.last_refreshed),
       nodeData: { feed_id: feed.id },
     }) satisfies TreeNodeInfo<Selected>
   const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo<Selected>) => {
@@ -472,11 +468,11 @@ export default function FeedList({
           folder.id,
           {
             starred: folder.feeds.reduce(
-              (acc, feed) => acc + (status?.stats.get(feed.id)?.starred ?? 0),
+              (acc, feed) => acc + (status?.state.get(feed.id)?.starred ?? 0),
               0,
             ),
             unread: folder.feeds.reduce(
-              (acc, feed) => acc + (status?.stats.get(feed.id)?.unread ?? 0),
+              (acc, feed) => acc + (status?.state.get(feed.id)?.unread ?? 0),
               0,
             ),
           },
@@ -487,10 +483,10 @@ export default function FeedList({
   const total = useMemo(
     () =>
       filter !== 'Feeds' &&
-      (status?.stats
+      (status?.state
         .values()
         .reduce(
-          (acc, stats) => acc + (filter === 'Unread' ? stats.unread : stats.starred),
+          (acc, state) => acc + (filter === 'Unread' ? state.unread : state.starred),
           0,
         )
         .toString() ??
@@ -507,8 +503,8 @@ export default function FeedList({
               feed =>
                 selected?.feed_id === feed.id ||
                 (filter === 'Unread'
-                  ? (status?.stats.get(feed.id)?.unread ?? 0)
-                  : (status?.stats.get(feed.id)?.starred ?? 0)) > 0,
+                  ? (status?.state.get(feed.id)?.unread ?? 0)
+                  : (status?.state.get(feed.id)?.starred ?? 0)) > 0,
             ),
           }))
           .filter(folder => folder.feeds.length > 0 || selected?.folder_id === folder.id)
@@ -519,8 +515,8 @@ export default function FeedList({
           feed =>
             selected?.feed_id === feed.id ||
             (filter === 'Unread'
-              ? (status?.stats.get(feed.id)?.unread ?? 0)
-              : (status?.stats.get(feed.id)?.starred ?? 0)) > 0,
+              ? (status?.state.get(feed.id)?.unread ?? 0)
+              : (status?.state.get(feed.id)?.starred ?? 0)) > 0,
         )
 
   return (
@@ -703,7 +699,7 @@ export default function FeedList({
             Refreshing ({status.running} left)
           </div>
         </>
-      ) : errors?.size ? (
+      ) : errorCount ? (
         <>
           <Divider />
           <div style={statusBarStyle}>
@@ -711,7 +707,7 @@ export default function FeedList({
               style={{ marginLeft: length(3), marginRight: length(2) }}
               {...iconProps}
             />
-            {errors.size} feeds have errors
+            {errorCount} feeds have errors
           </div>
         </>
       ) : (

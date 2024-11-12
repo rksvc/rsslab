@@ -5,13 +5,13 @@ import ItemList from './ItemList'
 import ItemShow from './ItemShow'
 import type {
   Feed,
+  FeedState,
   Folder,
   FolderWithFeeds,
   Item,
   Selected,
   Settings,
   State,
-  Stats,
   Status,
 } from './types'
 import { xfetch } from './utils'
@@ -23,7 +23,6 @@ export default function App() {
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
   const [status, setStatus] = useState<Status>()
-  const [errors, setErrors] = useState<Map<number, string>>()
   const [selected, setSelected] = useState<Selected>()
   const [settings, setSettings] = useState<Settings>()
 
@@ -54,18 +53,14 @@ export default function App() {
     setSettings(settings)
   }
   const refreshStats = async (loop = true) => {
-    const [errors, { running, last_refreshed, stats }] = await Promise.all([
-      xfetch<Record<string, string>>('api/feeds/errors'),
-      xfetch<State & { stats: Record<string, Stats> }>('api/status'),
-    ])
-    setErrors(
-      new Map(Object.entries(errors).map(([id, error]) => [Number.parseInt(id), error])),
-    )
+    const { running, last_refreshed, state } = await xfetch<
+      State & { state: Record<string, FeedState> }
+    >('api/status')
     setStatus({
       running,
       last_refreshed,
-      stats: new Map(
-        Object.entries(stats).map(([id, stats]) => [Number.parseInt(id), stats]),
+      state: new Map(
+        Object.entries(state).map(([id, state]) => [Number.parseInt(id), state]),
       ),
     })
     if (loop) {
@@ -82,6 +77,10 @@ export default function App() {
     })()
   }, [])
 
+  const errorCount = useMemo(
+    () => status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0),
+    [status],
+  )
   const [foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
     const foldersById = new Map<number, FolderWithFeeds>()
     for (const folder of folders ?? [])
@@ -104,7 +103,6 @@ export default function App() {
     setFeeds,
     status,
     setStatus,
-    errors,
     selected,
     setSelected,
     settings,
@@ -122,6 +120,7 @@ export default function App() {
 
     refreshFeeds,
     refreshStats,
+    errorCount,
     foldersWithFeeds,
     feedsWithoutFolders,
     feedsById,

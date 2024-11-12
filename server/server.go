@@ -85,7 +85,6 @@ func (s *Server) Start(addr string) error {
 	mux.HandleFunc("GET    /api/feeds", wrap(s.handleFeedList))
 	mux.HandleFunc("POST   /api/feeds", wrap(s.handleFeedCreate))
 	mux.HandleFunc("POST   /api/feeds/refresh", wrap(s.handleFeedsRefresh))
-	mux.HandleFunc("GET    /api/feeds/errors", wrap(s.handleFeedErrorsList))
 	mux.HandleFunc("GET    /api/feeds/{id}/icon", wrap(s.handleFeedIcon))
 	mux.HandleFunc("POST   /api/feeds/{id}/refresh", wrap(s.handleFeedRefresh))
 	mux.HandleFunc("PUT    /api/feeds/{id}", wrap(s.handleFeedUpdate))

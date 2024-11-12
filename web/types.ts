@@ -1,4 +1,5 @@
-export type Stats = {
+export type FeedState = {
+  error?: string
   unread: number
   starred: number
 }
@@ -9,7 +10,7 @@ export type State = {
 }
 
 export type Status = State & {
-  stats: Map<number, Stats>
+  state: Map<number, FeedState>
 }
 
 export type Folder = {

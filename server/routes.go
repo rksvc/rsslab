@@ -64,12 +64,12 @@ func (s *Server) handleIndex(c context) error {
 }
 
 func (s *Server) handleStatus(c context) error {
-	stats, err := s.db.FeedStats()
+	state, err := s.db.FeedStats()
 	if err != nil {
 		return err
 	}
 	return c.JSON(dict{
-		"stats":          stats,
+		"state":          state,
 		"running":        s.pending.Load(),
 		"last_refreshed": s.lastRefreshed.Load(),
 	})
@@ -176,14 +176,6 @@ func (s *Server) handleFeedCreate(c context) error {
 func (s *Server) handleFeedsRefresh(c context) error {
 	go s.RefreshAllFeeds()
 	return nil
-}
-
-func (s *Server) handleFeedErrorsList(c context) error {
-	errors, err := s.db.GetFeedErrors()
-	if err != nil {
-		return err
-	}
-	return c.JSON(errors)
 }
 
 func (s *Server) handleFeedIcon(c context) error {
