@@ -9,7 +9,7 @@ import {
   Spinner,
   SpinnerSize,
 } from '@blueprintjs/core'
-import { Record, Star } from '@blueprintjs/icons'
+import { Record, type SVGIconProps, Star } from '@blueprintjs/icons'
 import {
   type Dispatch,
   type RefObject,
@@ -78,6 +78,7 @@ export default function ItemList({
 
   const sentryNodeRef = useRef<Element>()
   const [isIntersecting, setIsIntersecting] = useState(false)
+  // https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents
   const observer = useRef<IntersectionObserver>()
   if (!observer.current) {
     observer.current = new IntersectionObserver(entries => {
@@ -251,18 +252,18 @@ function CardItem({
   contentRef: RefObject<HTMLDivElement>
   feedsById: Map<number, Feed>
 }) {
-  const previousStatus = usePrevious(item.status)
-  const selected = item.id === selectedItemId
+  const prevStatus = usePrevious(item.status)
+  const isSelected = item.id === selectedItemId
   const iconProps = {
     style: { display: 'flex', width: '100%' },
-    className: selected ? undefined : Classes.INTENT_PRIMARY,
-  }
+    className: isSelected ? undefined : Classes.INTENT_PRIMARY,
+  } satisfies SVGIconProps
   return (
     <Card
-      selected={selected}
+      selected={isSelected}
       interactive
       onClick={async () => {
-        if (selected) return
+        if (isSelected) return
         setSelectedItemId(item.id)
         setSelectedItemDetails(await xfetch<Item>(`api/items/${item.id}`))
         contentRef.current?.scrollTo(0, 0)
@@ -271,22 +272,13 @@ function CardItem({
             method: 'PUT',
             body: JSON.stringify({ status: 'read' }),
           })
-          setStatus(
-            status =>
-              status && {
-                ...status,
-                state: new Map([
-                  ...status.state,
-                  [
-                    item.feed_id,
-                    {
-                      starred: status.state.get(item.feed_id)?.starred ?? 0,
-                      unread: (status.state.get(item.feed_id)?.unread ?? 0) - 1,
-                    },
-                  ],
-                ]),
-              },
-          )
+          setStatus(status => {
+            if (!status) return
+            const state = new Map(status.state)
+            const s = state.get(item.feed_id)
+            if (s) state.set(item.feed_id, { ...s, unread: s.unread - 1 })
+            return { ...status, state }
+          })
           setItems(items =>
             items?.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),
           )
@@ -306,7 +298,7 @@ function CardItem({
                 : { width: '10px', marginRight: length(1) }),
             }}
           >
-            {(item.status === 'read' ? previousStatus : item.status) === 'unread' ? (
+            {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? (
               <Record {...iconProps} />
             ) : (
               <Star {...iconProps} />
