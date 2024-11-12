@@ -20,7 +20,7 @@ import {
   useState,
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
-import type { Feed, Item, Items, Selected, Status } from './types'
+import type { Feed, FolderWithFeeds, Item, Items, Selected, Status } from './types'
 import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils'
 
 export default function ItemList({
@@ -38,7 +38,7 @@ export default function ItemList({
 
   contentRef,
 
-  refreshStats,
+  foldersById,
   feedsById,
 }: {
   filter: string
@@ -55,7 +55,7 @@ export default function ItemList({
 
   contentRef: RefObject<HTMLDivElement>
 
-  refreshStats: (loop?: boolean) => Promise<void>
+  foldersById: Map<number, FolderWithFeeds>
   feedsById: Map<number, Feed>
 }) {
   const [search, setSearch] = useState('')
@@ -81,8 +81,7 @@ export default function ItemList({
   if (!observer.current) {
     observer.current = new IntersectionObserver(entries => {
       for (const entry of entries)
-        if (entry.target === sentryNodeRef.current && entry.isIntersecting)
-          setIsIntersecting(true)
+        if (entry.target === sentryNodeRef.current && entry.isIntersecting) setIsIntersecting(true)
     })
   }
   if (!loading && isIntersecting && items?.has_more) {
@@ -142,23 +141,12 @@ export default function ItemList({
         <Button
           style={{
             marginLeft: length(1),
-            color:
-              filter === 'Starred'
-                ? undefined
-                : itemsOutdated
-                  ? Colors.GRAY1
-                  : Colors.DARK_GRAY5,
+            color: filter === 'Starred' ? undefined : itemsOutdated ? Colors.GRAY1 : Colors.DARK_GRAY5,
           }}
           icon={
-            !itemsOutdated || filter === 'Starred' ? (
-              <Check {...iconProps} />
-            ) : (
-              <RotateCw {...iconProps} />
-            )
+            !itemsOutdated || filter === 'Starred' ? <Check {...iconProps} /> : <RotateCw {...iconProps} />
           }
-          title={
-            !itemsOutdated || filter === 'Starred' ? 'Mark All Read' : 'Refresh Outdated'
-          }
+          title={!itemsOutdated || filter === 'Starred' ? 'Mark All Read' : 'Refresh Outdated'}
           disabled={filter === 'Starred'}
           minimal
           onClick={async () => {
@@ -174,7 +162,31 @@ export default function ItemList({
                   has_more: items.has_more,
                 },
             )
-            await refreshStats(false)
+            const isSelected = !selected
+              ? (_: number) => true
+              : selected.feed_id != null
+                ? (id: number) => id === selected.feed_id
+                : (() => {
+                    const feeds = new Set(foldersById.get(selected.folder_id)?.feeds.map(feed => feed.id))
+                    return (id: number) => feeds.has(id)
+                  })()
+            setStatus(
+              status =>
+                status && {
+                  ...status,
+                  state: new Map(
+                    status.state.entries().map(([id, state]) => [
+                      id,
+                      isSelected(id)
+                        ? {
+                            ...state,
+                            unread: 0,
+                          }
+                        : state,
+                    ]),
+                  ),
+                },
+            )
           }}
         />
       </div>
@@ -272,9 +284,7 @@ function CardItem({
           setItems(
             items =>
               items && {
-                list: items.list.map(i =>
-                  i.id === item.id ? { ...i, status: 'read' } : i,
-                ),
+                list: items.list.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),
                 has_more: items.has_more,
               },
           )
@@ -282,16 +292,12 @@ function CardItem({
         }
       }}
     >
-      <div
-        style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
           <span
             style={{
               transitionDuration: '150ms',
-              ...(item.status === 'read'
-                ? { width: 0 }
-                : { width: '10px', marginRight: length(1) }),
+              ...(item.status === 'read' ? { width: 0 } : { width: '10px', marginRight: length(1) }),
             }}
           >
             {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? (
@@ -317,9 +323,7 @@ function CardItem({
           </small>
         </div>
         <span style={{ marginBottom: length(0.5), overflowWrap: 'break-word' }}>
-          {item.title.length > 100
-            ? `${item.title.slice(0, 100)}...`
-            : item.title || 'untitled'}
+          {item.title.length > 100 ? `${item.title.slice(0, 100)}...` : item.title || 'untitled'}
         </span>
       </div>
     </Card>

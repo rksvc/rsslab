@@ -76,10 +76,9 @@ export default function App() {
     })()
   }, [])
 
-  const [foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
+  const [foldersById, foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
     const foldersById = new Map<number, FolderWithFeeds>()
-    for (const folder of folders ?? [])
-      foldersById.set(folder.id, { ...folder, feeds: [] })
+    for (const folder of folders ?? []) foldersById.set(folder.id, { ...folder, feeds: [] })
     const feedsById = new Map<number, Feed>()
     const feedsWithoutFolders: Feed[] = []
     for (const feed of feeds ?? []) {
@@ -87,7 +86,7 @@ export default function App() {
       else foldersById.get(feed.folder_id)?.feeds.push(feed)
       feedsById.set(feed.id, feed)
     }
-    return [[...foldersById.values()], feedsWithoutFolders, feedsById]
+    return [foldersById, [...foldersById.values()], feedsWithoutFolders, feedsById]
   }, [feeds, folders])
   const errorCount = useMemo(
     () => status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0),
@@ -119,6 +118,7 @@ export default function App() {
     refreshFeeds,
     refreshStats,
     errorCount,
+    foldersById,
     foldersWithFeeds,
     feedsWithoutFolders,
     feedsById,
@@ -136,10 +136,7 @@ export default function App() {
       <Divider />
       <div style={{ flexGrow: 1, minWidth: 0 }}>
         {selectedItem?.content != null && (
-          <ItemShow
-            {...props}
-            selectedItem={{ ...selectedItem, content: selectedItem.content }}
-          />
+          <ItemShow {...props} selectedItem={{ ...selectedItem, content: selectedItem.content }} />
         )}
       </div>
       {alerts.map((alert, i) => (

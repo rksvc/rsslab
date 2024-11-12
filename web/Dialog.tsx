@@ -1,10 +1,4 @@
-import {
-  Dialog as BlueprintDialog,
-  Button,
-  DialogBody,
-  DialogFooter,
-  Intent,
-} from '@blueprintjs/core'
+import { Dialog as BlueprintDialog, Button, DialogBody, DialogFooter, Intent } from '@blueprintjs/core'
 import { type ReactNode, useState } from 'react'
 
 export function Dialog<T>({
@@ -51,10 +45,7 @@ export function Dialog<T>({
       }}
     >
       <DialogBody>
-        <div
-          style={{ userSelect: 'none' }}
-          onKeyDown={evt => evt.key === 'Enter' && onConfirm()}
-        >
+        <div style={{ userSelect: 'none' }} onKeyDown={evt => evt.key === 'Enter' && onConfirm()}>
           {children}
         </div>
       </DialogBody>

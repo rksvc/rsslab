@@ -24,14 +24,7 @@ import {
   Tree,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
-import {
-  type Dispatch,
-  type KeyboardEvent,
-  type SetStateAction,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type Dispatch, type KeyboardEvent, type SetStateAction, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   Circle,
@@ -64,22 +57,13 @@ import type {
   Settings,
   Status,
 } from './types'
-import {
-  cn,
-  iconProps,
-  length,
-  menuIconProps,
-  panelStyle,
-  statusBarStyle,
-  xfetch,
-} from './utils'
+import { cn, iconProps, length, menuIconProps, panelStyle, statusBarStyle, xfetch } from './utils'
 
 const textAreaProps = {
   style: { fontFamily: 'inherit' },
   autoResize: true,
   fill: true,
-  onKeyDown: (evt: KeyboardEvent<HTMLTextAreaElement>) =>
-    evt.key === 'Enter' && evt.preventDefault(),
+  onKeyDown: (evt: KeyboardEvent<HTMLTextAreaElement>) => evt.key === 'Enter' && evt.preventDefault(),
 } satisfies TextAreaProps
 
 type Transformer = 'html' | 'json'
@@ -100,6 +84,7 @@ export default function FeedList({
   setFolders,
   setFeeds,
   status,
+  setStatus,
   selected,
   setSelected,
   settings,
@@ -110,6 +95,7 @@ export default function FeedList({
   refreshFeeds,
   refreshStats,
   errorCount,
+  foldersById,
   foldersWithFeeds,
   feedsWithoutFolders,
   feedsById,
@@ -120,6 +106,7 @@ export default function FeedList({
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   status?: Status
+  setStatus: Dispatch<React.SetStateAction<Status | undefined>>
   selected: Selected
   setSelected: Dispatch<SetStateAction<Selected>>
   settings?: Settings
@@ -130,6 +117,7 @@ export default function FeedList({
   refreshFeeds: () => Promise<void>
   refreshStats: (loop?: boolean) => Promise<void>
   errorCount?: number
+  foldersById: Map<number, FolderWithFeeds>
   foldersWithFeeds?: FolderWithFeeds[]
   feedsWithoutFolders?: Feed[]
   feedsById: Map<number, Feed>
@@ -302,9 +290,7 @@ export default function FeedList({
     ),
   })
   const [isTypingTransParams, setIsTypingTransParams] = useState(false)
-  const autoNewFeedLink = isTypingTransParams
-    ? `${transType}:${transParams}`
-    : newFeedLink
+  const autoNewFeedLink = isTypingTransParams ? `${transType}:${transParams}` : newFeedLink
 
   const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
     id: number,
@@ -315,9 +301,7 @@ export default function FeedList({
       method: 'PUT',
       body: JSON.stringify({ [attrName]: value ?? -1 }),
     })
-    setFeeds(feeds =>
-      feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)),
-    )
+    setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
   }
   const secondaryLabel = (state?: FeedState, lastRefreshed?: string) =>
     filter === 'Unread' ? (
@@ -327,9 +311,7 @@ export default function FeedList({
     ) : state?.error ? (
       <span
         style={{ display: 'flex' }}
-        title={
-          lastRefreshed && `Last Refreshed: ${new Date(lastRefreshed).toLocaleString()}`
-        }
+        title={lastRefreshed && `Last Refreshed: ${new Date(lastRefreshed).toLocaleString()}`}
       >
         <AlertCircle {...iconProps} />
       </span>
@@ -341,10 +323,7 @@ export default function FeedList({
       secondaryLabel: secondaryLabel(status?.state.get(feed.id), feed.last_refreshed),
       nodeData: { feed_id: feed.id },
       icon: feed.has_icon ? (
-        <img
-          style={{ width: length(4), marginRight: '7px' }}
-          src={`api/feeds/${feed.id}/icon`}
-        />
+        <img style={{ width: length(4), marginRight: '7px' }} src={`api/feeds/${feed.id}/icon`} />
       ) : (
         <span style={{ display: 'flex' }}>
           <Rss style={{ marginRight: '6px' }} {...iconProps} />
@@ -372,9 +351,7 @@ export default function FeedList({
                 target="_blank"
                 href={(() => {
                   const [scheme, link] = parseFeedLink(feed.feed_link)
-                  return scheme
-                    ? `api/transform/${scheme}/${encodeURIComponent(link)}`
-                    : link
+                  return scheme ? `api/transform/${scheme}/${encodeURIComponent(link)}` : link
                 })()}
               />
               <MenuDivider />
@@ -397,11 +374,7 @@ export default function FeedList({
                   await refreshStats()
                 }}
               />
-              <MenuItem
-                text="Move to..."
-                icon={<Move {...menuIconProps} />}
-                disabled={!folders?.length}
-              >
+              <MenuItem text="Move to..." icon={<Move {...menuIconProps} />} disabled={!folders?.length}>
                 {feed.folder_id != null && (
                   <MenuItem
                     text="--"
@@ -431,10 +404,7 @@ export default function FeedList({
         >
           {(ctxMenuProps: ContextMenuChildrenProps) => (
             <span
-              className={cn(
-                ctxMenuProps.className,
-                ctxMenuProps.contentProps.isOpen && 'context-menu-open',
-              )}
+              className={cn(ctxMenuProps.className, ctxMenuProps.contentProps.isOpen && 'context-menu-open')}
               style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
               title={feed.title}
               onContextMenu={ctxMenuProps.onContextMenu}
@@ -451,9 +421,7 @@ export default function FeedList({
     const id = node.nodeData?.folder_id
     if (id == null) return
     setFolders(folders =>
-      folders?.map(folder =>
-        folder.id === id ? { ...folder, is_expanded: isExpanded } : folder,
-      ),
+      folders?.map(folder => (folder.id === id ? { ...folder, is_expanded: isExpanded } : folder)),
     )
     await xfetch(`api/folders/${id}`, {
       method: 'PUT',
@@ -467,14 +435,8 @@ export default function FeedList({
         foldersWithFeeds?.map(folder => [
           folder.id,
           {
-            starred: folder.feeds.reduce(
-              (acc, feed) => acc + (status?.state.get(feed.id)?.starred ?? 0),
-              0,
-            ),
-            unread: folder.feeds.reduce(
-              (acc, feed) => acc + (status?.state.get(feed.id)?.unread ?? 0),
-              0,
-            ),
+            starred: folder.feeds.reduce((acc, feed) => acc + (status?.state.get(feed.id)?.starred ?? 0), 0),
+            unread: folder.feeds.reduce((acc, feed) => acc + (status?.state.get(feed.id)?.unread ?? 0), 0),
           },
         ]),
       ),
@@ -525,9 +487,7 @@ export default function FeedList({
 
   return (
     <div style={panelStyle}>
-      <div
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Wind style={{ marginLeft: length(3), marginRight: length(3) }} {...iconProps} />
         <ButtonGroup style={{ marginTop: length(1), marginBottom: length(1) }} outlined>
           {(
@@ -607,11 +567,7 @@ export default function FeedList({
                   />
                 </label>
               </form>
-              <MenuItem
-                text="Export OPML File"
-                href="api/opml/export"
-                icon={<Upload {...menuIconProps} />}
-              />
+              <MenuItem text="Export OPML File" href="api/opml/export" icon={<Upload {...menuIconProps} />} />
             </Menu>
           }
         >
@@ -631,11 +587,7 @@ export default function FeedList({
             label: `All ${filter}`,
             isSelected: !selected,
             secondaryLabel:
-              filter === 'Unread'
-                ? totalUnread
-                : filter === 'Starred'
-                  ? totalStarred
-                  : undefined,
+              filter === 'Unread' ? totalUnread : filter === 'Starred' ? totalStarred : undefined,
           },
           ...(visibleFeedsWithoutFolders ?? []).map(f => feed(f)),
           ...(visibleFoldersWithFeeds ?? []).map(folder => ({
@@ -703,10 +655,7 @@ export default function FeedList({
         <>
           <Divider />
           <div style={statusBarStyle}>
-            <Spinner
-              style={{ marginLeft: length(3), marginRight: length(2) }}
-              size={15}
-            />
+            <Spinner style={{ marginLeft: length(3), marginRight: length(2) }} size={15} />
             Refreshing ({status.running} left)
           </div>
         </>
@@ -714,10 +663,7 @@ export default function FeedList({
         <>
           <Divider />
           <div style={statusBarStyle}>
-            <AlertCircle
-              style={{ marginLeft: length(3), marginRight: length(2) }}
-              {...iconProps}
-            />
+            <AlertCircle style={{ marginLeft: length(3), marginRight: length(2) }} {...iconProps} />
             {errorCount} feeds have errors
           </div>
         </>
@@ -737,7 +683,10 @@ export default function FeedList({
           if (!selectedFolderRef.current) return
           setCreatingNewFeed(true)
           try {
-            const feed = await xfetch<Feed>('api/feeds', {
+            const { feed, item_count } = await xfetch<{
+              feed: Feed
+              item_count: number
+            }>('api/feeds', {
               method: 'POST',
               body: JSON.stringify({
                 url: autoNewFeedLink,
@@ -746,7 +695,20 @@ export default function FeedList({
                   : null,
               }),
             })
-            await Promise.all([refreshFeeds(), refreshStats(false)])
+            setFeeds(
+              feeds =>
+                feeds &&
+                [...feeds, feed].toSorted((a, b) =>
+                  a.title.toLocaleLowerCase().localeCompare(b.title.toLocaleLowerCase()),
+                ),
+            )
+            setStatus(
+              status =>
+                status && {
+                  ...status,
+                  state: new Map([...status.state.entries(), [feed.id, { unread: item_count, starred: 0 }]]),
+                },
+            )
             setSelected({ feed_id: feed.id })
             setNewFeedLink('')
           } finally {
@@ -771,9 +733,7 @@ export default function FeedList({
                     const param = paramList.find(param => param.key === key)
                     if (param) {
                       const value = params[key]
-                      param.setValue(
-                        typeof value === 'string' ? value : JSON.stringify(value),
-                      )
+                      param.setValue(typeof value === 'string' ? value : JSON.stringify(value))
                     }
                   }
                   setTransUrl(params.url ?? '')
@@ -794,9 +754,7 @@ export default function FeedList({
               })),
             ]}
             defaultValue={
-              selected
-                ? (selected.folder_id ?? feedsById.get(selected.feed_id)?.folder_id ?? '')
-                : ''
+              selected ? (selected.folder_id ?? feedsById.get(selected.feed_id)?.folder_id ?? '') : ''
             }
             ref={selectedFolderRef}
           />
@@ -914,15 +872,10 @@ export default function FeedList({
           if (!renameFeed) return
           const title = feedTitleRef.current?.value
           if (!title) throw new Error('Feed name is required')
-          if (title !== renameFeed.title)
-            await updateFeedAttr(renameFeed.id, 'title', title)
+          await updateFeedAttr(renameFeed.id, 'title', title)
         }}
       >
-        <TextArea
-          defaultValue={renameFeed?.title}
-          inputRef={feedTitleRef}
-          {...textAreaProps}
-        />
+        <TextArea defaultValue={renameFeed?.title} inputRef={feedTitleRef} {...textAreaProps} />
       </Dialog>
       <Dialog
         isOpen={changeLink}
@@ -932,8 +885,7 @@ export default function FeedList({
           if (!changeLink) return
           const feedLink = feedLinkRef.current?.value
           if (!feedLink) throw new Error('Feed link is required')
-          if (feedLink !== changeLink.feed_link)
-            await updateFeedAttr(changeLink.id, 'feed_link', feedLink)
+          await updateFeedAttr(changeLink.id, 'feed_link', feedLink)
         }}
       >
         <TextArea
@@ -950,12 +902,15 @@ export default function FeedList({
         callback={async () => {
           if (!deleteFeed) return
           await xfetch(`api/feeds/${deleteFeed.id}`, { method: 'DELETE' })
-          await Promise.all([refreshFeeds(), refreshStats(false)])
-          setSelected(
-            deleteFeed.folder_id === null
-              ? undefined
-              : { folder_id: deleteFeed.folder_id },
+          setFeeds(feeds => feeds?.filter(feed => feed.id !== deleteFeed.id))
+          setStatus(
+            status =>
+              status && {
+                ...status,
+                state: new Map(status.state.entries().filter(([id]) => id !== deleteFeed.id)),
+              },
           )
+          setSelected(deleteFeed.folder_id === null ? undefined : { folder_id: deleteFeed.folder_id })
         }}
         intent={Intent.DANGER}
       >
@@ -969,24 +924,16 @@ export default function FeedList({
           if (!renameFolder) return
           const title = folderTitleRef.current?.value
           if (!title) throw new Error('Folder title is required')
-          if (title !== renameFolder.title) {
-            await xfetch(`api/folders/${renameFolder.id}`, {
-              method: 'PUT',
-              body: JSON.stringify({ title }),
-            })
-            setFolders(folders =>
-              folders?.map(folder =>
-                folder.id === renameFolder.id ? { ...folder, title } : folder,
-              ),
-            )
-          }
+          await xfetch(`api/folders/${renameFolder.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ title }),
+          })
+          setFolders(folders =>
+            folders?.map(folder => (folder.id === renameFolder.id ? { ...folder, title } : folder)),
+          )
         }}
       >
-        <TextArea
-          defaultValue={renameFolder?.title}
-          inputRef={folderTitleRef}
-          {...textAreaProps}
-        />
+        <TextArea defaultValue={renameFolder?.title} inputRef={folderTitleRef} {...textAreaProps} />
       </Dialog>
       <Dialog
         isOpen={deleteFolder}
@@ -995,7 +942,16 @@ export default function FeedList({
         callback={async () => {
           if (!deleteFolder) return
           await xfetch(`api/folders/${deleteFolder.id}`, { method: 'DELETE' })
-          await Promise.all([refreshFeeds(), refreshStats(false)])
+          const deletedFeeds = new Set(foldersById.get(deleteFolder.id)?.feeds.map(feed => feed.id))
+          setFolders(folders => folders?.filter(folder => folder.id !== deleteFolder.id))
+          setFeeds(feeds => feeds?.filter(feed => !deletedFeeds.has(feed.id)))
+          setStatus(
+            status =>
+              status && {
+                ...status,
+                state: new Map(status.state.entries().filter(([id]) => !deletedFeeds.has(id))),
+              },
+          )
           setSelected(undefined)
         }}
         intent={Intent.DANGER}

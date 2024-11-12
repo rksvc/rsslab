@@ -1,12 +1,4 @@
-import {
-  AnchorButton,
-  Button,
-  ButtonGroup,
-  Classes,
-  Colors,
-  Divider,
-  H2,
-} from '@blueprintjs/core'
+import { AnchorButton, Button, ButtonGroup, Classes, Colors, Divider, H2 } from '@blueprintjs/core'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
 import type { Feed, Item, ItemStatus, Items, Status } from './types'
@@ -33,8 +25,7 @@ export default function ItemShow({
       method: 'PUT',
       body: JSON.stringify({ status }),
     })
-    const diff = (s: ItemStatus) =>
-      status === s ? +1 : selectedItem.status === s ? -1 : 0
+    const diff = (s: ItemStatus) => (status === s ? +1 : selectedItem.status === s ? -1 : 0)
     setStatus(status => {
       if (!status) return
       const state = new Map(status.state)
@@ -65,9 +56,7 @@ export default function ItemShow({
             icon={
               <Star
                 {...iconProps}
-                fill={
-                  selectedItem.status === 'starred' ? Colors.DARK_GRAY1 : Colors.WHITE
-                }
+                fill={selectedItem.status === 'starred' ? Colors.DARK_GRAY1 : Colors.WHITE}
               />
             }
             onClick={toggleStatus('starred')}
@@ -93,15 +82,10 @@ export default function ItemShow({
         </ButtonGroup>
       </div>
       <Divider />
-      <div
-        style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }}
-        ref={contentRef}
-      >
+      <div style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
         <H2 style={{ fontWeight: 700 }}>{selectedItem.title || 'untitled'}</H2>
         <div style={{ opacity: 0.95 }}>{feedsById.get(selectedItem.feed_id)?.title}</div>
-        <div style={{ opacity: 0.95 }}>
-          {new Date(selectedItem.date).toLocaleString()}
-        </div>
+        <div style={{ opacity: 0.95 }}>{new Date(selectedItem.date).toLocaleString()}</div>
         <Divider style={{ marginTop: length(3), marginBottom: length(3) }} />
         <div
           style={{ fontSize: '1rem', lineHeight: '1.5rem' }}

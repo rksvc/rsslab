@@ -55,10 +55,7 @@ export function param(query: Record<string, string | number | boolean | undefine
 
 export async function xfetch(url: string, options?: RequestInit): Promise<unknown>
 export async function xfetch<T>(url: string, options?: RequestInit): Promise<T>
-export async function xfetch<T>(
-  url: string,
-  options?: RequestInit,
-): Promise<T | unknown> {
+export async function xfetch<T>(url: string, options?: RequestInit): Promise<T | unknown> {
   const response = await fetch(url, options)
   const text = await response.text()
   if (response.ok) return text && JSON.parse(text)

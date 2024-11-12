@@ -170,7 +170,10 @@ func (s *Server) handleFeedCreate(c context) error {
 	}
 
 	feed.LastRefreshed = &lastRefreshed
-	return c.JSON(feed)
+	return c.JSON(dict{
+		"feed":       feed,
+		"item_count": len(items),
+	})
 }
 
 func (s *Server) handleFeedsRefresh(c context) error {

@@ -7,10 +7,7 @@ export default defineConfig({
     outDir: 'server/dist',
     reportCompressedSize: false,
     rollupOptions: {
-      external: [
-        './paths-loaders/allPathsLoader',
-        './paths-loaders/splitPathsBySizeLoader',
-      ],
+      external: ['./paths-loaders/allPathsLoader', './paths-loaders/splitPathsBySizeLoader'],
     },
   },
   server: {
