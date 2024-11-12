@@ -52,7 +52,15 @@ import {
   Wind,
 } from 'react-feather'
 import { Dialog } from './Dialog'
-import type { Feed, Folder, FolderWithFeeds, Settings, Stats, Status } from './types'
+import type {
+  Feed,
+  Folder,
+  FolderWithFeeds,
+  Selected,
+  Settings,
+  Stats,
+  Status,
+} from './types'
 import {
   cn,
   iconProps,
@@ -107,8 +115,8 @@ export default function FeedList({
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   status?: Status
   errors?: Map<number, string>
-  selected: string
-  setSelected: Dispatch<SetStateAction<string>>
+  selected: Selected
+  setSelected: Dispatch<SetStateAction<Selected>>
   settings?: Settings
   setSettings: Dispatch<SetStateAction<Settings | undefined>>
 
@@ -118,14 +126,6 @@ export default function FeedList({
   feedsWithoutFolders?: Feed[]
   feedsById: Map<number, Feed>
 }) {
-  const [type, id] = selected.split(':')
-  const defaultSelectedFolder =
-    type === 'feed'
-      ? (feedsById.get(Number.parseInt(id))?.folder_id ?? '')
-      : type === 'folder'
-        ? id
-        : ''
-
   const [creatingNewFeed, setCreatingNewFeed] = useState(false)
   const [creatingNewFolder, setCreatingNewFolder] = useState(false)
   const [newFeedDialogOpen, setNewFeedDialogOpen] = useState(false)
@@ -328,129 +328,131 @@ export default function FeedList({
     ) : (
       ''
     )
-  const feed = (feed: Feed) => ({
-    id: `feed:${feed.id}`,
-    label: (
-      <ContextMenu
-        content={
-          <Menu>
-            {feed.link && (
-              <MenuItem
-                text="Website"
-                intent={Intent.PRIMARY}
-                labelElement={<ExternalLink {...menuIconProps} />}
-                icon={<Link {...menuIconProps} />}
-                target="_blank"
-                href={feed.link}
-              />
-            )}
-            <MenuItem
-              text="Feed Link"
-              intent={Intent.PRIMARY}
-              labelElement={<ExternalLink {...menuIconProps} />}
-              icon={<Rss {...menuIconProps} />}
-              target="_blank"
-              href={(() => {
-                const feedLink = feed.feed_link
-                const i = feedLink.indexOf(':')
-                if (i === -1) return feedLink
-                const scheme = feedLink.slice(0, i)
-                switch (scheme) {
-                  case 'html':
-                  case 'json':
-                    return `api/transform/${scheme}/${encodeURIComponent(feedLink.slice(i + 1))}`
-                  default:
-                    return feedLink
-                }
-              })()}
-            />
-            <MenuDivider />
-            <MenuItem
-              text="Rename"
-              icon={<Edit {...menuIconProps} />}
-              onClick={() => setRenameFeed(feed)}
-            />
-            <MenuItem
-              text="Change Link"
-              icon={<Edit {...menuIconProps} />}
-              onClick={() => setChangeLink(feed)}
-            />
-            <MenuItem
-              text="Refresh"
-              icon={<RotateCw {...menuIconProps} />}
-              disabled={!!status?.running}
-              onClick={async () => {
-                await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
-                await refreshStats()
-              }}
-            />
-            <MenuItem
-              text="Move to..."
-              icon={<Move {...menuIconProps} />}
-              disabled={!folders?.length}
-            >
-              {folders
-                ?.filter(folder => folder.id !== feed.folder_id)
-                .map(folder => (
-                  <MenuItem
-                    key={folder.id}
-                    text={folder.title}
-                    icon={<FolderIcon {...menuIconProps} />}
-                    onClick={() => updateFeedAttr(feed.id, 'folder_id', folder.id)}
-                  />
-                ))}
-              {feed.folder_id != null && (
+  const feed = (feed: Feed) =>
+    ({
+      id: `feed:${feed.id}`,
+      label: (
+        <ContextMenu
+          content={
+            <Menu>
+              {feed.link && (
                 <MenuItem
-                  text="--"
-                  icon={<FolderMinus {...menuIconProps} />}
-                  onClick={() => updateFeedAttr(feed.id, 'folder_id', null)}
+                  text="Website"
+                  intent={Intent.PRIMARY}
+                  labelElement={<ExternalLink {...menuIconProps} />}
+                  icon={<Link {...menuIconProps} />}
+                  target="_blank"
+                  href={feed.link}
                 />
               )}
-            </MenuItem>
-            <MenuItem
-              text="Delete"
-              icon={<Trash {...menuIconProps} />}
-              intent={Intent.DANGER}
-              onClick={() => setDeleteFeed(feed)}
-            />
-          </Menu>
-        }
-      >
-        {(ctxMenuProps: ContextMenuChildrenProps) => (
-          <span
-            className={cn(
-              ctxMenuProps.className,
-              ctxMenuProps.contentProps.isOpen && 'context-menu-open',
-            )}
-            style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
-            title={feed.title}
-            onContextMenu={ctxMenuProps.onContextMenu}
-            ref={ctxMenuProps.ref}
-          >
-            {ctxMenuProps.popover}
-            {feed.title}
-          </span>
-        )}
-      </ContextMenu>
-    ),
-    icon: feed.has_icon ? (
-      <img
-        style={{ width: length(4), marginRight: '7px' }}
-        src={`api/feeds/${feed.id}/icon`}
-      />
-    ) : (
-      <span style={{ display: 'flex' }}>
-        <Rss style={{ marginRight: '6px' }} {...iconProps} />
-      </span>
-    ),
-    isSelected: selected === `feed:${feed.id}`,
-    secondaryLabel: secondaryLabel(
-      status?.stats.get(feed.id),
-      !!errors?.get(feed.id),
-      feed.last_refreshed,
-    ),
-  })
-  const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo) => {
+              <MenuItem
+                text="Feed Link"
+                intent={Intent.PRIMARY}
+                labelElement={<ExternalLink {...menuIconProps} />}
+                icon={<Rss {...menuIconProps} />}
+                target="_blank"
+                href={(() => {
+                  const feedLink = feed.feed_link
+                  const i = feedLink.indexOf(':')
+                  if (i === -1) return feedLink
+                  const scheme = feedLink.slice(0, i)
+                  switch (scheme) {
+                    case 'html':
+                    case 'json':
+                      return `api/transform/${scheme}/${encodeURIComponent(feedLink.slice(i + 1))}`
+                    default:
+                      return feedLink
+                  }
+                })()}
+              />
+              <MenuDivider />
+              <MenuItem
+                text="Rename"
+                icon={<Edit {...menuIconProps} />}
+                onClick={() => setRenameFeed(feed)}
+              />
+              <MenuItem
+                text="Change Link"
+                icon={<Edit {...menuIconProps} />}
+                onClick={() => setChangeLink(feed)}
+              />
+              <MenuItem
+                text="Refresh"
+                icon={<RotateCw {...menuIconProps} />}
+                disabled={!!status?.running}
+                onClick={async () => {
+                  await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
+                  await refreshStats()
+                }}
+              />
+              <MenuItem
+                text="Move to..."
+                icon={<Move {...menuIconProps} />}
+                disabled={!folders?.length}
+              >
+                {folders
+                  ?.filter(folder => folder.id !== feed.folder_id)
+                  .map(folder => (
+                    <MenuItem
+                      key={folder.id}
+                      text={folder.title}
+                      icon={<FolderIcon {...menuIconProps} />}
+                      onClick={() => updateFeedAttr(feed.id, 'folder_id', folder.id)}
+                    />
+                  ))}
+                {feed.folder_id != null && (
+                  <MenuItem
+                    text="--"
+                    icon={<FolderMinus {...menuIconProps} />}
+                    onClick={() => updateFeedAttr(feed.id, 'folder_id', null)}
+                  />
+                )}
+              </MenuItem>
+              <MenuItem
+                text="Delete"
+                icon={<Trash {...menuIconProps} />}
+                intent={Intent.DANGER}
+                onClick={() => setDeleteFeed(feed)}
+              />
+            </Menu>
+          }
+        >
+          {(ctxMenuProps: ContextMenuChildrenProps) => (
+            <span
+              className={cn(
+                ctxMenuProps.className,
+                ctxMenuProps.contentProps.isOpen && 'context-menu-open',
+              )}
+              style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
+              title={feed.title}
+              onContextMenu={ctxMenuProps.onContextMenu}
+              ref={ctxMenuProps.ref}
+            >
+              {ctxMenuProps.popover}
+              {feed.title}
+            </span>
+          )}
+        </ContextMenu>
+      ),
+      icon: feed.has_icon ? (
+        <img
+          style={{ width: length(4), marginRight: '7px' }}
+          src={`api/feeds/${feed.id}/icon`}
+        />
+      ) : (
+        <span style={{ display: 'flex' }}>
+          <Rss style={{ marginRight: '6px' }} {...iconProps} />
+        </span>
+      ),
+      isSelected: selected?.feed_id === feed.id,
+      secondaryLabel: secondaryLabel(
+        status?.stats.get(feed.id),
+        !!errors?.get(feed.id),
+        feed.last_refreshed,
+      ),
+      nodeData: { feed_id: feed.id },
+    }) satisfies TreeNodeInfo<Selected>
+  const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo<Selected>) => {
     const id = Number.parseInt(`${node.id}`.split(':')[1])
     setFolders(folders =>
       folders?.map(folder =>
@@ -503,19 +505,19 @@ export default function FeedList({
             ...folder,
             feeds: folder.feeds.filter(
               feed =>
-                selected === `feed:${feed.id}` ||
+                selected?.feed_id === feed.id ||
                 (filter === 'Unread'
                   ? (status?.stats.get(feed.id)?.unread ?? 0)
                   : (status?.stats.get(feed.id)?.starred ?? 0)) > 0,
             ),
           }))
-          .filter(folder => folder.feeds.length > 0 || selected === `folder:${folder.id}`)
+          .filter(folder => folder.feeds.length > 0 || selected?.folder_id === folder.id)
   const visibleFeeds =
     filter === 'Feeds'
       ? feedsWithoutFolders
       : feedsWithoutFolders?.filter(
           feed =>
-            selected === `feed:${feed.id}` ||
+            selected?.feed_id === feed.id ||
             (filter === 'Unread'
               ? (status?.stats.get(feed.id)?.unread ?? 0)
               : (status?.stats.get(feed.id)?.starred ?? 0)) > 0,
@@ -620,7 +622,7 @@ export default function FeedList({
         </Popover>
       </div>
       <Divider />
-      <Tree
+      <Tree<Selected>
         contents={[
           {
             id: 0,
@@ -680,14 +682,15 @@ export default function FeedList({
               </>
             ),
             isExpanded: folder.is_expanded,
-            isSelected: selected === `folder:${folder.id}`,
+            isSelected: selected?.folder_id === folder.id,
             childNodes: folder.feeds.map(f => feed(f)),
             secondaryLabel: secondaryLabel(folderStats.get(folder.id)),
+            nodeData: { folder_id: folder.id },
           })),
         ]}
         onNodeExpand={setExpanded(true)}
         onNodeCollapse={setExpanded(false)}
-        onNodeClick={node => setSelected(typeof node.id === 'number' ? '' : node.id)}
+        onNodeClick={node => setSelected(node.nodeData)}
       />
       {status?.running ? (
         <>
@@ -739,7 +742,7 @@ export default function FeedList({
               }),
             })
             await Promise.all([refreshFeeds(), refreshStats(false)])
-            setSelected(`feed:${feed.id}`)
+            setSelected({ feed_id: feed.id })
             setNewFeedLink('')
           } finally {
             setCreatingNewFeed(false)
@@ -791,7 +794,11 @@ export default function FeedList({
                 label: folder.title,
               })),
             ]}
-            defaultValue={defaultSelectedFolder}
+            defaultValue={
+              selected
+                ? (selected.folder_id ?? feedsById.get(selected.feed_id)?.folder_id ?? '')
+                : ''
+            }
             ref={selectedFolderRef}
           />
         </div>
@@ -868,7 +875,7 @@ export default function FeedList({
                   a.title.toLocaleLowerCase().localeCompare(b.title.toLocaleLowerCase()),
                 ),
             )
-            setSelected(`folder:${folder.id}`)
+            setSelected({ folder_id: folder.id })
           } finally {
             setCreatingNewFolder(false)
           }
@@ -946,7 +953,9 @@ export default function FeedList({
           await xfetch(`api/feeds/${deleteFeed.id}`, { method: 'DELETE' })
           await Promise.all([refreshFeeds(), refreshStats(false)])
           setSelected(
-            deleteFeed.folder_id === null ? '' : `folder:${deleteFeed.folder_id}`,
+            deleteFeed.folder_id === null
+              ? undefined
+              : { folder_id: deleteFeed.folder_id },
           )
         }}
         intent={Intent.DANGER}
@@ -988,7 +997,7 @@ export default function FeedList({
           if (!deleteFolder) return
           await xfetch(`api/folders/${deleteFolder.id}`, { method: 'DELETE' })
           await Promise.all([refreshFeeds(), refreshStats(false)])
-          setSelected('')
+          setSelected(undefined)
         }}
         intent={Intent.DANGER}
       >

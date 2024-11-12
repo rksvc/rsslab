@@ -53,3 +53,16 @@ export type Items = {
 export type Settings = {
   refresh_rate: number
 }
+
+// https://stackoverflow.com/a/53229567
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: undefined }
+type Xor<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U
+
+export type Selected =
+  | Xor<
+      {
+        feed_id: number
+      },
+      { folder_id: number }
+    >
+  | undefined

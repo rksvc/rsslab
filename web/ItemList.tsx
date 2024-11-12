@@ -20,7 +20,7 @@ import {
   useState,
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
-import type { Feed, Item, Items, Status } from './types'
+import type { Feed, Item, Items, Selected, Status } from './types'
 import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils'
 
 export default function ItemList({
@@ -44,7 +44,7 @@ export default function ItemList({
 }: {
   filter: string
   setStatus: Dispatch<SetStateAction<Status | undefined>>
-  selected: string
+  selected: Selected
   errors?: Map<number, string>
 
   items?: Item[]
@@ -66,15 +66,9 @@ export default function ItemList({
   const inputRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
-  const [type, s] = selected.split(':')
-  const id = Number.parseInt(s)
-  const isFeedSelected = type === 'feed'
   const query = useCallback(() => {
     const query: Record<string, string | boolean> = {}
-    if (selected) {
-      const [type, id] = selected.split(':')
-      query[`${type}_id`] = id
-    }
+    if (selected) Object.assign(query, selected)
     if (filter !== 'Feeds') query.status = filter.toLowerCase()
     if (filter === 'Unread') query.oldest_first = true
     const search = inputRef.current?.value
@@ -223,13 +217,13 @@ export default function ItemList({
           </div>
         )}
       </CardList>
-      {isFeedSelected && errors?.get(id) && (
+      {selected?.feed_id != null && errors?.get(selected.feed_id) && (
         <>
           <Divider />
           <div
             style={{ padding: length(3), overflowWrap: 'break-word', color: '#dc2626' }}
           >
-            {errors?.get(id)}
+            {errors.get(selected.feed_id)}
           </div>
         </>
       )}

@@ -8,6 +8,7 @@ import type {
   Folder,
   FolderWithFeeds,
   Item,
+  Selected,
   Settings,
   State,
   Stats,
@@ -23,7 +24,7 @@ export default function App() {
   const [feeds, setFeeds] = useState<Feed[]>()
   const [status, setStatus] = useState<Status>()
   const [errors, setErrors] = useState<Map<number, string>>()
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState<Selected>()
   const [settings, setSettings] = useState<Settings>()
 
   const [items, setItems] = useState<Item[]>()
