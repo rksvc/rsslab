@@ -9,7 +9,7 @@ import {
 } from '@blueprintjs/core'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
-import type { Feed, Item, Status } from './types'
+import type { Feed, Item, Items, Status } from './types'
 import { cn, iconProps, length, panelStyle, xfetch } from './utils'
 
 export default function ItemShow({
@@ -21,7 +21,7 @@ export default function ItemShow({
   feedsById,
 }: {
   setStatus: Dispatch<SetStateAction<Status | undefined>>
-  setItems: Dispatch<SetStateAction<Item[] | undefined>>
+  setItems: Dispatch<SetStateAction<Items | undefined>>
   selectedItemDetails: Item
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
@@ -55,8 +55,14 @@ export default function ItemShow({
           ]),
         },
     )
-    setItems(items =>
-      items?.map(i => (i.id === selectedItemDetails.id ? { ...i, status } : i)),
+    setItems(
+      items =>
+        items && {
+          list: items.list.map(i =>
+            i.id === selectedItemDetails.id ? { ...i, status } : i,
+          ),
+          has_more: items.has_more,
+        },
     )
     setSelectedItemDetails({ ...selectedItemDetails, status })
   }

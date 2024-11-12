@@ -47,8 +47,8 @@ export default function ItemList({
   setStatus: Dispatch<SetStateAction<Status | undefined>>
   selected: Selected
 
-  items?: Item[]
-  setItems: Dispatch<SetStateAction<Item[] | undefined>>
+  items?: Items
+  setItems: Dispatch<SetStateAction<Items | undefined>>
   itemsOutdated: boolean
   setItemsOutdated: Dispatch<SetStateAction<boolean>>
   selectedItemId?: number
@@ -61,7 +61,6 @@ export default function ItemList({
   feedsById: Map<number, Feed>
 }) {
   const [search, setSearch] = useState('')
-  const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
@@ -87,16 +86,15 @@ export default function ItemList({
           setIsIntersecting(true)
     })
   }
-  if (!loading && isIntersecting && hasMore) {
+  if (!loading && isIntersecting && items?.has_more) {
     ;(async () => {
       if (!items) return
       setLoading(true)
       try {
         const { list, has_more } = await xfetch<Items>(
-          `api/items${param({ ...query(), after: items.at(-1)?.id })}`,
+          `api/items${param({ ...query(), after: items.list.at(-1)?.id })}`,
         )
-        setItems([...items, ...list])
-        setHasMore(has_more)
+        setItems({ list: [...items.list, ...list], has_more })
       } finally {
         setLoading(false)
         setIsIntersecting(false)
@@ -109,19 +107,15 @@ export default function ItemList({
     clearTimeout(timerId.current)
     timerId.current = setTimeout(async () => {
       timerId.current = undefined
-      const { list, has_more } = await xfetch<Items>(`api/items${param(query())}`)
-      setItems(list)
-      setHasMore(has_more)
+      setItems(await xfetch<Items>(`api/items${param(query())}`))
       setItemsOutdated(false)
     }, 200)
   }
 
   const refresh = useCallback(async () => {
-    const { list, has_more } = await xfetch<Items>(`api/items${param(query())}`)
-    setItems(list)
+    setItems(await xfetch<Items>(`api/items${param(query())}`))
     setSelectedItemId(undefined)
     setSelectedItemDetails(undefined)
-    setHasMore(has_more)
     setItemsOutdated(false)
     itemListRef.current?.scrollTo(0, 0)
   }, [query, setItems, setSelectedItemId, setSelectedItemDetails, setItemsOutdated])
@@ -177,11 +171,15 @@ export default function ItemList({
           onClick={async () => {
             if (itemsOutdated) return await refresh()
             await xfetch(`api/items${param(query())}`, { method: 'PUT' })
-            setItems(items =>
-              items?.map(item => ({
-                ...item,
-                status: item.status === 'starred' ? 'starred' : 'read',
-              })),
+            setItems(
+              items =>
+                items && {
+                  list: items.list.map(item => ({
+                    ...item,
+                    status: item.status === 'starred' ? 'starred' : 'read',
+                  })),
+                  has_more: items.has_more,
+                },
             )
             await refreshStats(false)
           }}
@@ -189,7 +187,7 @@ export default function ItemList({
       </div>
       <Divider />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
-        {items?.map(item => (
+        {items?.list.map(item => (
           <CardItem
             key={item.id}
             item={item}
@@ -202,7 +200,7 @@ export default function ItemList({
             feedsById={feedsById}
           />
         ))}
-        {(loading || hasMore) && (
+        {(loading || items?.has_more) && (
           <div
             style={{ marginTop: length(4), marginBottom: length(3) }}
             ref={node => {
@@ -245,7 +243,7 @@ function CardItem({
 }: {
   item: Item
   setStatus: Dispatch<SetStateAction<Status | undefined>>
-  setItems: Dispatch<SetStateAction<Item[] | undefined>>
+  setItems: Dispatch<SetStateAction<Items | undefined>>
   selectedItemId?: number
   setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>
@@ -279,8 +277,14 @@ function CardItem({
             if (s) state.set(item.feed_id, { ...s, unread: s.unread - 1 })
             return { ...status, state }
           })
-          setItems(items =>
-            items?.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),
+          setItems(
+            items =>
+              items && {
+                list: items.list.map(i =>
+                  i.id === item.id ? { ...i, status: 'read' } : i,
+                ),
+                has_more: items.has_more,
+              },
           )
           setSelectedItemDetails(item => item && { ...item, status: 'read' })
         }
