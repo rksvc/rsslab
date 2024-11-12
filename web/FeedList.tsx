@@ -695,13 +695,7 @@ export default function FeedList({
                   : null,
               }),
             })
-            setFeeds(
-              feeds =>
-                feeds &&
-                [...feeds, feed].toSorted((a, b) =>
-                  a.title.toLocaleLowerCase().localeCompare(b.title.toLocaleLowerCase()),
-                ),
-            )
+            setFeeds(feeds => feeds && [...feeds, feed].toSorted(compare))
             setStatus(
               status =>
                 status && {
@@ -825,13 +819,7 @@ export default function FeedList({
               method: 'POST',
               body: JSON.stringify({ title }),
             })
-            setFolders(
-              folders =>
-                folders &&
-                [...folders, folder].toSorted((a, b) =>
-                  a.title.toLocaleLowerCase().localeCompare(b.title.toLocaleLowerCase()),
-                ),
-            )
+            setFolders(folders => folders && [...folders, folder].toSorted(compare))
             setSelected({ folder_id: folder.id })
           } finally {
             setCreatingNewFolder(false)
@@ -973,4 +961,10 @@ function parseFeedLink(link: string): [Transformer | undefined, string] {
     }
   }
   return [undefined, link]
+}
+
+function compare(a: { title: string }, b: { title: string }) {
+  const lhs = a.title.toLowerCase()
+  const rhs = b.title.toLowerCase()
+  return lhs === rhs ? 0 : lhs < rhs ? -1 : +1
 }
