@@ -1,4 +1,4 @@
-import { Alert, Divider, FocusStyleManager } from '@blueprintjs/core'
+import { Alert, Divider, FocusStyleManager, Pre } from '@blueprintjs/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import FeedList from './FeedList'
 import ItemList from './ItemList'
@@ -150,11 +150,7 @@ export default function App() {
           onOpening={ref => ref.focus()}
           onClose={() => setAlerts(alerts => alerts.with(i, ''))}
         >
-          {alert.includes('\n') ? (
-            <pre style={{ marginTop: 0, fontFamily: 'inherit' }}>{alert}</pre>
-          ) : (
-            <p>{alert}</p>
-          )}
+          {alert.includes('\n') ? <Pre>{alert}</Pre> : <p>{alert}</p>}
         </Alert>
       ))}
     </div>
