@@ -6,6 +6,7 @@ import ItemShow from './ItemShow'
 import type {
   Feed,
   FeedState,
+  Filter,
   Folder,
   FolderWithFeeds,
   Item,
@@ -20,7 +21,7 @@ import { xfetch } from './utils'
 FocusStyleManager.onlyShowFocusOnTabs()
 
 export default function App() {
-  const [filter, setFilter] = useState('Unread')
+  const [filter, setFilter] = useState<Filter>('Unread')
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
   const [status, setStatus] = useState<Status>()
@@ -76,10 +77,6 @@ export default function App() {
     })()
   }, [])
 
-  const errorCount = useMemo(
-    () => status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0),
-    [status],
-  )
   const [foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
     const foldersById = new Map<number, FolderWithFeeds>()
     for (const folder of folders ?? [])
@@ -93,6 +90,10 @@ export default function App() {
     }
     return [[...foldersById.values()], feedsWithoutFolders, feedsById]
   }, [feeds, folders])
+  const errorCount = useMemo(
+    () => status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0),
+    [status],
+  )
 
   const props = {
     filter,

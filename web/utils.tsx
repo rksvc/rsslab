@@ -1,18 +1,19 @@
+import type { CSSProperties } from 'react'
+
 export const iconProps = { size: 16 } as const
 export const menuIconProps = { size: 14 } as const
-export const popoverProps = { transitionDuration: 0 } as const
 export const panelStyle = {
   display: 'flex',
   flexDirection: 'column',
   minHeight: '100vh',
   maxHeight: '100vh',
-} as const
+} satisfies CSSProperties
 export const statusBarStyle = {
   display: 'flex',
   alignItems: 'center',
   padding: length(1),
   overflowWrap: 'break-word',
-} as const
+} satisfies CSSProperties
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ')
@@ -58,10 +59,8 @@ export async function xfetch<T>(
   url: string,
   options?: RequestInit,
 ): Promise<T | unknown> {
-  if (typeof options?.body === 'string')
-    options.headers = { 'Content-Type': 'application/json' }
   const response = await fetch(url, options)
   const text = await response.text()
-  if (response.ok) return text && text !== 'OK' && JSON.parse(text)
+  if (response.ok) return text && JSON.parse(text)
   throw new Error(text || `${response.status} ${response.statusText}`)
 }

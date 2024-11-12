@@ -62,6 +62,7 @@ export default function ItemList({
 }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const timerId = useRef<number>()
   const inputRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
@@ -102,16 +103,6 @@ export default function ItemList({
     })()
   }
 
-  const timerId = useRef<number>()
-  const onSearch = () => {
-    clearTimeout(timerId.current)
-    timerId.current = setTimeout(async () => {
-      timerId.current = undefined
-      setItems(await xfetch<Items>(`api/items${param(query())}`))
-      setItemsOutdated(false)
-    }, 200)
-  }
-
   const refresh = useCallback(async () => {
     setItems(await xfetch<Items>(`api/items${param(query())}`))
     setSelectedItemId(undefined)
@@ -142,7 +133,12 @@ export default function ItemList({
           value={search}
           onValueChange={value => {
             setSearch(value)
-            onSearch()
+            clearTimeout(timerId.current)
+            timerId.current = setTimeout(async () => {
+              timerId.current = undefined
+              setItems(await xfetch<Items>(`api/items${param(query())}`))
+              setItemsOutdated(false)
+            }, 200)
           }}
           fill
         />
@@ -207,9 +203,8 @@ export default function ItemList({
               if (node) {
                 sentryNodeRef.current = node
                 observer.current?.observe(node)
-              } else {
-                if (sentryNodeRef.current)
-                  observer.current?.unobserve(sentryNodeRef.current)
+              } else if (sentryNodeRef.current) {
+                observer.current?.unobserve(sentryNodeRef.current)
               }
             }}
           >
@@ -221,7 +216,11 @@ export default function ItemList({
         <>
           <Divider />
           <div
-            style={{ padding: length(3), overflowWrap: 'break-word', color: '#dc2626' }}
+            style={{
+              padding: length(3),
+              overflowWrap: 'break-word',
+              color: 'var(--red3)',
+            }}
           >
             {error}
           </div>
@@ -233,8 +232,8 @@ export default function ItemList({
 
 function CardItem({
   item,
-  setStatus,
   setItems,
+  setStatus,
   selectedItemId,
   setSelectedItemId,
   setSelectedItemDetails,
@@ -242,8 +241,8 @@ function CardItem({
   feedsById,
 }: {
   item: Item
-  setStatus: Dispatch<SetStateAction<Status | undefined>>
   setItems: Dispatch<SetStateAction<Items | undefined>>
+  setStatus: Dispatch<SetStateAction<Status | undefined>>
   selectedItemId?: number
   setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
   setSelectedItemDetails: Dispatch<SetStateAction<Item | undefined>>

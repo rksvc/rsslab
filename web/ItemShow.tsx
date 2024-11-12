@@ -9,7 +9,7 @@ import {
 } from '@blueprintjs/core'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
-import type { Feed, Item, Items, Status } from './types'
+import type { Feed, Item, ItemStatus, Items, Status } from './types'
 import { cn, iconProps, length, panelStyle, xfetch } from './utils'
 
 export default function ItemShow({
@@ -27,22 +27,24 @@ export default function ItemShow({
   contentRef: RefObject<HTMLDivElement>
   feedsById: Map<number, Feed>
 }) {
-  const toggleStatus = (targetStatus: string) => async () => {
+  const toggleStatus = (targetStatus: ItemStatus) => async () => {
     const status = targetStatus === selectedItemDetails.status ? 'read' : targetStatus
     await xfetch(`api/items/${selectedItemDetails.id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     })
-    const diff = (s: string) =>
+    const diff = (s: ItemStatus) =>
       status === s ? +1 : selectedItemDetails.status === s ? -1 : 0
     setStatus(status => {
       if (!status) return
       const state = new Map(status.state)
       const s = state.get(selectedItemDetails.feed_id)
-      if (s) {
-        s.starred += diff('starred')
-        s.unread += diff('unread')
-      }
+      if (s)
+        state.set(selectedItemDetails.feed_id, {
+          ...s,
+          starred: s.starred + diff('starred'),
+          unread: s.unread + diff('unread'),
+        })
       return { ...status, state }
     })
     setItems(

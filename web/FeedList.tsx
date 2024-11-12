@@ -20,6 +20,7 @@ import {
   RadioGroup,
   Spinner,
   TextArea,
+  type TextAreaProps,
   Tree,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
@@ -55,6 +56,7 @@ import { Dialog } from './Dialog'
 import type {
   Feed,
   FeedState,
+  Filter,
   Folder,
   FolderWithFeeds,
   Selected,
@@ -67,7 +69,6 @@ import {
   length,
   menuIconProps,
   panelStyle,
-  popoverProps,
   statusBarStyle,
   xfetch,
 } from './utils'
@@ -78,7 +79,9 @@ const textAreaProps = {
   fill: true,
   onKeyDown: (evt: KeyboardEvent<HTMLTextAreaElement>) =>
     evt.key === 'Enter' && evt.preventDefault(),
-} as const
+} satisfies TextAreaProps
+
+type Transformer = 'html' | 'json'
 
 type Param = {
   value: string
@@ -108,8 +111,8 @@ export default function FeedList({
   feedsWithoutFolders,
   feedsById,
 }: {
-  filter: string
-  setFilter: Dispatch<SetStateAction<string>>
+  filter: Filter
+  setFilter: Dispatch<SetStateAction<Filter>>
   folders?: Folder[]
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
@@ -136,9 +139,18 @@ export default function FeedList({
   const [deleteFeed, setDeleteFeed] = useState<Feed>()
   const [renameFolder, setRenameFolder] = useState<Folder>()
   const [deleteFolder, setDeleteFolder] = useState<Folder>()
+  const menuRef = useRef<HTMLButtonElement>(null)
+  const [newFeedLink, setNewFeedLink] = useState('')
+  const selectedFolderRef = useRef<HTMLSelectElement>(null)
+  const newFolderTitleRef = useRef<HTMLTextAreaElement>(null)
+  const refreshRateRef = useRef<HTMLInputElement>(null)
+  const opmlFormRef = useRef<HTMLFormElement>(null)
+  const feedTitleRef = useRef<HTMLTextAreaElement>(null)
+  const feedLinkRef = useRef<HTMLTextAreaElement>(null)
+  const folderTitleRef = useRef<HTMLTextAreaElement>(null)
 
   const [showGenerator, setShowGenerator] = useState(false)
-  const [transType, setTransType] = useState('html')
+  const [transType, setTransType] = useState<Transformer>('html')
   const [transUrl, setTransUrl] = useState('')
   const [transHtmlTitle, setTransHtmlTitle] = useState('')
   const [transHtmlItems, setTransHtmlItems] = useState('')
@@ -275,24 +287,15 @@ export default function FeedList({
       desc: 'JSON path to publication date of item',
     },
   ]
+  const transParamList = transType === 'html' ? transHtmlParams : transJsonParams
   const transParams = JSON.stringify({
     url: transUrl,
     ...Object.fromEntries(
-      (transType === 'html' ? transHtmlParams : transJsonParams)
+      transParamList
         .map(({ key, value, parse }) => [key, parse ? parse(value) : value])
         .filter(([_, value]) => value),
     ),
   })
-
-  const menuRef = useRef<HTMLButtonElement>(null)
-  const [newFeedLink, setNewFeedLink] = useState('')
-  const selectedFolderRef = useRef<HTMLSelectElement>(null)
-  const newFolderTitleRef = useRef<HTMLTextAreaElement>(null)
-  const refreshRateRef = useRef<HTMLInputElement>(null)
-  const opmlFormRef = useRef<HTMLFormElement>(null)
-  const feedTitleRef = useRef<HTMLTextAreaElement>(null)
-  const feedLinkRef = useRef<HTMLTextAreaElement>(null)
-  const folderTitleRef = useRef<HTMLTextAreaElement>(null)
   const [isTypingTransParams, setIsTypingTransParams] = useState(false)
   const autoNewFeedLink = isTypingTransParams
     ? `${transType}:${transParams}`
@@ -313,9 +316,9 @@ export default function FeedList({
   }
   const secondaryLabel = (state?: FeedState, lastRefreshed?: string) =>
     filter === 'Unread' ? (
-      `${state?.unread ?? ''}`
+      state?.unread.toString()
     ) : filter === 'Starred' ? (
-      `${state?.starred ?? ''}`
+      state?.starred.toString()
     ) : state?.error ? (
       <span
         style={{ display: 'flex' }}
@@ -325,12 +328,23 @@ export default function FeedList({
       >
         <AlertCircle {...iconProps} />
       </span>
-    ) : (
-      ''
-    )
+    ) : undefined
   const feed = (feed: Feed) =>
     ({
       id: `feed:${feed.id}`,
+      isSelected: selected?.feed_id === feed.id,
+      secondaryLabel: secondaryLabel(status?.state.get(feed.id), feed.last_refreshed),
+      nodeData: { feed_id: feed.id },
+      icon: feed.has_icon ? (
+        <img
+          style={{ width: length(4), marginRight: '7px' }}
+          src={`api/feeds/${feed.id}/icon`}
+        />
+      ) : (
+        <span style={{ display: 'flex' }}>
+          <Rss style={{ marginRight: '6px' }} {...iconProps} />
+        </span>
+      ),
       label: (
         <ContextMenu
           content={
@@ -352,17 +366,10 @@ export default function FeedList({
                 icon={<Rss {...menuIconProps} />}
                 target="_blank"
                 href={(() => {
-                  const feedLink = feed.feed_link
-                  const i = feedLink.indexOf(':')
-                  if (i === -1) return feedLink
-                  const scheme = feedLink.slice(0, i)
-                  switch (scheme) {
-                    case 'html':
-                    case 'json':
-                      return `api/transform/${scheme}/${encodeURIComponent(feedLink.slice(i + 1))}`
-                    default:
-                      return feedLink
-                  }
+                  const [scheme, link] = parseFeedLink(feed.feed_link)
+                  return scheme
+                    ? `api/transform/${scheme}/${encodeURIComponent(link)}`
+                    : link
                 })()}
               />
               <MenuDivider />
@@ -390,6 +397,13 @@ export default function FeedList({
                 icon={<Move {...menuIconProps} />}
                 disabled={!folders?.length}
               >
+                {feed.folder_id != null && (
+                  <MenuItem
+                    text="--"
+                    icon={<FolderMinus {...menuIconProps} />}
+                    onClick={() => updateFeedAttr(feed.id, 'folder_id', null)}
+                  />
+                )}
                 {folders
                   ?.filter(folder => folder.id !== feed.folder_id)
                   .map(folder => (
@@ -400,13 +414,6 @@ export default function FeedList({
                       onClick={() => updateFeedAttr(feed.id, 'folder_id', folder.id)}
                     />
                   ))}
-                {feed.folder_id != null && (
-                  <MenuItem
-                    text="--"
-                    icon={<FolderMinus {...menuIconProps} />}
-                    onClick={() => updateFeedAttr(feed.id, 'folder_id', null)}
-                  />
-                )}
               </MenuItem>
               <MenuItem
                 text="Delete"
@@ -434,22 +441,10 @@ export default function FeedList({
           )}
         </ContextMenu>
       ),
-      icon: feed.has_icon ? (
-        <img
-          style={{ width: length(4), marginRight: '7px' }}
-          src={`api/feeds/${feed.id}/icon`}
-        />
-      ) : (
-        <span style={{ display: 'flex' }}>
-          <Rss style={{ marginRight: '6px' }} {...iconProps} />
-        </span>
-      ),
-      isSelected: selected?.feed_id === feed.id,
-      secondaryLabel: secondaryLabel(status?.state.get(feed.id), feed.last_refreshed),
-      nodeData: { feed_id: feed.id },
     }) satisfies TreeNodeInfo<Selected>
   const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo<Selected>) => {
-    const id = Number.parseInt(`${node.id}`.split(':')[1])
+    const id = node.nodeData?.folder_id
+    if (id == null) return
     setFolders(folders =>
       folders?.map(folder =>
         folder.id === id ? { ...folder, is_expanded: isExpanded } : folder,
@@ -480,20 +475,23 @@ export default function FeedList({
       ),
     [foldersWithFeeds, status],
   )
-  const total = useMemo(
+  const totalUnread = useMemo(
     () =>
-      filter !== 'Feeds' &&
-      (status?.state
+      status?.state
         .values()
-        .reduce(
-          (acc, state) => acc + (filter === 'Unread' ? state.unread : state.starred),
-          0,
-        )
-        .toString() ??
-        ''),
-    [status, filter],
+        .reduce((acc, state) => acc + state.unread, 0)
+        .toString(),
+    [status],
   )
-  const visibleFolders =
+  const totalStarred = useMemo(
+    () =>
+      status?.state
+        .values()
+        .reduce((acc, state) => acc + state.starred, 0)
+        .toString(),
+    [status],
+  )
+  const visibleFoldersWithFeeds =
     filter === 'Feeds'
       ? foldersWithFeeds
       : foldersWithFeeds
@@ -502,21 +500,21 @@ export default function FeedList({
             feeds: folder.feeds.filter(
               feed =>
                 selected?.feed_id === feed.id ||
-                (filter === 'Unread'
-                  ? (status?.state.get(feed.id)?.unread ?? 0)
-                  : (status?.state.get(feed.id)?.starred ?? 0)) > 0,
+                ((filter === 'Unread'
+                  ? status?.state.get(feed.id)?.unread
+                  : status?.state.get(feed.id)?.starred) ?? 0) > 0,
             ),
           }))
           .filter(folder => folder.feeds.length > 0 || selected?.folder_id === folder.id)
-  const visibleFeeds =
+  const visibleFeedsWithoutFolders =
     filter === 'Feeds'
       ? feedsWithoutFolders
       : feedsWithoutFolders?.filter(
           feed =>
             selected?.feed_id === feed.id ||
-            (filter === 'Unread'
-              ? (status?.state.get(feed.id)?.unread ?? 0)
-              : (status?.state.get(feed.id)?.starred ?? 0)) > 0,
+            ((filter === 'Unread'
+              ? status?.state.get(feed.id)?.unread
+              : status?.state.get(feed.id)?.starred) ?? 0) > 0,
         )
 
   return (
@@ -526,24 +524,26 @@ export default function FeedList({
       >
         <Wind style={{ marginLeft: length(3), marginRight: length(3) }} {...iconProps} />
         <ButtonGroup style={{ marginTop: length(1), marginBottom: length(1) }} outlined>
-          {[
-            { value: 'Unread', title: 'Unread', icon: <Circle {...iconProps} /> },
-            { value: 'Feeds', title: 'All', icon: <MenuIcon {...iconProps} /> },
-            { value: 'Starred', title: 'Starred', icon: <Star {...iconProps} /> },
-          ].map(option => (
+          {(
+            [
+              { value: 'Unread', title: 'Unread', icon: <Circle {...iconProps} /> },
+              { value: 'Feeds', title: 'All', icon: <MenuIcon {...iconProps} /> },
+              { value: 'Starred', title: 'Starred', icon: <Star {...iconProps} /> },
+            ] as const
+          ).map(({ value, title, icon }) => (
             <Button
-              key={option.value}
+              key={value}
               intent={Intent.PRIMARY}
-              icon={option.icon}
-              title={option.title}
-              active={option.value === filter}
-              onClick={() => setFilter(option.value)}
+              icon={icon}
+              title={title}
+              active={value === filter}
+              onClick={() => setFilter(value)}
             />
           ))}
         </ButtonGroup>
         <Popover
           placement="bottom"
-          {...popoverProps}
+          transitionDuration={0}
           content={
             <Menu>
               <MenuItem
@@ -597,7 +597,7 @@ export default function FeedList({
                   <MenuItem
                     text="Import OPML File"
                     icon={<Download {...menuIconProps} />}
-                    onClick={event => event.stopPropagation()}
+                    onClick={evt => evt.stopPropagation()}
                   />
                 </label>
               </form>
@@ -621,13 +621,18 @@ export default function FeedList({
       <Tree<Selected>
         contents={[
           {
-            id: 0,
+            id: '',
             label: `All ${filter}`,
             isSelected: !selected,
-            secondaryLabel: total,
+            secondaryLabel:
+              filter === 'Unread'
+                ? totalUnread
+                : filter === 'Starred'
+                  ? totalStarred
+                  : undefined,
           },
-          ...(visibleFeeds ?? []).map(f => feed(f)),
-          ...(visibleFolders ?? []).map(folder => ({
+          ...(visibleFeedsWithoutFolders ?? []).map(f => feed(f)),
+          ...(visibleFoldersWithFeeds ?? []).map(folder => ({
             id: `folder:${folder.id}`,
             label: (
               <>
@@ -671,7 +676,7 @@ export default function FeedList({
                       ref={ctxMenuProps.ref}
                     >
                       {ctxMenuProps.popover}
-                      {folder.title}
+                      {folder.title || 'untitled'}
                     </span>
                   )}
                 </ContextMenu>
@@ -710,9 +715,7 @@ export default function FeedList({
             {errorCount} feeds have errors
           </div>
         </>
-      ) : (
-        <></>
-      )}
+      ) : undefined}
       <Dialog
         isOpen={newFeedDialogOpen}
         close={() => setNewFeedDialogOpen(false)}
@@ -753,29 +756,23 @@ export default function FeedList({
               const feedLink = evt.target.value
               setNewFeedLink(feedLink)
               setIsTypingTransParams(false)
-              const i = feedLink.indexOf(':')
-              if (i === -1) return
-              const scheme = feedLink.slice(0, i)
-              switch (scheme) {
-                case 'html':
-                case 'json': {
-                  const list = scheme === 'html' ? transHtmlParams : transJsonParams
-                  try {
-                    const params: Record<string, any> = JSON.parse(feedLink.slice(i + 1))
-                    for (const key in params) {
-                      const param = list.find(param => param.key === key)
-                      if (param) {
-                        const value = params[key]
-                        param.setValue(
-                          typeof value === 'string' ? value : JSON.stringify(value),
-                        )
-                      }
+              const [scheme, link] = parseFeedLink(feedLink)
+              if (scheme)
+                try {
+                  const paramList = scheme === 'html' ? transHtmlParams : transJsonParams
+                  const params: Record<string, any> = JSON.parse(link)
+                  for (const key in params) {
+                    const param = paramList.find(param => param.key === key)
+                    if (param) {
+                      const value = params[key]
+                      param.setValue(
+                        typeof value === 'string' ? value : JSON.stringify(value),
+                      )
                     }
-                    setTransUrl(params.url ?? '')
-                    setTransType(scheme)
-                  } catch {}
-                }
-              }
+                  }
+                  setTransUrl(params.url ?? '')
+                  setTransType(scheme)
+                } catch {}
             }}
             spellCheck={false}
             {...textAreaProps}
@@ -785,9 +782,9 @@ export default function FeedList({
             iconName="caret-down"
             options={[
               { value: '', label: '--' },
-              ...(folders ?? []).map(folder => ({
-                value: folder.id,
-                label: folder.title,
+              ...(folders ?? []).map(({ id, title }) => ({
+                value: id,
+                label: title,
               })),
             ]}
             defaultValue={
@@ -802,7 +799,7 @@ export default function FeedList({
           <Divider style={{ marginTop: length(5), marginBottom: length(5) }} />
           <div style={{ textAlign: 'center' }}>
             <RadioGroup
-              onChange={evt => setTransType(evt.currentTarget.value)}
+              onChange={evt => setTransType(evt.currentTarget.value as Transformer)}
               selectedValue={transType}
               options={[
                 { value: 'html', label: 'HTML Transformer' },
@@ -819,7 +816,7 @@ export default function FeedList({
               desc: undefined,
               placeholder: 'https://example.com',
             },
-            ...(transType === 'html' ? transHtmlParams : transJsonParams),
+            ...transParamList,
           ].map(({ value, setValue, key, desc, placeholder }) => (
             <FormGroup
               key={`${transType}_${key}`}
@@ -1001,4 +998,17 @@ export default function FeedList({
       </Dialog>
     </div>
   )
+}
+
+function parseFeedLink(link: string): [Transformer | undefined, string] {
+  const i = link.indexOf(':')
+  if (i !== -1) {
+    const scheme = link.slice(0, i)
+    switch (scheme) {
+      case 'html':
+      case 'json':
+        return [scheme, link.slice(i + 1)]
+    }
+  }
+  return [undefined, link]
 }

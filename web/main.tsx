@@ -8,6 +8,7 @@ const style = document.querySelector<HTMLHtmlElement>(':root')!.style
 style.setProperty('--white', Colors.WHITE)
 style.setProperty('--blue3', Colors.BLUE3)
 style.setProperty('--gray3', Colors.GRAY3)
+style.setProperty('--red3', Colors.RED3)
 style.setProperty('--light-gray4', Colors.LIGHT_GRAY4)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

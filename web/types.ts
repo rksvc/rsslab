@@ -33,6 +33,8 @@ export type FolderWithFeeds = Folder & {
   feeds: Feed[]
 }
 
+export type ItemStatus = 'unread' | 'read' | 'starred'
+
 export type Item = {
   id: number
   guid: string
@@ -41,7 +43,7 @@ export type Item = {
   link: string
   content: string
   date: string
-  status: string
+  status: ItemStatus
   image?: string
   podcast_url?: string
 }
@@ -54,6 +56,8 @@ export type Items = {
 export type Settings = {
   refresh_rate: number
 }
+
+export type Filter = 'Unread' | 'Feeds' | 'Starred'
 
 // https://stackoverflow.com/a/53229567
 type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: undefined }
