@@ -35,26 +35,16 @@ export default function ItemShow({
     })
     const diff = (s: string) =>
       status === s ? +1 : selectedItemDetails.status === s ? -1 : 0
-    setStatus(
-      status =>
-        status && {
-          ...status,
-          state: new Map([
-            ...status.state,
-            [
-              selectedItemDetails.feed_id,
-              {
-                starred:
-                  (status.state.get(selectedItemDetails.feed_id)?.starred ?? 0) +
-                  diff('starred'),
-                unread:
-                  (status.state.get(selectedItemDetails.feed_id)?.unread ?? 0) +
-                  diff('unread'),
-              },
-            ],
-          ]),
-        },
-    )
+    setStatus(status => {
+      if (!status) return
+      const state = new Map(status.state)
+      const s = state.get(selectedItemDetails.feed_id)
+      if (s) {
+        s.starred += diff('starred')
+        s.unread += diff('unread')
+      }
+      return { ...status, state }
+    })
     setItems(
       items =>
         items && {
