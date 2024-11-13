@@ -50,10 +50,9 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 	var feed Feed
 	feed.SiteURL = rule.URL
 	if rule.Title == "" {
-		feed.Title = utils.CollapseWhitespace(doc.Find("title").First().Text())
-	} else {
-		feed.Title = rule.Title
+		rule.Title = "title"
 	}
+	feed.Title = utils.CollapseWhitespace(doc.Find(rule.Title).First().Text())
 
 	items := doc.Find(rule.Items)
 	feed.Items = make([]Item, 0, items.Length())
@@ -112,10 +111,11 @@ func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
 	}
 	j := gjson.ParseBytes(b)
 
-	var feed = Feed{
-		Title:   rule.Title,
-		SiteURL: rule.HomePageURL,
+	feed := Feed{SiteURL: rule.HomePageURL}
+	if rule.Title != "" {
+		feed.Title = j.Get(rule.Title).String()
 	}
+
 	var items []gjson.Result
 	if rule.Items == "" {
 		items = j.Array()

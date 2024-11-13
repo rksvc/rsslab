@@ -166,8 +166,8 @@ export default function FeedList({
       value: transHtmlTitle,
       setValue: setTransHtmlTitle,
       key: 'title',
-      desc: 'Title of RSS',
-      placeholder: 'extracted from <title>',
+      desc: 'CSS selector targetting title of RSS',
+      placeholder: 'title',
     },
     {
       value: transHtmlItems,
@@ -227,7 +227,7 @@ export default function FeedList({
       value: transJsonTitle,
       setValue: setTransJsonTitle,
       key: 'title',
-      desc: 'Title of RSS',
+      desc: 'JSON path to title of RSS',
     },
     {
       value: transJsonHeaders,
