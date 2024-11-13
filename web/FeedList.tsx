@@ -233,7 +233,7 @@ export default function FeedList({
       value: transJsonHeaders,
       setValue: setTransJsonHeaders,
       key: 'headers',
-      desc: 'HTTP request headers in JSON form',
+      desc: 'HTTP request headers in JSON format',
       parse: (input: string) => {
         try {
           return JSON.parse(input)
@@ -649,7 +649,9 @@ export default function FeedList({
         ]}
         onNodeExpand={setExpanded(true)}
         onNodeCollapse={setExpanded(false)}
-        onNodeClick={node => setSelected(node.nodeData)}
+        onNodeClick={node =>
+          JSON.stringify(selected) !== JSON.stringify(node.nodeData) && setSelected(node.nodeData)
+        }
       />
       {status?.running ? (
         <>
