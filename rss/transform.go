@@ -103,11 +103,13 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 		if rule.ItemUrlAttr == "" {
 			rule.ItemUrlAttr = "href"
 		}
-		for _, attr := range url.Attr {
-			if attr.Key == rule.ItemUrlAttr {
-				i.URL = utils.AbsoluteUrl(attr.Val, rule.URL)
-				i.GUID = i.URL
-				break
+		if url != nil {
+			for _, attr := range url.Attr {
+				if attr.Key == rule.ItemUrlAttr {
+					i.URL = utils.AbsoluteUrl(attr.Val, rule.URL)
+					i.GUID = i.URL
+					break
+				}
 			}
 		}
 
@@ -115,11 +117,13 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 		if contentSel != nil {
 			content = contentSel.MatchFirst(item)
 		}
-		var b strings.Builder
-		if err := html.Render(&b, content); err != nil {
-			return nil, err
+		if content != nil {
+			var b strings.Builder
+			if err := html.Render(&b, content); err != nil {
+				return nil, err
+			}
+			i.Content = strings.TrimSpace(utils.Sanitize(rule.URL, b.String()))
 		}
-		i.Content = strings.TrimSpace(utils.Sanitize(rule.URL, b.String()))
 
 		date := item
 		if datePublishedSel != nil {
