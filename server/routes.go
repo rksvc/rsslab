@@ -288,16 +288,13 @@ func (s *Server) handleFeedDelete(c context) error {
 }
 
 func (s *Server) handleItemList(c context) error {
-	var filter struct {
-		storage.ItemFilter
-		OldestFirst bool `query:"oldest_first"`
-	}
+	var filter storage.ItemFilter
 	if err := c.ParseQuery(&filter); err != nil {
 		return err
 	}
 
 	const PER_PAGE = 20
-	items, err := s.db.ListItems(filter.ItemFilter, PER_PAGE+1, filter.OldestFirst)
+	items, err := s.db.ListItems(filter, PER_PAGE+1)
 	if err != nil {
 		return err
 	}

@@ -151,7 +151,9 @@ export default function ItemList({
           minimal
           onClick={async () => {
             if (itemsOutdated) return await refresh()
-            await xfetch(`api/items${param(query())}`, { method: 'PUT' })
+            const after = items?.list.at(0)?.id
+            if (after == null) return
+            await xfetch(`api/items${param({ ...query(), after })}`, { method: 'PUT' })
             setItems(
               items =>
                 items && {

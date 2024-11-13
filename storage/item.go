@@ -136,14 +136,15 @@ func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time,
 }
 
 type ItemFilter struct {
-	FolderId *int        `query:"folder_id"`
-	FeedId   *int        `query:"feed_id"`
-	Status   *ItemStatus `query:"status"`
-	Search   *string     `query:"search"`
-	After    *int        `query:"after"`
+	FolderId    *int        `query:"folder_id"`
+	FeedId      *int        `query:"feed_id"`
+	Status      *ItemStatus `query:"status"`
+	Search      *string     `query:"search"`
+	After       *int        `query:"after"`
+	OldestFirst bool        `query:"oldest_first"`
 }
 
-func listQueryPredicate(filter ItemFilter, oldestFirst bool) (string, []any) {
+func listQueryPredicate(filter ItemFilter, includeBoundary bool) (string, []any) {
 	var cond []string
 	var args []any
 	if filter.FolderId != nil {
@@ -167,8 +168,11 @@ func listQueryPredicate(filter ItemFilter, oldestFirst bool) (string, []any) {
 	}
 	if filter.After != nil {
 		compare := "<"
-		if oldestFirst {
+		if filter.OldestFirst {
 			compare = ">"
+		}
+		if includeBoundary {
+			compare += "="
 		}
 		cond = append(cond, fmt.Sprintf("(date, id) %s (select date, id from items where id = ?)", compare))
 		args = append(args, *filter.After)
@@ -181,10 +185,10 @@ func listQueryPredicate(filter ItemFilter, oldestFirst bool) (string, []any) {
 	return predicate, args
 }
 
-func (s *Storage) ListItems(filter ItemFilter, limit int, oldestFirst bool) ([]Item, error) {
-	predicate, args := listQueryPredicate(filter, oldestFirst)
+func (s *Storage) ListItems(filter ItemFilter, limit int) ([]Item, error) {
+	predicate, args := listQueryPredicate(filter, false)
 	order := "date desc, id desc"
-	if oldestFirst {
+	if filter.OldestFirst {
 		order = "date asc, id asc"
 	}
 	rows, err := s.db.Query(fmt.Sprintf(`
@@ -245,7 +249,7 @@ func (s *Storage) UpdateItemStatus(itemId int, status ItemStatus) error {
 }
 
 func (s *Storage) MarkItemsRead(filter ItemFilter) error {
-	predicate, args := listQueryPredicate(filter, false)
+	predicate, args := listQueryPredicate(filter, true)
 	_, err := s.db.Exec(fmt.Sprintf(`
 		update items set status = %d
 		where %s and status != %d
