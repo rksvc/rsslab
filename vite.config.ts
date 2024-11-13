@@ -5,7 +5,6 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'server/dist',
-    reportCompressedSize: false,
     rollupOptions: {
       external: ['./paths-loaders/allPathsLoader', './paths-loaders/splitPathsBySizeLoader'],
     },
