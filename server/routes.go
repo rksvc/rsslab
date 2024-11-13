@@ -60,6 +60,7 @@ func wrap(handleFunc func(context) error) func(http.ResponseWriter, *http.Reques
 		}
 		defer func() {
 			if err := recover(); err != nil {
+				log.Print(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				_, err = w.Write(utils.StringToBytes(fmt.Sprintf("%v", err)))
 				if err != nil {
