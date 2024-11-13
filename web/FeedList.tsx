@@ -725,12 +725,9 @@ export default function FeedList({
                 try {
                   const paramList = scheme === 'html' ? transHtmlParams : transJsonParams
                   const params: Record<string, any> = JSON.parse(link)
-                  for (const key in params) {
-                    const param = paramList.find(param => param.key === key)
-                    if (param) {
-                      const value = params[key]
-                      param.setValue(typeof value === 'string' ? value : JSON.stringify(value))
-                    }
+                  for (const { key, setValue } of paramList) {
+                    const value = params[key] || ''
+                    setValue(typeof value === 'string' ? value : JSON.stringify(value))
                   }
                   setTransUrl(params.url ?? '')
                   setTransType(scheme)
