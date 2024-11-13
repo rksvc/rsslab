@@ -19,7 +19,7 @@ type context struct {
 func (c *context) VarInt(name string) (int, error) {
 	n, err := strconv.Atoi(c.r.PathValue(name))
 	if err != nil {
-		return 0, &badRequest{err}
+		return 0, &errBadRequest{err}
 	}
 	return n, nil
 }
@@ -27,7 +27,7 @@ func (c *context) VarInt(name string) (int, error) {
 func (c *context) ParseBody(v any) error {
 	err := json.NewDecoder(c.r.Body).Decode(v)
 	if err != nil {
-		return &badRequest{err}
+		return &errBadRequest{err}
 	}
 	return nil
 }
@@ -52,7 +52,7 @@ func (c *context) ParseQuery(v any) error {
 							Interface().(encoding.TextUnmarshaler).
 							UnmarshalText(utils.StringToBytes(v))
 						if err != nil {
-							return &badRequest{err}
+							return &errBadRequest{err}
 						}
 					} else {
 						if k == reflect.Pointer {
@@ -67,12 +67,12 @@ func (c *context) ParseQuery(v any) error {
 							case "false":
 								f.SetBool(false)
 							default:
-								return &badRequest{errors.New("invalid bool value")}
+								return &errBadRequest{errors.New("invalid bool value")}
 							}
 						case reflect.Int:
 							n, err := strconv.Atoi(v)
 							if err != nil {
-								return &badRequest{err}
+								return &errBadRequest{err}
 							}
 							f.SetInt(int64(n))
 						case reflect.String:

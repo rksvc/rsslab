@@ -21,11 +21,11 @@ import (
 
 type dict = map[string]any
 
-type badRequest struct {
+type errBadRequest struct {
 	Err error
 }
 
-func (err *badRequest) Error() string {
+func (err *errBadRequest) Error() string {
 	return err.Err.Error()
 }
 
@@ -70,7 +70,7 @@ func wrap(handleFunc func(context) error) func(http.ResponseWriter, *http.Reques
 		}()
 		if err := handleFunc(context{w, r}); err != nil {
 			log.Printf("%s %s: %s", r.Method, r.URL.EscapedPath(), err)
-			if _, ok := err.(*badRequest); ok {
+			if _, ok := err.(*errBadRequest); ok {
 				w.WriteHeader(http.StatusBadRequest)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -374,18 +374,18 @@ func (s *Server) handleSettingsUpdate(c context) error {
 func (s *Server) handleOPMLImport(c context) error {
 	_, fh, err := c.r.FormFile("opml")
 	if err != nil {
-		return &badRequest{err}
+		return &errBadRequest{err}
 	}
 	file, err := fh.Open()
 	if err != nil {
-		return &badRequest{err}
+		return &errBadRequest{err}
 	}
 	d := utils.XMLDecoder(file)
 	d.Entity = xml.HTMLEntity
 	var opml rss.OPML
 	err = d.Decode(&opml)
 	if err != nil {
-		return &badRequest{err}
+		return &errBadRequest{err}
 	}
 
 	var errs []error
