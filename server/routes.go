@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"mime"
@@ -57,6 +58,15 @@ func wrap(handleFunc func(context) error) func(http.ResponseWriter, *http.Reques
 			}()
 			w = gz
 		}
+		defer func() {
+			if err := recover(); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, err = w.Write(utils.StringToBytes(fmt.Sprintf("%v", err)))
+				if err != nil {
+					log.Print(err)
+				}
+			}
+		}()
 		if err := handleFunc(context{w, r}); err != nil {
 			log.Printf("%s %s: %s", r.Method, r.URL.EscapedPath(), err)
 			if _, ok := err.(*badRequest); ok {
