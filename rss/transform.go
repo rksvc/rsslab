@@ -8,8 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/andybalholm/cascadia"
 	"github.com/tidwall/gjson"
+	"golang.org/x/net/html"
 )
 
 type HTMLRule struct {
@@ -42,7 +43,7 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	root, err := html.Parse(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -52,45 +53,79 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 	if rule.Title == "" {
 		rule.Title = "title"
 	}
-	feed.Title = utils.CollapseWhitespace(doc.Find(rule.Title).First().Text())
+	s, err := cascadia.Compile(rule.Title)
+	if err != nil {
+		return nil, err
+	}
+	feed.Title = utils.CollapseWhitespace(extractText(s.MatchFirst(root)))
 
-	items := doc.Find(rule.Items)
-	feed.Items = make([]Item, 0, items.Length())
-	for _, item := range items.EachIter() {
+	var titleSel, urlSel, contentSel, datePublishedSel cascadia.Selector
+	if rule.ItemTitle != "" {
+		if titleSel, err = cascadia.Compile(rule.ItemTitle); err != nil {
+			return nil, err
+		}
+	}
+	if rule.ItemUrl != "" {
+		if urlSel, err = cascadia.Compile(rule.ItemUrl); err != nil {
+			return nil, err
+		}
+	}
+	if rule.ItemContent != "" {
+		if contentSel, err = cascadia.Compile(rule.ItemContent); err != nil {
+			return nil, err
+		}
+	}
+	if rule.ItemDatePublished != "" {
+		if datePublishedSel, err = cascadia.Compile(rule.ItemDatePublished); err != nil {
+			return nil, err
+		}
+	}
+
+	s, err = cascadia.Compile(rule.Items)
+	if err != nil {
+		return nil, err
+	}
+	items := s.MatchAll(root)
+	feed.Items = make([]Item, 0, len(items))
+	for _, item := range items {
 		var i Item
 
 		title := item
-		if rule.ItemTitle != "" {
-			title = item.Find(rule.ItemTitle)
+		if titleSel != nil {
+			title = titleSel.MatchFirst(item)
 		}
-		i.Title = utils.ExtractText(title.Text())
+		i.Title = utils.CollapseWhitespace(extractText(title))
 
 		url := item
-		if rule.ItemUrl != "" {
-			url = item.Find(rule.ItemUrl)
+		if urlSel != nil {
+			url = urlSel.MatchFirst(item)
 		}
 		if rule.ItemUrlAttr == "" {
 			rule.ItemUrlAttr = "href"
 		}
-		i.URL = url.AttrOr(rule.ItemUrlAttr, "")
-		i.URL = utils.AbsoluteUrl(i.URL, rule.URL)
-		i.GUID = i.URL
+		for _, attr := range url.Attr {
+			if attr.Key == rule.ItemUrlAttr {
+				i.URL = utils.AbsoluteUrl(attr.Val, rule.URL)
+				i.GUID = i.URL
+				break
+			}
+		}
 
 		content := item
-		if rule.ItemContent != "" {
-			content = item.Find(rule.ItemContent)
+		if contentSel != nil {
+			content = contentSel.MatchFirst(item)
 		}
-		i.Content, err = content.Html()
-		if err != nil {
+		var b strings.Builder
+		if err := html.Render(&b, content); err != nil {
 			return nil, err
 		}
-		i.Content = strings.TrimSpace(utils.Sanitize(rule.URL, i.Content))
+		i.Content = strings.TrimSpace(utils.Sanitize(rule.URL, b.String()))
 
 		date := item
-		if rule.ItemDatePublished != "" {
-			date = item.Find(rule.ItemDatePublished).First()
+		if datePublishedSel != nil {
+			date = datePublishedSel.MatchFirst(item)
 		}
-		i.Date = utils.ParseDate(date.Text())
+		i.Date = utils.ParseDate(extractText(date))
 
 		feed.Items = append(feed.Items, i)
 	}
@@ -191,6 +226,19 @@ func tryGet(url string, headers map[string]string, client *http.Client) (resp *h
 		}
 	}
 	return
+}
+
+func extractText(node *html.Node) string {
+	if node == nil {
+		return ""
+	}
+	var b strings.Builder
+	for n := range node.Descendants() {
+		if n.Type == html.TextNode {
+			b.WriteString(n.Data)
+		}
+	}
+	return b.String()
 }
 
 func cmpItem(a, b Item) int {
