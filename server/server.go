@@ -98,7 +98,7 @@ func (s *Server) Start(addr string) error {
 	mux.HandleFunc("POST   /api/opml/import", wrap(s.handleOPMLImport))
 	mux.HandleFunc("GET    /api/opml/export", wrap(s.handleOPMLExport))
 	mux.HandleFunc("GET    /api/transform/{type}/{params}", wrap(s.handleTransform))
-	mux.HandleFunc("GET    /", wrap(s.handleIndex))
+	mux.HandleFunc("GET    /", s.handleIndex)
 
 	host, port := addr, ""
 	if i := strings.LastIndexByte(addr, ':'); i != -1 {

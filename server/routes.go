@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"mime"
@@ -86,20 +87,24 @@ func wrap(handleFunc func(context) error) func(http.ResponseWriter, *http.Reques
 //go:embed dist
 var assets embed.FS
 
-func (s *Server) handleIndex(c context) error {
-	p := strings.TrimLeft(c.r.URL.Path, "/")
+func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	p := strings.TrimLeft(r.URL.Path, "/")
 	if p == "" {
 		p = "index.html"
 	}
-	b, err := assets.ReadFile(path.Join("dist", p))
+	f, err := assets.Open(path.Join("dist", p+".gz"))
 	if err == nil {
-		c.w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
-		return c.Write(b)
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
+		_, err = io.Copy(w, f)
+		if err != nil {
+			log.Print(err)
+		}
 	} else if errors.Is(err, fs.ErrNotExist) {
-		http.NotFound(c.w, c.r)
-		return nil
+		http.NotFound(w, r)
+	} else {
+		log.Print(err)
 	}
-	return err
 }
 
 func (s *Server) handleStatus(c context) error {
