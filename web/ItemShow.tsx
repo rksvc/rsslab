@@ -1,8 +1,8 @@
 import { AnchorButton, Button, ButtonGroup, Classes, Colors, Divider, H2 } from '@blueprintjs/core'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
-import type { Feed, Item, ItemStatus, Items, Status } from './types'
-import { cn, iconProps, length, panelStyle, xfetch } from './utils'
+import type { Feed, Item, ItemStatus, Items, Status } from './types.ts'
+import { cn, iconProps, length, panelStyle, xfetch } from './utils.ts'
 
 export default function ItemShow({
   setStatus,

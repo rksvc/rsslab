@@ -1,8 +1,8 @@
 import { Alert, Divider, FocusStyleManager, Pre } from '@blueprintjs/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import FeedList from './FeedList'
-import ItemList from './ItemList'
-import ItemShow from './ItemShow'
+import FeedList from './FeedList.tsx'
+import ItemList from './ItemList.tsx'
+import ItemShow from './ItemShow.tsx'
 import type {
   Feed,
   FeedState,
@@ -15,8 +15,8 @@ import type {
   Settings,
   State,
   Status,
-} from './types'
-import { xfetch } from './utils'
+} from './types.ts'
+import { xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 

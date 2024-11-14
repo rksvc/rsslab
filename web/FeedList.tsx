@@ -45,9 +45,9 @@ import {
   Upload,
   Wind,
 } from 'react-feather'
-import { Dialog } from './Dialog'
-import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types'
-import { cn, iconProps, length, menuIconProps, panelStyle, statusBarStyle, xfetch } from './utils'
+import { Dialog } from './Dialog.tsx'
+import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
+import { cn, iconProps, length, menuIconProps, panelStyle, statusBarStyle, xfetch } from './utils.ts'
 
 const textAreaProps = {
   style: { fontFamily: 'inherit' },

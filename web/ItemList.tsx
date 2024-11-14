@@ -20,8 +20,8 @@ import {
   useState,
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
-import type { Feed, FolderWithFeeds, Item, Items, Selected, Status } from './types'
-import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils'
+import type { Feed, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
+import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils.ts'
 
 export default function ItemList({
   filter,
