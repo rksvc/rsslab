@@ -45,11 +45,11 @@ export function fromNow(date: Date) {
 }
 
 export function param(query: Record<string, string | number | boolean | undefined>) {
-  const keys = Object.keys(query)
-  if (!keys.length) return ''
-  return `?${keys
-    .filter(key => query[key] !== undefined)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(query[key]!)}`)
+  const entries = Object.entries(query)
+  if (!entries.length) return ''
+  return `?${entries
+    .filter(([_, value]) => value !== undefined)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value!)}`)
     .join('&')}`
 }
 
