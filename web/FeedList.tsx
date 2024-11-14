@@ -294,7 +294,7 @@ export default function FeedList({
     setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
     if (attrName === 'folder_id') setRefreshed(value => !value)
   }
-  const secondaryLabel = (state?: FeedState, lastRefreshed?: string) =>
+  const secondaryLabel = (state?: FeedState) =>
     filter === 'Unread' ? (
       state?.unread.toString()
     ) : filter === 'Starred' ? (
@@ -302,7 +302,7 @@ export default function FeedList({
     ) : state?.error ? (
       <span
         style={{ display: 'flex' }}
-        title={lastRefreshed && `Last Refreshed: ${new Date(lastRefreshed).toLocaleString()}`}
+        title={state.last_refreshed && `Last Refreshed: ${new Date(state.last_refreshed).toLocaleString()}`}
       >
         <AlertCircle {...iconProps} />
       </span>
@@ -311,7 +311,7 @@ export default function FeedList({
     ({
       id: `feed:${feed.id}`,
       isSelected: selected?.feed_id === feed.id,
-      secondaryLabel: secondaryLabel(status?.state.get(feed.id), feed.last_refreshed),
+      secondaryLabel: secondaryLabel(status?.state.get(feed.id)),
       nodeData: { feed_id: feed.id },
       icon: feed.has_icon ? (
         <img style={{ width: length(4), marginRight: '7px' }} src={`api/feeds/${feed.id}/icon`} />

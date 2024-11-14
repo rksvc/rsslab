@@ -92,8 +92,9 @@ func (s *Storage) UpdateFeedIcon(feedId int, icon []byte) {
 
 func (s *Storage) ListFeeds() ([]Feed, error) {
 	rows, err := s.db.Query(`
-		select id, folder_id, title, link, feed_link,
-		       last_refreshed, icon is not null as has_icon
+		select
+			id, folder_id, title, link, feed_link,
+			icon is not null as has_icon
 		from feeds
 		order by title collate nocase
 	`)
@@ -109,7 +110,6 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 			&f.Title,
 			&f.Link,
 			&f.FeedLink,
-			&f.LastRefreshed,
 			&f.HasIcon,
 		)
 		if err != nil {
@@ -241,19 +241,21 @@ func (s *Storage) GetHTTPState(feedId int) (state HTTPState, err error) {
 }
 
 type FeedState struct {
-	Id      int     `json:"id"`
-	Error   *string `json:"error"`
-	Unread  int     `json:"unread"`
-	Starred int     `json:"starred"`
+	Id            int        `json:"id"`
+	Unread        int        `json:"unread"`
+	Starred       int        `json:"starred"`
+	LastRefreshed *time.Time `json:"last_refreshed,omitempty"`
+	Error         *string    `json:"error,omitempty"`
 }
 
 func (s *Storage) FeedState() ([]FeedState, error) {
 	rows, err := s.db.Query(fmt.Sprintf(`
 		select
 			feeds.id,
-			error,
 			sum(iif(status = %d, 1, 0)),
-			sum(iif(status = %d, 1, 0))
+			sum(iif(status = %d, 1, 0)),
+			last_refreshed,
+			error
 		from feeds
 		left join items
 		on feeds.id = items.feed_id
@@ -265,7 +267,7 @@ func (s *Storage) FeedState() ([]FeedState, error) {
 	result := make([]FeedState, 0)
 	for rows.Next() {
 		var s FeedState
-		err = rows.Scan(&s.Id, &s.Error, &s.Unread, &s.Starred)
+		err = rows.Scan(&s.Id, &s.Unread, &s.Starred, &s.LastRefreshed, &s.Error)
 		if err != nil {
 			return nil, utils.NewError(err)
 		}

@@ -1,7 +1,8 @@
 export type FeedState = {
-  error?: string
   unread: number
   starred: number
+  last_refreshed?: string
+  error?: string
 }
 
 export type State = {
@@ -25,7 +26,6 @@ export type Feed = {
   title: string
   link?: string
   feed_link: string
-  last_refreshed?: string
   has_icon: boolean
 }
 
