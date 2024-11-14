@@ -14,27 +14,28 @@ import (
 )
 
 type HTMLRule struct {
-	URL               string `json:"url"`
-	Title             string `json:"title"`
-	Items             string `json:"items"`
-	ItemTitle         string `json:"item_title"`
-	ItemUrl           string `json:"item_url"`
-	ItemUrlAttr       string `json:"item_url_attr"`
-	ItemContent       string `json:"item_content"`
-	ItemDatePublished string `json:"item_date_published"`
+	URL          string `json:"url"`
+	Title        string `json:"title"`
+	Items        string `json:"items"`
+	ItemTitle    string `json:"item_title"`
+	ItemUrl      string `json:"item_url"`
+	ItemUrlAttr  string `json:"item_url_attr"`
+	ItemContent  string `json:"item_content"`
+	ItemDate     string `json:"item_date_published"`
+	ItemDateAttr string `json:"item_date_published_attr"`
 }
 
 type JSONRule struct {
-	URL               string            `json:"url"`
-	HomePageURL       string            `json:"home_page_url"`
-	Headers           map[string]string `json:"headers"`
-	Title             string            `json:"title"`
-	Items             string            `json:"items"`
-	ItemTitle         string            `json:"item_title"`
-	ItemUrl           string            `json:"item_url"`
-	ItemUrlPrefix     string            `json:"item_url_prefix"`
-	ItemContent       string            `json:"item_content"`
-	ItemDatePublished string            `json:"item_date_published"`
+	URL           string            `json:"url"`
+	HomePageURL   string            `json:"home_page_url"`
+	Headers       map[string]string `json:"headers"`
+	Title         string            `json:"title"`
+	Items         string            `json:"items"`
+	ItemTitle     string            `json:"item_title"`
+	ItemUrl       string            `json:"item_url"`
+	ItemUrlPrefix string            `json:"item_url_prefix"`
+	ItemContent   string            `json:"item_content"`
+	ItemDate      string            `json:"item_date_published"`
 }
 
 func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
@@ -59,7 +60,7 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 	}
 	feed.Title = utils.CollapseWhitespace(extractText(s.MatchFirst(root)))
 
-	var titleSel, urlSel, contentSel, datePublishedSel cascadia.Selector
+	var titleSel, urlSel, contentSel, dateSel cascadia.Selector
 	if rule.ItemTitle != "" {
 		if titleSel, err = cascadia.Compile(rule.ItemTitle); err != nil {
 			return nil, err
@@ -75,8 +76,8 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 			return nil, err
 		}
 	}
-	if rule.ItemDatePublished != "" {
-		if datePublishedSel, err = cascadia.Compile(rule.ItemDatePublished); err != nil {
+	if rule.ItemDate != "" {
+		if dateSel, err = cascadia.Compile(rule.ItemDate); err != nil {
 			return nil, err
 		}
 	}
@@ -126,10 +127,21 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 		}
 
 		date := item
-		if datePublishedSel != nil {
-			date = datePublishedSel.MatchFirst(item)
+		if dateSel != nil {
+			date = dateSel.MatchFirst(item)
 		}
-		i.Date = utils.ParseDate(extractText(date))
+		if rule.ItemDateAttr != "" {
+			if date != nil {
+				for _, attr := range date.Attr {
+					if attr.Key == rule.ItemDateAttr {
+						i.Date = utils.ParseDate(attr.Val)
+						break
+					}
+				}
+			}
+		} else {
+			i.Date = utils.ParseDate(extractText(date))
+		}
 
 		feed.Items = append(feed.Items, i)
 	}
@@ -181,8 +193,8 @@ func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
 			i.Content = item.Get(rule.ItemContent).String()
 		}
 
-		if rule.ItemDatePublished != "" {
-			i.Date = utils.ParseDate(item.Get(rule.ItemDatePublished).String())
+		if rule.ItemDate != "" {
+			i.Date = utils.ParseDate(item.Get(rule.ItemDate).String())
 		}
 
 		feed.Items = append(feed.Items, i)

@@ -142,6 +142,7 @@ export default function FeedList({
   const [transHtmlItemUrlAttr, setTransHtmlItemUrlAttr] = useState('')
   const [transHtmlItemContent, setTransHtmlItemContent] = useState('')
   const [transHtmlItemDate, setTransHtmlItemDate] = useState('')
+  const [transHtmlItemDateAttr, setTransHtmlItemDateAttr] = useState('')
   const [transJsonHomePageUrl, setTransJsonHomePageUrl] = useState('')
   const [transJsonTitle, setTransJsonTitle] = useState('')
   const [transJsonHeaders, setTransJsonHeaders] = useState('')
@@ -150,7 +151,7 @@ export default function FeedList({
   const [transJsonItemUrl, setTransJsonItemUrl] = useState('')
   const [transJsonItemUrlPrefix, setTransJsonItemUrlPrefix] = useState('')
   const [transJsonItemContent, setTransJsonItemContent] = useState('')
-  const [transJsonItemDatePublished, setTransJsonItemDatePublished] = useState('')
+  const [transJsonItemDate, setTransJsonItemDate] = useState('')
   const transHtmlParams: Param[] = [
     {
       value: transHtmlTitle,
@@ -204,6 +205,17 @@ export default function FeedList({
       key: 'item_date_published',
       desc: 'CSS selector targetting publication date of item',
       placeholder: 'same as item element',
+    },
+    {
+      value: transHtmlItemDateAttr,
+      setValue: setTransHtmlItemDateAttr,
+      key: 'item_date_published_attr',
+      desc: (
+        <span>
+          Attribute of <Code>item_date_published</Code> element as date
+        </span>
+      ),
+      placeholder: 'element text',
     },
   ]
   const transJsonParams: Param[] = [
@@ -264,8 +276,8 @@ export default function FeedList({
       desc: 'JSON path to content of item',
     },
     {
-      value: transJsonItemDatePublished,
-      setValue: setTransJsonItemDatePublished,
+      value: transJsonItemDate,
+      setValue: setTransJsonItemDate,
       key: 'item_date_published',
       desc: 'JSON path to publication date of item',
     },
