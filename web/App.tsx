@@ -27,6 +27,7 @@ export default function App() {
   const [status, setStatus] = useState<Status>()
   const [selected, setSelected] = useState<Selected>()
   const [settings, setSettings] = useState<Settings>()
+  const [refreshed, setRefreshed] = useState(false)
 
   const [items, setItems] = useState<Items>()
   const [itemsOutdated, setItemsOutdated] = useState(false)
@@ -51,9 +52,10 @@ export default function App() {
     ])
     setFolders(folders)
     setFeeds(feeds)
+    setRefreshed(value => !value)
     setSettings(settings)
   }
-  const refreshStats = async (loop = true) => {
+  const refreshStats = async () => {
     const { running, last_refreshed, state } = await xfetch<
       State & { state: (FeedState & { id: number })[] }
     >('api/status')
@@ -62,10 +64,9 @@ export default function App() {
       last_refreshed,
       state: new Map(state.map(({ id, ...state }) => [id, state])),
     })
-    if (loop) {
-      setItemsOutdated(true)
-      if (running) setTimeout(() => refreshStats(), 500)
-    }
+    setRefreshed(value => !value)
+    setItemsOutdated(true)
+    if (running) setTimeout(() => refreshStats(), 500)
   }
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds):
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats):
@@ -105,6 +106,8 @@ export default function App() {
     setSelected,
     settings,
     setSettings,
+    refreshed,
+    setRefreshed,
 
     items,
     setItems,

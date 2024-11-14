@@ -46,17 +46,7 @@ import {
   Wind,
 } from 'react-feather'
 import { Dialog } from './Dialog'
-import type {
-  Feed,
-  FeedState,
-  Filter,
-  Folder,
-  FolderWithFeeds,
-  Item,
-  Selected,
-  Settings,
-  Status,
-} from './types'
+import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types'
 import { cn, iconProps, length, menuIconProps, panelStyle, statusBarStyle, xfetch } from './utils'
 
 const textAreaProps = {
@@ -89,8 +79,8 @@ export default function FeedList({
   setSelected,
   settings,
   setSettings,
-
-  selectedItem,
+  refreshed,
+  setRefreshed,
 
   refreshFeeds,
   refreshStats,
@@ -111,8 +101,8 @@ export default function FeedList({
   setSelected: Dispatch<SetStateAction<Selected>>
   settings?: Settings
   setSettings: Dispatch<SetStateAction<Settings | undefined>>
-
-  selectedItem?: Item
+  refreshed: boolean
+  setRefreshed: Dispatch<SetStateAction<boolean>>
 
   refreshFeeds: () => Promise<void>
   refreshStats: (loop?: boolean) => Promise<void>
@@ -302,6 +292,7 @@ export default function FeedList({
       body: JSON.stringify({ [attrName]: value ?? -1 }),
     })
     setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
+    if (attrName === 'folder_id') setRefreshed(value => !value)
   }
   const secondaryLabel = (state?: FeedState, lastRefreshed?: string) =>
     filter === 'Unread' ? (
@@ -458,32 +449,35 @@ export default function FeedList({
         .toString(),
     [status],
   )
-  const visibleFoldersWithFeeds =
-    filter === 'Feeds'
-      ? foldersWithFeeds
-      : foldersWithFeeds
-          ?.map(folder => ({
-            ...folder,
-            feeds: folder.feeds.filter(
-              feed =>
-                selected?.feed_id === feed.id ||
-                selectedItem?.feed_id === feed.id ||
-                ((filter === 'Unread'
-                  ? status?.state.get(feed.id)?.unread
-                  : status?.state.get(feed.id)?.starred) ?? 0) > 0,
-            ),
-          }))
-          .filter(folder => folder.feeds.length > 0 || selected?.folder_id === folder.id)
-  const visibleFeedsWithoutFolders =
-    filter === 'Feeds'
-      ? feedsWithoutFolders
-      : feedsWithoutFolders?.filter(
-          feed =>
-            selected?.feed_id === feed.id ||
-            ((filter === 'Unread'
-              ? status?.state.get(feed.id)?.unread
-              : status?.state.get(feed.id)?.starred) ?? 0) > 0,
+  // biome-ignore lint/correctness/useExhaustiveDependencies(foldersWithFeeds):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(feedsWithoutFolders):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(status?.state.get):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshed):
+  const [hiddenFolderIds, hiddenFeedIds] = useMemo(() => {
+    const folders = new Set<number>()
+    const feeds = new Set<number>()
+    if (filter === 'Feeds') return [folders, feeds]
+
+    for (const folder of foldersWithFeeds ?? []) {
+      let hideFolder = true
+      for (const feed of folder.feeds)
+        if (
+          selected?.feed_id !== feed.id &&
+          !(filter === 'Unread' ? status?.state.get(feed.id)?.unread : status?.state.get(feed.id)?.starred)
         )
+          feeds.add(feed.id)
+        else hideFolder = false
+      if (hideFolder && selected?.folder_id !== folder.id) folders.add(folder.id)
+    }
+    for (const feed of feedsWithoutFolders ?? [])
+      if (
+        selected?.feed_id !== feed.id &&
+        !(filter === 'Unread' ? status?.state.get(feed.id)?.unread : status?.state.get(feed.id)?.starred)
+      )
+        feeds.add(feed.id)
+
+    return [folders, feeds]
+  }, [filter, selected, refreshed])
 
   return (
     <div style={panelStyle}>
@@ -589,63 +583,65 @@ export default function FeedList({
             secondaryLabel:
               filter === 'Unread' ? totalUnread : filter === 'Starred' ? totalStarred : undefined,
           },
-          ...(visibleFeedsWithoutFolders ?? []).map(f => feed(f)),
-          ...(visibleFoldersWithFeeds ?? []).map(folder => ({
-            id: `folder:${folder.id}`,
-            label: (
-              <>
-                <ContextMenu
-                  content={
-                    <Menu>
-                      <MenuItem
-                        text="Rename"
-                        icon={<Edit {...menuIconProps} />}
-                        onClick={() => setRenameFolder(folder)}
-                      />
-                      <MenuItem
-                        text="Refresh"
-                        icon={<RotateCw {...menuIconProps} />}
-                        disabled={!!status?.running}
-                        onClick={async () => {
-                          await xfetch(`api/folders/${folder.id}/refresh`, {
-                            method: 'POST',
-                          })
-                          await refreshStats()
-                        }}
-                      />
-                      <MenuItem
-                        text="Delete"
-                        icon={<Trash {...menuIconProps} />}
-                        intent={Intent.DANGER}
-                        onClick={() => setDeleteFolder(folder)}
-                      />
-                    </Menu>
-                  }
-                >
-                  {(ctxMenuProps: ContextMenuChildrenProps) => (
-                    <span
-                      className={cn(
-                        ctxMenuProps.className,
-                        ctxMenuProps.contentProps.isOpen && 'context-menu-open',
-                      )}
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
-                      title={folder.title}
-                      onContextMenu={ctxMenuProps.onContextMenu}
-                      ref={ctxMenuProps.ref}
-                    >
-                      {ctxMenuProps.popover}
-                      {folder.title || 'untitled'}
-                    </span>
-                  )}
-                </ContextMenu>
-              </>
-            ),
-            isExpanded: folder.is_expanded,
-            isSelected: selected?.folder_id === folder.id,
-            childNodes: folder.feeds.map(f => feed(f)),
-            secondaryLabel: secondaryLabel(folderStats.get(folder.id)),
-            nodeData: { folder_id: folder.id },
-          })),
+          ...(feedsWithoutFolders ?? []).filter(f => !hiddenFeedIds.has(f.id)).map(f => feed(f)),
+          ...(foldersWithFeeds ?? [])
+            .filter(f => !hiddenFolderIds.has(f.id))
+            .map(folder => ({
+              id: `folder:${folder.id}`,
+              label: (
+                <>
+                  <ContextMenu
+                    content={
+                      <Menu>
+                        <MenuItem
+                          text="Rename"
+                          icon={<Edit {...menuIconProps} />}
+                          onClick={() => setRenameFolder(folder)}
+                        />
+                        <MenuItem
+                          text="Refresh"
+                          icon={<RotateCw {...menuIconProps} />}
+                          disabled={!!status?.running}
+                          onClick={async () => {
+                            await xfetch(`api/folders/${folder.id}/refresh`, {
+                              method: 'POST',
+                            })
+                            await refreshStats()
+                          }}
+                        />
+                        <MenuItem
+                          text="Delete"
+                          icon={<Trash {...menuIconProps} />}
+                          intent={Intent.DANGER}
+                          onClick={() => setDeleteFolder(folder)}
+                        />
+                      </Menu>
+                    }
+                  >
+                    {(ctxMenuProps: ContextMenuChildrenProps) => (
+                      <span
+                        className={cn(
+                          ctxMenuProps.className,
+                          ctxMenuProps.contentProps.isOpen && 'context-menu-open',
+                        )}
+                        style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
+                        title={folder.title}
+                        onContextMenu={ctxMenuProps.onContextMenu}
+                        ref={ctxMenuProps.ref}
+                      >
+                        {ctxMenuProps.popover}
+                        {folder.title || 'untitled'}
+                      </span>
+                    )}
+                  </ContextMenu>
+                </>
+              ),
+              isExpanded: folder.is_expanded,
+              isSelected: selected?.folder_id === folder.id,
+              childNodes: folder.feeds.filter(f => !hiddenFeedIds.has(f.id)).map(f => feed(f)),
+              secondaryLabel: secondaryLabel(folderStats.get(folder.id)),
+              nodeData: { folder_id: folder.id },
+            })),
         ]}
         onNodeExpand={setExpanded(true)}
         onNodeCollapse={setExpanded(false)}
