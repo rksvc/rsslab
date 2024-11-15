@@ -11,6 +11,7 @@ import {
 } from '@blueprintjs/core'
 import { Record, type SVGIconProps, Star } from '@blueprintjs/icons'
 import {
+  type CSSProperties,
   type Dispatch,
   type RefObject,
   type SetStateAction,
@@ -20,7 +21,7 @@ import {
   useState,
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
-import type { Feed, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
+import type { Feed, Filter, FolderWithFeeds, Item, ItemStatus, Items, Selected, Status } from './types.ts'
 import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils.ts'
 
 export default function ItemList({
@@ -41,7 +42,7 @@ export default function ItemList({
   foldersById,
   feedsById,
 }: {
-  filter: string
+  filter: Filter
   status?: Status
   setStatus: Dispatch<SetStateAction<Status | undefined>>
   selected: Selected
@@ -60,19 +61,24 @@ export default function ItemList({
 }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [lastUnread, setLastUnread] = useState<number>()
   const timerId = useRef<number>()
   const inputRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
-  const query = useCallback(() => {
-    const query: Record<string, string | boolean> = {}
-    if (selected) Object.assign(query, selected)
-    if (filter !== 'Feeds') query.status = filter.toLowerCase()
-    if (filter === 'Unread') query.oldest_first = true
-    const search = inputRef.current?.value
-    if (search) query.search = search
-    return query
-  }, [selected, filter])
+  const query = useCallback(
+    (status?: ItemStatus) => {
+      const query: Record<string, string | boolean> = {}
+      if (selected) Object.assign(query, selected)
+      if (status) query.status = status
+      else if (filter !== 'Feeds') query.status = filter.toLowerCase()
+      if (query.status === 'unread') query.oldest_first = true
+      const search = inputRef.current?.value
+      if (search) query.search = search
+      return query
+    },
+    [selected, filter],
+  )
 
   const sentryNodeRef = useRef<Element>()
   const [isIntersecting, setIsIntersecting] = useState(false)
@@ -84,15 +90,22 @@ export default function ItemList({
         if (entry.target === sentryNodeRef.current && entry.isIntersecting) setIsIntersecting(true)
     })
   }
-  if (!loading && isIntersecting && items?.has_more) {
+  const needInitReadItems = items && filter === 'Unread' && selected?.feed_id != null && lastUnread == null
+  if (!loading && isIntersecting && (items?.has_more || needInitReadItems)) {
     ;(async () => {
-      if (!items) return
       setLoading(true)
       try {
-        const { list, has_more } = await xfetch<Items>(
-          `api/items${param({ ...query(), after: items.list.at(-1)?.id })}`,
-        )
-        setItems({ list: [...items.list, ...list], has_more })
+        if (items.has_more) {
+          const status = lastUnread == null ? undefined : 'read'
+          const { list, has_more } = await xfetch<Items>(
+            `api/items${param({ ...query(status), after: items.list.at(-1)?.id })}`,
+          )
+          setItems({ list: [...items.list, ...list], has_more })
+        } else {
+          const { list, has_more } = await xfetch<Items>(`api/items${param(query('read'))}`)
+          setLastUnread(items.list.length)
+          setItems({ list: [...items.list, ...list], has_more })
+        }
       } finally {
         setLoading(false)
         setIsIntersecting(false)
@@ -102,6 +115,7 @@ export default function ItemList({
 
   const refresh = useCallback(async () => {
     setItems(await xfetch<Items>(`api/items${param(query())}`))
+    setLastUnread(undefined)
     setSelectedItem(undefined)
     setItemsOutdated(false)
     itemListRef.current?.scrollTo(0, 0)
@@ -110,7 +124,8 @@ export default function ItemList({
     refresh()
   }, [refresh])
 
-  const error = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
+  const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
+  const readItems = lastUnread == null ? null : items?.list.slice(lastUnread)
   return (
     <div style={panelStyle}>
       <div
@@ -133,6 +148,7 @@ export default function ItemList({
             timerId.current = setTimeout(async () => {
               timerId.current = undefined
               setItems(await xfetch<Items>(`api/items${param(query())}`))
+              setLastUnread(undefined)
               setItemsOutdated(false)
             }, 200)
           }}
@@ -194,7 +210,7 @@ export default function ItemList({
       </div>
       <Divider />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
-        {items?.list.map(item => (
+        {items?.list.slice(0, lastUnread).map(item => (
           <CardItem
             key={item.id}
             item={item}
@@ -206,7 +222,35 @@ export default function ItemList({
             feedsById={feedsById}
           />
         ))}
-        {(loading || items?.has_more) && (
+        {!!readItems?.length && (
+          <>
+            <div
+              style={{ display: 'flex', alignItems: 'center', columnGap: length(2), marginTop: length(1) }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                <Divider />
+              </div>
+              <span style={{ opacity: 0.9, fontSize: '0.9em' }}>read items</span>
+              <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                <Divider />
+              </div>
+            </div>
+            {readItems.map(item => (
+              <CardItem
+                key={item.id}
+                item={item}
+                setStatus={setStatus}
+                setItems={setItems}
+                selectedItem={selectedItem}
+                setSelectedItem={setSelectedItem}
+                contentRef={contentRef}
+                feedsById={feedsById}
+                style={{ opacity: 0.85 }}
+              />
+            ))}
+          </>
+        )}
+        {(loading || items?.has_more || needInitReadItems) && (
           <div
             style={{ marginTop: length(4), marginBottom: length(3) }}
             ref={node => {
@@ -222,7 +266,7 @@ export default function ItemList({
           </div>
         )}
       </CardList>
-      {error && (
+      {feedError && (
         <>
           <Divider />
           <div
@@ -232,7 +276,7 @@ export default function ItemList({
               color: 'var(--red3)',
             }}
           >
-            {error}
+            {feedError}
           </div>
         </>
       )}
@@ -248,6 +292,7 @@ function CardItem({
   setSelectedItem,
   contentRef,
   feedsById,
+  style,
 }: {
   item: Item
   setItems: Dispatch<SetStateAction<Items | undefined>>
@@ -256,6 +301,7 @@ function CardItem({
   setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
   feedsById: Map<number, Feed>
+  style?: CSSProperties
 }) {
   const prevStatus = usePrevious(item.status)
   const isSelected = item.id === selectedItem?.id
@@ -266,6 +312,7 @@ function CardItem({
   return (
     <Card
       selected={isSelected}
+      style={style}
       interactive
       onClick={async () => {
         if (isSelected) return
