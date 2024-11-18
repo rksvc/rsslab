@@ -27,7 +27,7 @@ export default function App() {
   const [status, setStatus] = useState<Status>()
   const [selected, setSelected] = useState<Selected>()
   const [settings, setSettings] = useState<Settings>()
-  const [refreshed, setRefreshed] = useState(false)
+  const [refreshed, setRefreshed] = useState<Record<never, never>>({})
 
   const [items, setItems] = useState<Items>()
   const [itemsOutdated, setItemsOutdated] = useState(false)
@@ -52,7 +52,7 @@ export default function App() {
     ])
     setFolders(folders)
     setFeeds(feeds)
-    setRefreshed(value => !value)
+    setRefreshed({})
     setSettings(settings)
   }
   const refreshStats = async () => {
@@ -64,7 +64,7 @@ export default function App() {
       last_refreshed,
       state: new Map(state.map(({ id, ...state }) => [id, state])),
     })
-    setRefreshed(value => !value)
+    setRefreshed({})
     setItemsOutdated(true)
     if (running) setTimeout(() => refreshStats(), 500)
   }

@@ -101,8 +101,8 @@ export default function FeedList({
   setSelected: Dispatch<SetStateAction<Selected>>
   settings?: Settings
   setSettings: Dispatch<SetStateAction<Settings | undefined>>
-  refreshed: boolean
-  setRefreshed: Dispatch<SetStateAction<boolean>>
+  refreshed: Record<never, never>
+  setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
 
   refreshFeeds: () => Promise<void>
   refreshStats: (loop?: boolean) => Promise<void>
@@ -304,7 +304,7 @@ export default function FeedList({
       body: JSON.stringify({ [attrName]: value ?? -1 }),
     })
     setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
-    if (attrName === 'folder_id') setRefreshed(value => !value)
+    if (attrName === 'folder_id') setRefreshed({})
   }
   const secondaryLabel = (state?: FeedState) =>
     filter === 'Unread' ? (
