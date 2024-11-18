@@ -5,7 +5,6 @@ import {
   Code,
   Collapse,
   ContextMenu,
-  type ContextMenuChildrenProps,
   Divider,
   FileInput,
   FormGroup,
@@ -47,7 +46,7 @@ import {
 } from 'react-feather'
 import { Dialog } from './Dialog.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
-import { cn, iconProps, length, menuIconProps, panelStyle, statusBarStyle, xfetch } from './utils.ts'
+import { iconProps, length, menuIconProps, panelStyle, statusBarStyle, xfetch } from './utils.ts'
 
 const textAreaProps = {
   style: { fontFamily: 'inherit' },
@@ -404,19 +403,13 @@ export default function FeedList({
               />
             </Menu>
           }
+          onContextMenu={() =>
+            setSelected(selected => (selected?.feed_id === feed.id ? selected : { feed_id: feed.id }))
+          }
         >
-          {(ctxMenuProps: ContextMenuChildrenProps) => (
-            <span
-              className={cn(ctxMenuProps.className, ctxMenuProps.contentProps.isOpen && 'context-menu-open')}
-              style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
-              title={feed.title}
-              onContextMenu={ctxMenuProps.onContextMenu}
-              ref={ctxMenuProps.ref}
-            >
-              {ctxMenuProps.popover}
-              {feed.title}
-            </span>
-          )}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={feed.title}>
+            {feed.title || 'untitled'}
+          </span>
         </ContextMenu>
       ),
     }) satisfies TreeNodeInfo<Selected>
@@ -629,22 +622,15 @@ export default function FeedList({
                         />
                       </Menu>
                     }
+                    onContextMenu={() =>
+                      setSelected(selected =>
+                        selected?.folder_id === folder.id ? selected : { folder_id: folder.id },
+                      )
+                    }
                   >
-                    {(ctxMenuProps: ContextMenuChildrenProps) => (
-                      <span
-                        className={cn(
-                          ctxMenuProps.className,
-                          ctxMenuProps.contentProps.isOpen && 'context-menu-open',
-                        )}
-                        style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
-                        title={folder.title}
-                        onContextMenu={ctxMenuProps.onContextMenu}
-                        ref={ctxMenuProps.ref}
-                      >
-                        {ctxMenuProps.popover}
-                        {folder.title || 'untitled'}
-                      </span>
-                    )}
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={folder.title}>
+                      {folder.title || 'untitled'}
+                    </span>
                   </ContextMenu>
                 </>
               ),

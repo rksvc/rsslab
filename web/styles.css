@@ -56,10 +56,6 @@ body {
 		cursor: pointer;
 	}
 
-	&:has(.context-menu-open) {
-		background-color: rgb(from var(--gray3) r g b / 30%);
-	}
-
 	* {
 		user-select: none;
 	}
