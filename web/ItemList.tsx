@@ -61,6 +61,7 @@ export default function ItemList({
 }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [itemsInited, setItemsInited] = useState(false)
   const [lastUnread, setLastUnread] = useState<number>()
   const timerId = useRef<number>()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -90,7 +91,14 @@ export default function ItemList({
         if (entry.target === sentryNodeRef.current && entry.isIntersecting) setIsIntersecting(true)
     })
   }
-  const needInitReadItems = items && filter === 'Unread' && selected?.feed_id != null && lastUnread == null
+  const prevQuery = usePrevious(query)
+  const needInitReadItems =
+    items &&
+    query === prevQuery &&
+    itemsInited &&
+    filter === 'Unread' &&
+    selected?.feed_id != null &&
+    lastUnread == null
   if (!loading && isIntersecting && (items?.has_more || needInitReadItems)) {
     ;(async () => {
       setLoading(true)
@@ -115,6 +123,7 @@ export default function ItemList({
 
   const refresh = useCallback(async () => {
     setItems(await xfetch<Items>(`api/items${param(query())}`))
+    setItemsInited(true)
     setLastUnread(undefined)
     setSelectedItem(undefined)
     setItemsOutdated(false)
@@ -122,6 +131,7 @@ export default function ItemList({
   }, [query, setItems, setSelectedItem, setItemsOutdated])
   useEffect(() => {
     refresh()
+    return () => setItemsInited(false)
   }, [refresh])
 
   const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
