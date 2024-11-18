@@ -727,7 +727,7 @@ export default function FeedList({
                   setTransType(scheme)
                 } catch {}
             }}
-            spellCheck={false}
+            spellCheck="false"
             {...textAreaProps}
           />
           <HTMLSelect
@@ -872,7 +872,7 @@ export default function FeedList({
         <TextArea
           defaultValue={changeLink?.feed_link}
           inputRef={feedLinkRef}
-          spellCheck={false}
+          spellCheck="false"
           {...textAreaProps}
         />
       </Dialog>
