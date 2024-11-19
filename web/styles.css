@@ -65,6 +65,14 @@ body {
 	display: inherit;
 }
 
+.bp5-menu-item {
+	align-items: center;
+}
+
+.bp5-menu-item-label {
+	display: flex;
+}
+
 .bp5-card-list.bp5-compact {
 	padding-top: 0.25rem;
 	padding-bottom: 0.5rem;
