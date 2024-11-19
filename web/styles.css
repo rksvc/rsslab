@@ -33,6 +33,10 @@ body {
 	}
 }
 
+.bp5-collapse {
+	transition: none;
+}
+
 .bp5-tree {
 	flex-grow: 1;
 	overflow: auto;

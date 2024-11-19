@@ -48,6 +48,8 @@ import { Dialog } from './Dialog.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
 import { iconProps, length, menuIconProps, panelStyle, statusBarStyle, xfetch } from './utils.ts'
 
+Collapse.defaultProps.transitionDuration = 0
+
 const textAreaProps = {
   style: { fontFamily: 'inherit' },
   autoResize: true,
