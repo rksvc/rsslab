@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
     "lint": "tsc && biome check",
-    "preview": "vite preview"
+    "preview": "rsbuild preview"
   },
   "dependencies": {
     "@blueprintjs/core": "^5.14.0",
@@ -17,10 +17,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@preact/preset-vite": "^2.9.1",
+    "@rsbuild/core": "^1.1.2",
+    "@rsbuild/plugin-preact": "^1.2.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "typescript": "^5.6.3"
   }
 }
