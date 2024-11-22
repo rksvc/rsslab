@@ -1,12 +1,12 @@
 import type { CSSProperties } from 'react'
+import type { Transformer } from './types.ts'
 
 export const iconProps = { size: 16 } as const
 export const menuIconProps = { size: 14 } as const
 export const panelStyle = {
   display: 'flex',
   flexDirection: 'column',
-  minHeight: '100vh',
-  maxHeight: '100vh',
+  height: '100%',
 } satisfies CSSProperties
 export const statusBarStyle = {
   display: 'flex',
@@ -42,6 +42,25 @@ export function fromNow(date: Date) {
             })
 
   return neg ? `-${repr}` : repr
+}
+
+export function compareTitle(a: { title: string }, b: { title: string }) {
+  const lhs = a.title.toLowerCase()
+  const rhs = b.title.toLowerCase()
+  return lhs === rhs ? 0 : lhs < rhs ? -1 : +1
+}
+
+export function parseFeedLink(link: string): [Transformer | undefined, string] {
+  const i = link.indexOf(':')
+  if (i !== -1) {
+    const scheme = link.slice(0, i)
+    switch (scheme) {
+      case 'html':
+      case 'json':
+        return [scheme, link.slice(i + 1)]
+    }
+  }
+  return [undefined, link]
 }
 
 export function param(query: Record<string, string | number | boolean | undefined>) {

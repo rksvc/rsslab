@@ -1,4 +1,4 @@
-import { Alert, Divider, FocusStyleManager, Pre } from '@blueprintjs/core'
+import { Alert, Card, Collapse, Divider, FocusStyleManager, Pre } from '@blueprintjs/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
@@ -19,8 +19,11 @@ import type {
 import { xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
+Collapse.defaultProps.transitionDuration = 0
 
 export default function App() {
+  const [darkTheme, setDarkTheme] = useState(false)
+
   const [filter, setFilter] = useState<Filter>('Unread')
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
@@ -95,6 +98,9 @@ export default function App() {
   )
 
   const props = {
+    darkTheme,
+    setDarkTheme,
+
     filter,
     setFilter,
     folders,
@@ -128,20 +134,29 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', fontSize: '1rem', lineHeight: '1.5rem' }}>
-      <div style={{ minWidth: '300px', maxWidth: '300px' }}>
-        <FeedList {...props} />
-      </div>
+    <Card
+      className={darkTheme ? 'bp5-dark' : undefined}
+      style={{
+        padding: 0,
+        width: '100vw',
+        display: 'flex',
+        fontSize: '1rem',
+        lineHeight: '1.5rem',
+        boxShadow: 'none',
+        borderRadius: 0,
+      }}
+    >
+      <FeedList {...props} style={{ minWidth: '300px', maxWidth: '300px' }} />
       <Divider />
-      <div style={{ minWidth: '300px', maxWidth: '300px' }}>
-        <ItemList {...props} />
-      </div>
+      <ItemList {...props} style={{ minWidth: '300px', maxWidth: '300px' }} />
       <Divider />
-      <div style={{ flexGrow: 1, minWidth: 0 }}>
-        {selectedItem?.content != null && (
-          <ItemShow {...props} selectedItem={{ ...selectedItem, content: selectedItem.content }} />
-        )}
-      </div>
+      {selectedItem?.content != null && (
+        <ItemShow
+          {...props}
+          style={{ flexGrow: 1, minWidth: '300px' }}
+          selectedItem={{ ...selectedItem, content: selectedItem.content }}
+        />
+      )}
       {alerts.map((alert, i) => (
         <Alert
           // biome-ignore lint/suspicious/noArrayIndexKey:
@@ -154,6 +169,6 @@ export default function App() {
           {alert.includes('\n') ? <Pre>{alert}</Pre> : <p>{alert}</p>}
         </Alert>
       ))}
-    </div>
+    </Card>
   )
 }

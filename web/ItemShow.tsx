@@ -1,10 +1,11 @@
-import { AnchorButton, Button, ButtonGroup, Classes, Colors, Divider, H2 } from '@blueprintjs/core'
-import type { Dispatch, RefObject, SetStateAction } from 'react'
+import { AnchorButton, Button, ButtonGroup, Classes, Divider, H2 } from '@blueprintjs/core'
+import type { CSSProperties, Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
 import type { Feed, Item, ItemStatus, Items, Status } from './types.ts'
 import { cn, iconProps, length, panelStyle, xfetch } from './utils.ts'
 
 export default function ItemShow({
+  style,
   setStatus,
   setItems,
   selectedItem,
@@ -12,6 +13,7 @@ export default function ItemShow({
   contentRef,
   feedsById,
 }: {
+  style?: CSSProperties
   setStatus: Dispatch<SetStateAction<Status | undefined>>
   setItems: Dispatch<SetStateAction<Items | undefined>>
   selectedItem: Item & { content: string }
@@ -49,38 +51,39 @@ export default function ItemShow({
   }
 
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', minHeight: length(10) }}>
-        <ButtonGroup style={{ margin: length(1) }} minimal>
-          <Button
-            icon={
-              <Star
-                {...iconProps}
-                fill={selectedItem.status === 'starred' ? Colors.DARK_GRAY1 : Colors.WHITE}
-              />
-            }
-            onClick={toggleStatus('starred')}
-            title="Mark Starred"
-          />
-          <Button
-            icon={
-              <Circle
-                {...iconProps}
-                fill={selectedItem.status === 'unread' ? Colors.DARK_GRAY1 : Colors.WHITE}
-              />
-            }
-            onClick={toggleStatus('unread')}
-            title="Mark Unread"
-          />
-          <AnchorButton
-            className={Classes.INTENT_PRIMARY}
-            icon={<ExternalLink {...iconProps} />}
-            href={selectedItem.link}
-            target="_blank"
-            title="Open Link"
-          />
-        </ButtonGroup>
-      </div>
+    <div style={{ ...style, ...panelStyle }}>
+      <ButtonGroup
+        style={{
+          display: 'flex',
+          minHeight: length(9.5),
+          padding: length(1),
+          gap: length(0.5),
+          alignItems: 'center',
+        }}
+        minimal
+      >
+        <Button
+          icon={
+            <Star {...iconProps} fill={selectedItem.status === 'starred' ? 'currentColor' : 'transparent'} />
+          }
+          onClick={toggleStatus('starred')}
+          title="Mark Starred"
+        />
+        <Button
+          icon={
+            <Circle {...iconProps} fill={selectedItem.status === 'unread' ? 'currentColor' : 'transparent'} />
+          }
+          onClick={toggleStatus('unread')}
+          title="Mark Unread"
+        />
+        <AnchorButton
+          className={Classes.INTENT_PRIMARY}
+          icon={<ExternalLink {...iconProps} />}
+          href={selectedItem.link}
+          target="_blank"
+          title="Open Link"
+        />
+      </ButtonGroup>
       <Divider />
       <div style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
         <H2 style={{ fontWeight: 700 }}>{selectedItem.title || 'untitled'}</H2>

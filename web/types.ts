@@ -71,3 +71,5 @@ export type Selected =
       { folder_id: number }
     >
   | undefined
+
+export type Transformer = 'html' | 'json'

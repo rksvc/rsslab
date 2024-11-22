@@ -1,14 +1,4 @@
-import {
-  Button,
-  Card,
-  CardList,
-  Classes,
-  Colors,
-  Divider,
-  InputGroup,
-  Spinner,
-  SpinnerSize,
-} from '@blueprintjs/core'
+import { Button, Card, CardList, Classes, Divider, InputGroup, Spinner, SpinnerSize } from '@blueprintjs/core'
 import { Record, type SVGIconProps, Star } from '@blueprintjs/icons'
 import {
   type CSSProperties,
@@ -25,6 +15,8 @@ import type { Feed, Filter, FolderWithFeeds, Item, ItemStatus, Items, Selected, 
 import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils.ts'
 
 export default function ItemList({
+  style,
+
   filter,
   status,
   setStatus,
@@ -42,6 +34,8 @@ export default function ItemList({
   foldersById,
   feedsById,
 }: {
+  style?: CSSProperties
+
   filter: Filter
   status?: Status
   setStatus: Dispatch<SetStateAction<Status | undefined>>
@@ -137,21 +131,23 @@ export default function ItemList({
   const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
   const readItems = lastUnread == null ? null : items?.list.slice(lastUnread)
   return (
-    <div style={panelStyle}>
+    <div style={{ ...style, ...panelStyle }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          minHeight: length(10),
+          minHeight: length(9.5),
+          gap: length(1),
           paddingLeft: length(1),
           paddingRight: length(1),
         }}
       >
         <InputGroup
           inputRef={inputRef}
-          leftIcon={<Search className={Classes.ICON} {...iconProps} />}
+          leftIcon={<Search style={{ pointerEvents: 'none' }} className={Classes.ICON} {...iconProps} />}
           type="search"
           value={search}
+          placeholder="Search..."
           onValueChange={value => {
             setSearch(value)
             clearTimeout(timerId.current)
@@ -165,12 +161,12 @@ export default function ItemList({
           fill
         />
         <Button
-          style={{
-            marginLeft: length(1),
-            color: filter === 'Starred' ? undefined : itemsOutdated ? Colors.GRAY1 : Colors.DARK_GRAY5,
-          }}
           icon={
-            !itemsOutdated || filter === 'Starred' ? <Check {...iconProps} /> : <RotateCw {...iconProps} />
+            !itemsOutdated || filter === 'Starred' ? (
+              <Check {...iconProps} />
+            ) : (
+              <RotateCw {...iconProps} strokeWidth={1.7} />
+            )
           }
           title={!itemsOutdated || filter === 'Starred' ? 'Mark All Read' : 'Refresh Outdated'}
           disabled={filter === 'Starred'}
