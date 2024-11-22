@@ -24,7 +24,7 @@ export default defineConfig({
     cleanDistPath: process.env.NODE_ENV === 'production',
     externals: ({ request }, callback) =>
       request === './iconLoader' ? callback(undefined, '{}', 'var') : callback(),
-    legalComments: 'inline',
+    legalComments: 'none',
   },
   performance: {
     chunkSplit: {
