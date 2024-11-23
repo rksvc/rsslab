@@ -27,23 +27,18 @@ body {
 	margin: 0;
 }
 
-#root .bp5-button {
-	min-height: 0;
-}
-
-:is(*, .bp5-popover) .bp5-button.bp5-intent-primary:not(a):not(.filter) {
-	background-color: var(--primary-bg);
-	box-shadow: none;
+.bp5-button.bp5-intent-primary:not(.filter, a) {
+	border-radius: var(--border-radius);
+	background-color: var(--primary-bg) !important;
+	box-shadow: none !important;
 	&:active {
-		background-color: color-mix(in srgb, var(--primary-bg), black 15%);
+		background-color: color-mix(in srgb, var(--primary-bg), black 15%) !important;
 	}
 }
 
-:is(*, .bp5-dark) .bp5-input {
-	&,
-	&:focus {
-		box-shadow: none;
-	}
+.bp5-input,
+.bp5-input:focus {
+	box-shadow: none !important;
 }
 
 .bp5-tooltip.bp5-intent-primary .bp5-popover-content {
@@ -62,92 +57,64 @@ body,
 
 /* top bar */
 
-.bp5-button {
-	border-radius: var(--border-radius);
-	min-width: auto;
-}
-#root {
-	.bp5-button:not([class*="bp5-intent-"]):not([disabled]) {
-		&:hover,
-		&:active,
-		&.bp5-active {
+.topbar {
+	display: flex;
+	align-items: center;
+	min-height: 2.3rem;
+	margin: 0 0.3rem;
+	.bp5-button {
+		min-height: 0;
+		min-width: auto;
+		border-radius: var(--border-radius);
+		&:not([disabled]):is(:hover, .bp5-active) {
+			background-color: var(--light-bg-hover) !important;
+		}
+		&.bp5-intent-primary.bp5-active {
+			color: var(--white) !important;
+			background-color: var(--primary-bg) !important;
+		}
+	}
+	/* item list search bar */
+	.bp5-input[type="search"] {
+		&::-webkit-search-cancel-button {
+			display: none;
+		}
+		&:is(:hover, :focus) {
 			background-color: var(--light-bg-hover);
 		}
 	}
-	.bp5-dark .bp5-button:not([class*="bp5-intent-"]):not([disabled]) {
-		&:hover,
-		&:active,
-		&.bp5-active {
-			background-color: var(--dark-bg-hover);
+	/* item show */
+	a.bp5-button {
+		color: var(--primary) !important;
+		&:not([disabled]):is(:hover, :active) {
+			background-color: rgb(from var(--primary-bg) r g b / 10%) !important;
 		}
 	}
 }
-
-/* feed list */
-.bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary {
-	&:hover,
-	&:active {
-		background-color: var(--light-bg-hover);
+.bp5-dark .topbar {
+	.bp5-button {
+		&:not([disabled]):not(.bp5-intent-primary.bp5-active):is(:hover, .bp5-active) {
+			background-color: var(--dark-bg-hover) !important;
+		}
+		&.bp5-intent-primary:not(.bp5-active) {
+			--brighter: color-mix(in srgb, var(--primary-bg), white 25%);
+			color: var(--brighter) !important;
+			border-color: var(--brighter) !important;
+		}
 	}
-	&.bp5-active {
-		color: var(--white);
-		background-color: var(--primary-bg);
+	/* item list search bar */
+	.bp5-input[type="search"] {
+		background-color: var(--dark-bg);
+		&:is(:hover, :focus) {
+			background-color: var(--dark-bg-hover);
+		}
 	}
-}
-.bp5-dark .bp5-button-group.bp5-outlined .bp5-button.bp5-intent-primary {
-	--dark-primary-border: color-mix(in srgb, var(--primary-bg), white 30%);
-	border-color: var(--dark-primary-border);
-	&,
-	&:hover,
-	&:active {
-		color: var(--dark-primary-border);
-	}
-	&:hover,
-	&:active {
-		background-color: var(--dark-bg-hover);
-	}
-	&.bp5-active {
-		color: var(--white);
-		background-color: var(--primary-bg);
-	}
-}
-
-/* item list search bar */
-.bp5-input[type="search"] {
-	&::-webkit-search-cancel-button {
-		display: none;
-	}
-	&:hover,
-	&:focus {
-		background-color: var(--light-bg-hover);
-	}
-}
-.bp5-dark .bp5-input[type="search"] {
-	background-color: var(--dark-bg);
-	&:hover,
-	&:focus {
-		background-color: var(--dark-bg-hover);
-	}
-}
-
-/* item show */
-.bp5-button-group.bp5-minimal .bp5-button.bp5-intent-primary {
-	color: var(--primary);
-	&:hover,
-	&:active {
-		color: var(--primary);
-		background-color: rgb(from var(--primary-bg) r g b / 10%);
-	}
-	svg:not([fill]) {
-		fill: transparent;
-	}
-}
-.bp5-dark .bp5-button-group.bp5-minimal .bp5-button.bp5-intent-primary {
-	color: var(--dark-primary);
-	&:hover,
-	&:active {
-		color: var(--dark-primary);
-		background-color: rgb(from var(--primary-bg) r g b / 15%);
+	/* item show */
+	a.bp5-button {
+		color: var(--dark-primary) !important;
+		&:not([disabled]):is(:hover, :active) {
+			background-color: rgb(from var(--primary-bg) r g b / 15%) !important;
+		}
 	}
 }
 

@@ -52,16 +52,7 @@ export default function ItemShow({
 
   return (
     <div style={{ ...style, ...panelStyle }}>
-      <ButtonGroup
-        style={{
-          display: 'flex',
-          minHeight: length(9.5),
-          padding: length(1),
-          gap: length(0.5),
-          alignItems: 'center',
-        }}
-        minimal
-      >
+      <ButtonGroup className="topbar" style={{ gap: length(0.5) }} minimal>
         <Button
           icon={
             <Star {...iconProps} fill={selectedItem.status === 'starred' ? 'currentColor' : 'transparent'} />

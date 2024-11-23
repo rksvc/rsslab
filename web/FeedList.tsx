@@ -337,27 +337,19 @@ export default function FeedList({
 
   return (
     <div style={{ ...style, ...panelStyle }}>
-      <div
-        style={{
-          display: 'flex',
-          minHeight: length(9.5),
-          margin: `0 ${length(1)}`,
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
+      <div className="topbar" style={{ justifyContent: 'space-between' }}>
         <Button
           icon={
             darkTheme ? (
               <Sun
-                {...menuIconProps}
+                {...iconProps}
                 fill={Colors.ORANGE5}
                 stroke={Colors.ORANGE4}
                 filter={`drop-shadow(0 0 1px ${Colors.ORANGE5})`}
               />
             ) : (
               <Moon
-                {...menuIconProps}
+                {...iconProps}
                 stroke={Colors.DARK_GRAY3}
                 strokeWidth={1.5}
                 filter={`drop-shadow(0 0 0.5px ${Colors.DARK_GRAY3})`}

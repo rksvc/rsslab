@@ -132,16 +132,7 @@ export default function ItemList({
   const readItems = lastUnread == null ? null : items?.list.slice(lastUnread)
   return (
     <div style={{ ...style, ...panelStyle }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          minHeight: length(9.5),
-          gap: length(1),
-          paddingLeft: length(1),
-          paddingRight: length(1),
-        }}
-      >
+      <div className="topbar" style={{ gap: length(1) }}>
         <InputGroup
           inputRef={inputRef}
           leftIcon={<Search style={{ pointerEvents: 'none' }} className={Classes.ICON} {...iconProps} />}
