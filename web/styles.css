@@ -182,15 +182,14 @@ body,
 }
 
 /* context menu */
+*:has(.bp5-popover-content),
+.bp5-popover-content,
+.bp5-popover-content * {
+	border-radius: var(--border-radius) !important;
+}
 .bp5-popover {
 	.bp5-popover-arrow {
 		display: inherit !important;
-	}
-
-	*:has(.bp5-popover-content),
-	.bp5-popover-content,
-	.bp5-popover-content * {
-		border-radius: var(--border-radius) !important;
 	}
 
 	.bp5-button {
