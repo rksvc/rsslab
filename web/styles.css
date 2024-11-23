@@ -112,7 +112,8 @@ body,
 	/* item show */
 	a.bp5-button {
 		color: var(--dark-primary) !important;
-		&:not([disabled]):is(:hover, :active) {
+		/* verbose selectors for higher priority */
+		&:not([disabled]):not(.bp5-intent-primary.bp5-active):is(:hover, :active) {
 			background-color: rgb(from var(--primary-bg) r g b / 15%) !important;
 		}
 	}
