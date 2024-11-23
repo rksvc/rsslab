@@ -266,7 +266,7 @@ export function NewFeedDialog({
           <TextArea
             placeholder="https://example.com/feed"
             value={autoNewFeedLink}
-            style={{ fontFamily: 'inherit', flexGrow: 1, resize: 'none' }}
+            style={{ flexGrow: 1 }}
             spellCheck="false"
             autoResize
             onChange={evt => {

@@ -23,6 +23,11 @@ body {
 	margin: 0;
 }
 
+textarea {
+	font-family: inherit;
+	resize: none !important;
+}
+
 .bp5-divider {
 	margin: 0;
 }

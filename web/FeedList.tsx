@@ -654,8 +654,6 @@ function TextEditor({
             disabled={loading}
             autoResize
             style={{
-              fontFamily: 'inherit',
-              resize: 'none',
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
               ...textAreaStyle,
