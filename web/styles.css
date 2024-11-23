@@ -256,24 +256,19 @@ body,
 }
 
 /* item list */
-
-:is(*, .bp5-dark) .bp5-card-list.bp5-compact {
-	width: 100%;
-	margin: 0;
-	padding: 0;
-	padding-top: 0.25rem;
-	padding-bottom: 0.5rem;
+.bp5-card-list {
+	padding: 0 !important;
+	padding-top: 0.25rem !important;
+	padding-bottom: 0.5rem !important;
 	& > .bp5-card {
 		width: 95%;
 		margin-top: 0.25rem;
 		margin-left: auto;
 		margin-right: auto;
-		padding: 0.25rem 0.5rem;
+		padding: 0.25rem 0.5rem !important;
+		border-bottom: 0 !important;
 		border-radius: var(--border-radius);
 		user-select: none;
-		&:not(:last-child) {
-			border-bottom: 0;
-		}
 		&.bp5-selected,
 		&.bp5-selected:hover {
 			color: white;
@@ -281,21 +276,20 @@ body,
 		}
 	}
 }
-
-.bp5-card-list > .bp5-card.bp5-interactive:not(.bp5-selected) {
+.bp5-card-list > .bp5-card:not(.bp5-selected) {
 	&:hover {
 		background-color: var(--light-bg-hover);
 	}
-	svg {
-		fill: var(--primary);
+	.bp5-icon {
+		color: var(--primary);
 	}
 }
-.bp5-dark .bp5-card-list > .bp5-card.bp5-interactive:not(.bp5-selected) {
+.bp5-dark .bp5-card-list > .bp5-card:not(.bp5-selected) {
 	&:hover {
 		background-color: var(--dark-bg-hover);
 	}
-	svg {
-		fill: var(--primary-bg);
+	.bp5-icon {
+		color: var(--primary-bg);
 	}
 }
 
