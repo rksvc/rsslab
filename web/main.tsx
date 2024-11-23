@@ -5,10 +5,8 @@ import App from './App.tsx'
 import './styles.css'
 
 const style = document.querySelector<HTMLHtmlElement>(':root')!.style
-style.setProperty('--white', Colors.WHITE)
 style.setProperty('--gray1', Colors.GRAY1)
 style.setProperty('--dark-gray3', Colors.DARK_GRAY3)
-style.setProperty('--dark-gray5', Colors.DARK_GRAY5)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <OverlaysProvider>
