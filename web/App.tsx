@@ -1,5 +1,14 @@
-import { Alert, Card, Collapse, Divider, FocusStyleManager, Pre } from '@blueprintjs/core'
+import {
+  Card,
+  Collapse,
+  Divider,
+  FocusStyleManager,
+  Intent,
+  OverlayToaster,
+  Position,
+} from '@blueprintjs/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertCircle } from 'react-feather'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
 import ItemShow from './ItemShow.tsx'
@@ -16,7 +25,7 @@ import type {
   State,
   Status,
 } from './types.ts'
-import { xfetch } from './utils.ts'
+import { iconProps, xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 Collapse.defaultProps.transitionDuration = 0
@@ -38,14 +47,22 @@ export default function App() {
 
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const [alerts, setAlerts] = useState<string[]>([])
   const caughtErrors = useRef(new Set<any>())
-  window.addEventListener('unhandledrejection', evt => {
-    if (!caughtErrors.current.has(evt.reason)) {
-      caughtErrors.current.add(evt.reason)
-      setAlerts(alerts => [...alerts, String(evt.reason)])
-    }
-  })
+  const toaster = useRef<OverlayToaster>(null)
+  useEffect(() => {
+    window.addEventListener('unhandledrejection', evt => {
+      if (!caughtErrors.current.has(evt.reason)) {
+        caughtErrors.current.add(evt.reason)
+        const message = evt.reason instanceof Error ? evt.reason.message : String(evt.reason)
+        toaster.current?.show({
+          icon: <AlertCircle {...iconProps} />,
+          intent: Intent.DANGER,
+          message: message.split('\n', 2)[0],
+          timeout: 0,
+        })
+      }
+    })
+  }, [])
 
   const refreshFeeds = async () => {
     const [folders, feeds, settings] = await Promise.all([
@@ -157,18 +174,7 @@ export default function App() {
           selectedItem={{ ...selectedItem, content: selectedItem.content }}
         />
       )}
-      {alerts.map((alert, i) => (
-        <Alert
-          // biome-ignore lint/suspicious/noArrayIndexKey:
-          key={i}
-          isOpen={!!alert}
-          canEscapeKeyCancel
-          onOpening={ref => ref.focus()}
-          onClose={() => setAlerts(alerts => alerts.with(i, ''))}
-        >
-          {alert.includes('\n') ? <Pre>{alert}</Pre> : <p>{alert}</p>}
-        </Alert>
-      ))}
+      <OverlayToaster canEscapeKeyClear={false} position={Position.BOTTOM_RIGHT} ref={toaster} />
     </Card>
   )
 }

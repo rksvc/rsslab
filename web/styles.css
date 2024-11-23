@@ -369,14 +369,37 @@ body,
 	}
 }
 
-/* alert */
-
-.bp5-alert-contents {
-	overflow: auto;
+/* toast */
+.bp5-toast.bp5-intent-danger {
+	margin-top: 15px;
+	border-radius: var(--border-radius);
+	align-items: center;
+	box-shadow: 0 1px 4px rgb(from var(--black) r g b / 20%), 0 2px 16px rgb(from var(--black) r g b / 20%);
+	.bp5-button:last-child {
+		min-height: auto;
+		.bp5-icon-cross {
+			color: rgb(from currentColor r g b / 87%) !important;
+		}
+		&:is(:hover, :active) {
+			.bp5-icon-cross {
+				color: rgb(from currentColor r g b / 96%) !important;
+			}
+			background-color: inherit !important;
+		}
+		svg {
+			margin-left: 10px;
+		}
+	}
+	& > svg {
+		margin-left: 10px;
+		color: rgb(from currentColor r g b / 90%) !important;
+	}
+	.bp5-toast-message {
+		padding: 9px;
+	}
 }
 
 /* content */
-
 .content {
 	h1 {
 		font-size: 1.8rem;

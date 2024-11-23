@@ -57,7 +57,7 @@ export default function ItemList({
   const [loading, setLoading] = useState(false)
   const [itemsInited, setItemsInited] = useState(false)
   const [lastUnread, setLastUnread] = useState<number>()
-  const timerId = useRef<number>()
+  const timerId = useRef<ReturnType<typeof setTimeout>>()
   const inputRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
