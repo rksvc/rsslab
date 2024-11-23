@@ -139,8 +139,16 @@ body,
 				}
 				.bp5-tree-node-caret {
 					transition: none;
-					svg {
-						padding-left: 2px;
+					&.bp5-tree-node-caret-closed {
+						svg {
+							padding-left: 1px;
+							padding-right: 1px;
+						}
+					}
+					&.bp5-tree-node-caret-open {
+						svg {
+							padding-left: 2px;
+						}
 					}
 				}
 				.bp5-tree-node-label span {
