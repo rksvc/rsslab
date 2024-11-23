@@ -321,6 +321,12 @@ body,
 				box-shadow: 0 0 0 1px var(--primary-bg) !important;
 			}
 		}
+		.bp5-input,
+		select,
+		.bp5-section,
+		.bp5-button {
+			border-radius: var(--border-radius);
+		}
 		.bp5-section-header {
 			min-height: 0;
 			padding: 0 10px;
