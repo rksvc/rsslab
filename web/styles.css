@@ -28,6 +28,10 @@ textarea {
 	resize: none !important;
 }
 
+:is(pre, code) {
+	font-family: SFMono-Regular, Menlo, Consolas, monospace !important;
+}
+
 .bp5-divider {
 	margin: 0;
 }
