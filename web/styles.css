@@ -302,77 +302,78 @@ body,
 }
 
 /* dialog */
+.bp5-dialog {
+	.bp5-dialog-header .bp5-button:is(:hover, :active) {
+		background-color: inherit;
+		.bp5-icon {
+			color: var(--dark-gray4);
+		}
+	}
 
-.bp5-dialog-header svg {
-	padding-left: 1px;
+	.bp5-dialog-body {
+		--shadow: 0 0 0 1px rgb(from currentColor r g b / 20%);
+		:is(.bp5-input, select) {
+			&,
+			&:hover {
+				transition: none;
+				box-shadow: var(--shadow) !important;
+			}
+			&:is(:active, :focus) {
+				box-shadow: 0 0 0 1px var(--primary-bg) !important;
+			}
+		}
+		.bp5-section-header {
+			min-height: 0;
+			padding: 0 10px;
+			&:hover {
+				background-color: inherit;
+			}
+		}
+		input:checked ~ .bp5-control-indicator {
+			background-color: var(--primary-bg);
+		}
+	}
+
+	.bp5-dialog-footer {
+		padding: 10px 15px;
+		.bp5-dialog-footer-main-section {
+			display: none;
+		}
+		.bp5-dialog-footer-actions {
+			flex-grow: 1;
+			.bp5-button {
+				margin-left: 0;
+			}
+		}
+	}
 }
-
 .bp5-dialog-body {
-	.bp5-input {
-		&,
-		&:hover {
-			transition: none;
-			box-shadow: 0 0 0 1px rgb(from currentColor r g b / 20%);
-		}
-		&:focus {
-			box-shadow: 0 0 0 1px var(--primary-bg);
-		}
+	select {
+		background-color: white !important;
 	}
-	.bp5-html-select select {
-		&,
+	.bp5-button {
+		color: var(--primary) !important;
+		border-color: var(--primary-bg) !important;
 		&:hover {
-			box-shadow: 0 0 0 1px rgb(from currentColor r g b / 20%);
-		}
-		&:active,
-		&:focus {
-			box-shadow: 0 0 0 1px var(--primary-bg);
-		}
-	}
-	.bp5-section.bp5-compact .bp5-section-header {
-		min-height: 35px;
-		padding: 0 10px;
-		&:hover {
-			background-color: inherit;
-		}
-	}
-	.bp5-control input:checked ~ .bp5-control-indicator {
-		background-color: var(--primary-bg);
-	}
-	.bp5-button.bp5-intent-primary {
-		--brighter: rgb(from var(--primary) r g b / 65%);
-		& {
-			color: var(--primary);
-			border-color: var(--brighter);
-		}
-		&:hover {
-			color: var(--primary);
-			border-color: var(--brighter);
-			background-color: rgb(from var(--primary) r g b / 15%);
+			background-color: rgb(from var(--primary-bg) r g b / 15%) !important;
 		}
 		&:active {
-			--darker: color-mix(in srgb, var(--primary), black 5%);
-			color: var(--darker);
-			border-color: var(--brighter);
-			background-color: rgb(from var(--primary) r g b / 25%);
+			background-color: rgb(from var(--primary-bg) r g b / 25%) !important;
 		}
 	}
 }
-.bp5-dialog-body .bp5-html-select select {
-	background-color: white;
-}
-.bp5-dark .bp5-dialog-body .bp5-html-select select {
-	background-color: var(--dark-bg);
-}
-
-:is(*, .bp5-dark) .bp5-dialog-footer {
-	padding: 10px 15px;
-	.bp5-dialog-footer-main-section {
-		display: none;
+.bp5-dark .bp5-dialog-body {
+	select {
+		background-color: var(--dark-bg) !important;
 	}
-	.bp5-dialog-footer-actions {
-		flex-grow: 1;
-		.bp5-button {
-			margin-left: 0;
+	.bp5-button {
+		color: var(--dark-primary) !important;
+		border-color: var(--dark-primary) !important;
+		&:hover {
+			background-color: rgb(from var(--dark-primary) r g b / 15%) !important;
+		}
+		&:active {
+			background-color: rgb(from var(--dark-primary) r g b / 25%) !important;
 		}
 	}
 }
