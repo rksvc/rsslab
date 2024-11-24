@@ -135,6 +135,12 @@ body,
 		padding-top: 0.25rem;
 		.bp5-tree-node {
 			margin-top: 0.25rem;
+			&.bp5-tree-node-expanded .bp5-collapse {
+				height: auto !important;
+			}
+			&:not(.bp5-tree-node-expanded) .bp5-collapse {
+				height: 0 !important;
+			}
 			.bp5-collapse {
 				transition: none;
 			}
