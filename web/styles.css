@@ -189,7 +189,7 @@ body,
 }
 .bp5-dark .bp5-tree-node:not(.bp5-tree-node-selected) {
 	.bp5-tree-node-caret {
-		color: #d1d1d1;
+		color: #d1d1d1 !important;
 	}
 	& > .bp5-tree-node-content:is(:hover, :active) {
 		background-color: var(--dark-bg-hover);
