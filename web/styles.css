@@ -28,6 +28,10 @@ textarea {
 	resize: none !important;
 }
 
+path.bp5-spinner-track {
+	stroke: none !important;
+}
+
 :is(pre, code) {
 	font-family: SFMono-Regular, Menlo, Consolas, monospace !important;
 }
@@ -42,6 +46,9 @@ textarea {
 	box-shadow: none !important;
 	&:active {
 		background-color: color-mix(in srgb, var(--primary-bg), black 15%) !important;
+	}
+	&:disabled {
+		background-color: rgb(from var(--primary-bg) r g b / 50%) !important;
 	}
 }
 
@@ -247,24 +254,23 @@ body,
 
 			&.bp5-intent-danger {
 				color: var(--danger);
-				&:hover {
-					&,
-					.bp5-menu-item-icon {
-						background-color: var(--danger) !important;
+				&:not(.bp5-disabled) {
+					&:hover {
+						&,
+						.bp5-menu-item-icon {
+							background-color: var(--danger) !important;
+						}
 					}
-				}
-				&.bp5-active {
-					&,
-					.bp5-menu-item-icon {
-						background-color: color-mix(in srgb, var(--danger), black 15%) !important;
+					&.bp5-active {
+						&,
+						.bp5-menu-item-icon {
+							background-color: color-mix(in srgb, var(--danger), black 15%) !important;
+						}
 					}
 				}
 				.bp5-spinner-head {
 					stroke: currentColor;
 					stroke-width: 13;
-				}
-				.bp5-spinner-track {
-					stroke: none;
 				}
 			}
 		}

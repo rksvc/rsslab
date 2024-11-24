@@ -768,9 +768,8 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
     <MenuItem
       text={`Delete${state === false ? ' (confirm)' : ''}`}
       className={cn(state != null && Classes.ACTIVE)}
-      icon={
-        state === true ? <Spinner {...menuIconProps} intent={Intent.DANGER} /> : <Trash {...menuIconProps} />
-      }
+      disabled={state}
+      icon={state ? <Spinner {...menuIconProps} intent={Intent.DANGER} /> : <Trash {...menuIconProps} />}
       intent={Intent.DANGER}
       shouldDismissPopover={false}
       onClick={async () => {
