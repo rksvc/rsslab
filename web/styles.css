@@ -230,7 +230,7 @@ body,
 			.bp5-submenu-icon {
 				margin-top: 0;
 			}
-			&:is(:hover, .bp5-active) {
+			&:is(:hover, .bp5-active):not(.bp5-disabled) {
 				&,
 				.bp5-menu-item-icon,
 				.bp5-submenu-icon {
