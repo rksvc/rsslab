@@ -9,7 +9,7 @@
 
 	--light-bg-hover: #f0f0f0;
 
-	--dark-bg: var(--dark-gray3);
+	--dark-bg: var(--dark-gray2);
 	--dark-bg-hover: rgb(from var(--gray1) r g b / 30%);
 }
 
@@ -288,7 +288,7 @@ body,
 		&.bp5-selected,
 		&.bp5-selected:hover {
 			color: white;
-			background-color: var(--primary-bg);
+			background-color: var(--primary-bg) !important;
 		}
 	}
 }
