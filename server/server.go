@@ -61,14 +61,14 @@ func New(db *storage.Storage) *Server {
 	}
 
 	go s.FindFavicons()
-	settings, err := s.db.GetSettings()
-	if err == nil {
-		go s.SetRefreshRate(settings.RefreshRate)
-		if settings.RefreshRate > 0 {
+	refreshRate, err := s.db.GetSettingInt(storage.REFRESH_RATE)
+	if err != nil {
+		log.Print(err)
+	} else if refreshRate != nil {
+		go s.SetRefreshRate(*refreshRate)
+		if *refreshRate > 0 {
 			go s.RefreshAllFeeds()
 		}
-	} else {
-		log.Print(err)
 	}
 
 	return s

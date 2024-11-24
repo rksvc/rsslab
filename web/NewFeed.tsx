@@ -32,7 +32,6 @@ export function NewFeedDialog({
   isOpen,
   setIsOpen,
   defaultFolderId,
-  darkTheme,
 
   folders,
   setFeeds,
@@ -42,7 +41,6 @@ export function NewFeedDialog({
   isOpen: boolean
   setIsOpen: Dispatch<SetStateAction<boolean>>
   defaultFolderId?: number | null
-  darkTheme: boolean
 
   folders?: Folder[]
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
@@ -254,7 +252,6 @@ export function NewFeedDialog({
   return (
     <Dialog
       title="New Feed"
-      className={darkTheme ? 'bp5-dark' : undefined}
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
       canEscapeKeyClose

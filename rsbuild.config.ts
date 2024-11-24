@@ -9,6 +9,9 @@ export default defineConfig({
   html: {
     title: 'RSSLab',
     favicon: './web/assets/wind.svg',
+    meta: {
+      'dark-theme': process.env.NODE_ENV === 'production' ? '%DARK_THEME%' : '',
+    },
   },
   source: {
     entry: {
@@ -48,6 +51,7 @@ export default defineConfig({
           if (!assets || !outputPath) return
           await Promise.all(
             assets.map(async ({ name }) => {
+              if (name === 'index.html') return
               const path = join(outputPath, name)
               const content = await readFile(path)
               const compressed = await promisify(zlib.gzip)(content, {

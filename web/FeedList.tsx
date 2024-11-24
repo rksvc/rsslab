@@ -66,8 +66,6 @@ import {
 
 export default function FeedList({
   style,
-  darkTheme,
-  setDarkTheme,
 
   filter,
   setFilter,
@@ -92,8 +90,6 @@ export default function FeedList({
   feedsById,
 }: {
   style?: CSSProperties
-  darkTheme: boolean
-  setDarkTheme: Dispatch<SetStateAction<boolean>>
 
   filter: Filter
   setFilter: Dispatch<SetStateAction<Filter>>
@@ -104,8 +100,8 @@ export default function FeedList({
   setStatus: Dispatch<React.SetStateAction<Status | undefined>>
   selected: Selected
   setSelected: Dispatch<SetStateAction<Selected>>
-  settings?: Settings
-  setSettings: Dispatch<SetStateAction<Settings | undefined>>
+  settings: Settings
+  setSettings: Dispatch<SetStateAction<Settings>>
   refreshed: Record<never, never>
   setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
 
@@ -340,7 +336,7 @@ export default function FeedList({
       <div className="topbar" style={{ justifyContent: 'space-between' }}>
         <Button
           icon={
-            darkTheme ? (
+            settings.dark_theme ? (
               <Sun
                 {...iconProps}
                 fill={Colors.ORANGE5}
@@ -356,7 +352,13 @@ export default function FeedList({
               />
             )
           }
-          onClick={() => setDarkTheme(darkTheme => !darkTheme)}
+          onClick={async () => {
+            await xfetch('api/settings', {
+              method: 'PUT',
+              body: JSON.stringify({ dark_theme: !settings.dark_theme }),
+            })
+            setSettings(settings => ({ ...settings, dark_theme: !settings.dark_theme }))
+          }}
           minimal
         />
         <ButtonGroup outlined>
@@ -596,7 +598,6 @@ export default function FeedList({
         isOpen={newFeedDialogOpen}
         setIsOpen={setNewFeedDialogOpen}
         defaultFolderId={selected && (selected.folder_id ?? feedsById.get(selected.feed_id)?.folder_id)}
-        darkTheme={darkTheme}
         folders={folders}
         setFeeds={setFeeds}
         setStatus={setStatus}

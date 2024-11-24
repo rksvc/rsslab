@@ -54,7 +54,8 @@ export type Items = {
 }
 
 export type Settings = {
-  refresh_rate: number
+  refresh_rate?: number
+  dark_theme?: boolean
 }
 
 export type Filter = 'Unread' | 'Feeds' | 'Starred'

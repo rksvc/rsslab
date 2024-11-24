@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "rsbuild dev",
     "build": "rsbuild build",
-    "lint": "tsc && biome check",
-    "preview": "rsbuild preview"
+    "lint": "tsc && biome check"
   },
   "dependencies": {
     "@blueprintjs/core": "^5.15.0",

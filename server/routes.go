@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"compress/gzip"
 	"embed"
 	"encoding/json"
@@ -92,18 +93,31 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if p == "" {
 		p = "index.html"
 	}
-	f, err := assets.Open(path.Join("dist", p+".gz"))
-	if err == nil {
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
-		_, err = io.Copy(w, f)
-		if err != nil {
+	if p == "index.html" {
+		dark, err := s.db.GetSettingInt(storage.DARK_THEME)
+		if err == nil {
+			var new []byte
+			if dark != nil && *dark != 0 {
+				new = []byte{'1'}
+			}
+			b, _ := assets.ReadFile(path.Join("dist", p))
+			w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
+			w.Write(bytes.Replace(b, []byte("%DARK_THEME%"), new, 1))
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(utils.StringToBytes(err.Error()))
+		}
+	} else {
+		f, err := assets.Open(path.Join("dist", p+".gz"))
+		if err == nil {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
+			io.Copy(w, f)
+		} else if errors.Is(err, fs.ErrNotExist) {
+			http.NotFound(w, r)
+		} else {
 			log.Print(err)
 		}
-	} else if errors.Is(err, fs.ErrNotExist) {
-		http.NotFound(w, r)
-	} else {
-		log.Print(err)
 	}
 }
 
@@ -360,15 +374,17 @@ func (s *Server) handleSettings(c context) error {
 }
 
 func (s *Server) handleSettingsUpdate(c context) error {
-	var editor storage.SettingsEditor
-	if err := c.ParseBody(&editor); err != nil {
+	var settings map[string]any
+	if err := c.ParseBody(&settings); err != nil {
 		return err
 	}
-	if editor.RefreshRate != nil {
-		if err := s.db.UpdateSettings(editor); err != nil {
+	for key, val := range settings {
+		if err := s.db.UpdateSetting(key, val); err != nil {
 			return err
 		}
-		go s.SetRefreshRate(*editor.RefreshRate)
+		if key == storage.REFRESH_RATE {
+			go s.SetRefreshRate(int(val.(float64)))
+		}
 	}
 	return nil
 }

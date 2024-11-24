@@ -29,16 +29,15 @@ import { iconProps, xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 Collapse.defaultProps.transitionDuration = 0
+const darkTheme = (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
 
 export default function App() {
-  const [darkTheme, setDarkTheme] = useState(false)
-
   const [filter, setFilter] = useState<Filter>('Unread')
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
   const [status, setStatus] = useState<Status>()
   const [selected, setSelected] = useState<Selected>()
-  const [settings, setSettings] = useState<Settings>()
+  const [settings, setSettings] = useState<Settings>({ dark_theme: darkTheme })
   const [refreshed, setRefreshed] = useState<Record<never, never>>({})
 
   const [items, setItems] = useState<Items>()
@@ -96,6 +95,10 @@ export default function App() {
       setItemsOutdated(false)
     })()
   }, [])
+  useEffect(() => {
+    if (settings.dark_theme) document.body.classList.add('bp5-dark')
+    else document.body.classList.remove('bp5-dark')
+  }, [settings])
 
   const [foldersById, foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
     const foldersById = new Map<number, FolderWithFeeds>()
@@ -115,9 +118,6 @@ export default function App() {
   )
 
   const props = {
-    darkTheme,
-    setDarkTheme,
-
     filter,
     setFilter,
     folders,
@@ -152,7 +152,6 @@ export default function App() {
 
   return (
     <Card
-      className={darkTheme ? 'bp5-dark' : undefined}
       style={{
         padding: 0,
         width: '100vw',

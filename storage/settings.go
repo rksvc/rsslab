@@ -5,36 +5,51 @@ import (
 	"rsslab/utils"
 )
 
-type Settings struct {
-	RefreshRate int `json:"refresh_rate"`
-}
+const (
+	REFRESH_RATE = "refresh_rate"
+	DARK_THEME   = "dark_theme"
+)
 
-type SettingsEditor struct {
-	RefreshRate *int `json:"refresh_rate"`
-}
-
-func (s *Storage) GetSettings() (settings Settings, err error) {
-	err = s.db.QueryRow(`
-		select val from settings where key = 'refresh_rate'
-	`).Scan(&settings.RefreshRate)
+func (s *Storage) GetSettings() (map[string]any, error) {
+	rows, err := s.db.Query(`select key, val from settings`)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			err = nil
-		} else {
-			err = utils.NewError(err)
+		return nil, utils.NewError(err)
+	}
+	result := make(map[string]any)
+	for rows.Next() {
+		var key string
+		var val any
+		err = rows.Scan(
+			&key,
+			&val,
+		)
+		if err != nil {
+			return nil, utils.NewError(err)
 		}
+		result[key] = val
+	}
+	if err = rows.Err(); err != nil {
+		return nil, utils.NewError(err)
+	}
+	return result, nil
+}
+
+func (s *Storage) GetSettingInt(key string) (val *int, err error) {
+	err = s.db.QueryRow(`select val from settings where key = ?`, key).Scan(&val)
+	if err == sql.ErrNoRows {
+		err = nil
+	} else if err != nil {
+		err = utils.NewError(err)
 	}
 	return
 }
 
-func (s *Storage) UpdateSettings(settings SettingsEditor) error {
-	if settings.RefreshRate != nil {
-		_, err := s.db.Exec(`
-			insert or replace into settings (key, val) values ('refresh_rate', ?)
-		`, *settings.RefreshRate)
-		if err != nil {
-			return utils.NewError(err)
-		}
+func (s *Storage) UpdateSetting(key string, val any) error {
+	_, err := s.db.Exec(`
+		insert or replace into settings (key, val) values (?, ?)
+	`, key, val)
+	if err != nil {
+		return utils.NewError(err)
 	}
 	return nil
 }
