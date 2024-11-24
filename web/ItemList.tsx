@@ -270,7 +270,7 @@ export default function ItemList({
             style={{
               padding: length(3),
               overflowWrap: 'break-word',
-              color: 'var(--red3)',
+              color: 'var(--danger)',
             }}
           >
             {feedError}
