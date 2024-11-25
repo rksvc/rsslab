@@ -408,7 +408,7 @@ export default function FeedList({
               <Tooltip
                 content={
                   status?.last_refreshed ? (
-                    <small>Last Refreshed: {fromNow(new Date(status.last_refreshed))}</small>
+                    <small>Last Refreshed: {fromNow(new Date(status.last_refreshed), true)}</small>
                   ) : undefined
                 }
                 intent={Intent.PRIMARY}

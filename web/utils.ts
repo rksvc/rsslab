@@ -23,18 +23,19 @@ export function length(n: number) {
   return `${n * 0.25}rem`
 }
 
-export function fromNow(date: Date) {
+export function fromNow(date: Date, withSuffix = false) {
   let secs = (new Date().getTime() - date.getTime()) / 1000
   const neg = secs < 0
 
   secs = Math.abs(secs)
+  const suffix = withSuffix ? ' ago' : ''
   const repr =
     secs < 45 * 60
-      ? `${Math.round(secs / 60)}m`
+      ? `${Math.round(secs / 60)}m${suffix}`
       : secs < 24 * 60 * 60
-        ? `${Math.round(secs / 3600)}h`
+        ? `${Math.round(secs / 3600)}h${suffix}`
         : secs < 7 * 24 * 60 * 60
-          ? `${Math.round(secs / 86400)}d`
+          ? `${Math.round(secs / 86400)}d${suffix}`
           : date.toLocaleDateString(undefined, {
               year: 'numeric',
               month: 'long',
