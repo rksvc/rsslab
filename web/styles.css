@@ -342,6 +342,9 @@ body,
 				box-shadow: 0 0 0 1px var(--primary-bg) !important;
 			}
 		}
+		.bp5-label {
+			user-select: none;
+		}
 		.bp5-input,
 		select,
 		.bp5-section,
@@ -349,14 +352,9 @@ body,
 			border-radius: var(--border-radius);
 		}
 		.bp5-section-header {
+			user-select: none;
 			min-height: 0;
 			padding: 0 10px;
-			&:hover {
-				background-color: inherit;
-			}
-		}
-		input:checked ~ .bp5-control-indicator {
-			background-color: var(--primary-bg);
 		}
 	}
 
