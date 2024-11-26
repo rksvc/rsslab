@@ -150,7 +150,7 @@ func sanitizeAttrs(baseURL string, token html.Token) (string, bool) {
 	case atom.Iframe:
 		b.WriteString(` sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"`)
 	case atom.Img:
-		b.WriteString(` loading="lazy"`)
+		b.WriteString(` loading="lazy" referrerpolicy="no-referrer"`)
 	}
 
 	return b.String(), true
