@@ -41,7 +41,6 @@ path.bp5-spinner-track {
 }
 
 .bp5-button.bp5-intent-primary:not(.filter, a) {
-	border-radius: var(--border-radius);
 	background-color: var(--primary-bg) !important;
 	box-shadow: none !important;
 	&:active {
@@ -49,6 +48,27 @@ path.bp5-spinner-track {
 	}
 	&:disabled {
 		background-color: rgb(from var(--primary-bg) r g b / 50%) !important;
+	}
+}
+
+a.bp5-button {
+	color: var(--primary) !important;
+	border-color: rgb(from var(--primary-bg) r g b / 95%) !important;
+	&:hover {
+		background-color: rgb(from var(--primary-bg) r g b / 10%) !important;
+	}
+	&:active {
+		background-color: rgb(from var(--primary-bg) r g b / 15%) !important;
+	}
+}
+.bp5-dark a.bp5-button {
+	color: var(--dark-primary) !important;
+	border-color: rgb(from var(--dark-primary) r g b / 95%) !important;
+	&:hover {
+		background-color: rgb(from var(--dark-primary) r g b / 10%) !important;
+	}
+	&:active {
+		background-color: rgb(from var(--dark-primary) r g b / 15%) !important;
 	}
 }
 
@@ -80,10 +100,15 @@ body,
 		min-height: 0;
 		min-width: auto;
 		border-radius: var(--border-radius);
-		&:not([disabled]):is(:hover, .bp5-active) {
+		&:not(:disabled):is(:hover, .bp5-active) {
+			background-color: var(--light-bg-hover);
+		}
+	}
+	.bp5-button.filter {
+		&:hover {
 			background-color: var(--light-bg-hover) !important;
 		}
-		&.bp5-intent-primary.bp5-active {
+		&.bp5-active {
 			color: white !important;
 			background-color: var(--primary-bg) !important;
 		}
@@ -97,23 +122,16 @@ body,
 			background-color: var(--light-bg-hover);
 		}
 	}
-	/* item show */
-	a.bp5-button {
-		color: var(--primary) !important;
-		&:not([disabled]):is(:hover, :active) {
-			background-color: rgb(from var(--primary-bg) r g b / 10%) !important;
-		}
-	}
 }
 .bp5-dark .topbar {
 	.bp5-button {
-		&:not([disabled]):not(.bp5-intent-primary.bp5-active):is(:hover, .bp5-active) {
+		&:not(:disabled):not(.bp5-intent-primary.bp5-active, a):is(:hover, .bp5-active) {
 			background-color: var(--dark-bg-hover) !important;
 		}
-		&.bp5-intent-primary:not(.bp5-active) {
+		&.bp5-intent-primary.filter:not(.bp5-active) {
 			--brighter: color-mix(in srgb, var(--primary-bg), white 25%);
-			color: var(--brighter) !important;
-			border-color: var(--brighter) !important;
+			color: var(--brighter);
+			border-color: var(--brighter);
 		}
 	}
 	/* item list search bar */
@@ -121,14 +139,6 @@ body,
 		background-color: var(--dark-bg);
 		&:is(:hover, :focus) {
 			background-color: var(--dark-bg-hover);
-		}
-	}
-	/* item show */
-	a.bp5-button {
-		color: var(--dark-primary) !important;
-		/* verbose selectors for higher priority */
-		&:not([disabled]):not(.bp5-intent-primary.bp5-active):is(:hover, :active) {
-			background-color: rgb(from var(--primary-bg) r g b / 15%) !important;
 		}
 	}
 }
@@ -366,46 +376,17 @@ body,
 		.bp5-dialog-footer-actions {
 			flex-grow: 1;
 			.bp5-button {
+				border-radius: var(--border-radius);
 				margin-left: 0;
 			}
 		}
 	}
 }
-.bp5-dialog-body {
-	select {
-		background-color: white !important;
-	}
-	.bp5-button {
-		color: var(--primary) !important;
-		border-color: var(--primary-bg) !important;
-		&:hover {
-			background-color: rgb(from var(--primary-bg) r g b / 15%) !important;
-		}
-		&:active {
-			background-color: rgb(from var(--primary-bg) r g b / 25%) !important;
-		}
-	}
+.bp5-dialog-body select {
+	background-color: white !important;
 }
-.bp5-dark .bp5-dialog-body {
-	select {
-		background-color: var(--dark-bg) !important;
-	}
-	.bp5-button {
-		color: var(--dark-primary) !important;
-		border-color: var(--dark-primary) !important;
-		&:hover {
-			background-color: rgb(from var(--dark-primary) r g b / 15%) !important;
-		}
-		&:active {
-			background-color: rgb(from var(--dark-primary) r g b / 25%) !important;
-		}
-	}
-	.bp5-section {
-		&,
-		&:has(.bp5-section-header:hover) {
-			box-shadow: 0 0 0 1px rgb(from var(--light-gray5) r g b / 20%);
-		}
-	}
+.bp5-dark .bp5-dialog-body select {
+	background-color: var(--dark-bg) !important;
 }
 
 /* toast */
