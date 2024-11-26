@@ -1,12 +1,4 @@
-import {
-  Card,
-  Collapse,
-  Divider,
-  FocusStyleManager,
-  Intent,
-  OverlayToaster,
-  Position,
-} from '@blueprintjs/core'
+import { Card, Divider, FocusStyleManager, Intent, OverlayToaster, Position } from '@blueprintjs/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'react-feather'
 import FeedList from './FeedList.tsx'
@@ -28,7 +20,6 @@ import type {
 import { iconProps, xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
-Collapse.defaultProps.transitionDuration = 0
 const darkTheme = (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
 
 export default function App() {

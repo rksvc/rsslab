@@ -396,7 +396,6 @@ function TransformerSection({
           }
         },
         keepChildrenMounted: true,
-        transitionDuration: 200,
       }}
       collapsible
       compact
