@@ -49,7 +49,7 @@ import {
 } from 'react-feather'
 import { NewFeedDialog } from './NewFeed.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
-import { cn, compareTitle, fromNow, length, parseFeedLink, xfetch } from './utils.ts'
+import { compareTitle, fromNow, length, parseFeedLink, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -726,7 +726,7 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
   return (
     <MenuItem
       text={`Delete${state === false ? ' (confirm)' : ''}`}
-      className={cn(state != null && Classes.ACTIVE)}
+      active={state != null}
       disabled={state}
       icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash />}
       intent={Intent.DANGER}

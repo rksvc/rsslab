@@ -63,13 +63,7 @@ export default function ItemShow({
           onClick={toggleStatus('unread')}
           title="Mark Unread"
         />
-        <AnchorButton
-          className={Classes.INTENT_PRIMARY}
-          icon={<ExternalLink />}
-          href={selectedItem.link}
-          target="_blank"
-          title="Open Link"
-        />
+        <AnchorButton icon={<ExternalLink />} href={selectedItem.link} target="_blank" title="Open Link" />
       </ButtonGroup>
       <Divider />
       <div style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
