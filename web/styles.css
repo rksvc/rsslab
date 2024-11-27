@@ -86,8 +86,13 @@ a.bp5-button {
 	box-shadow: none !important;
 }
 
-.bp5-tooltip.bp5-intent-primary .bp5-popover-content {
-	background-color: var(--primary-bg);
+.bp5-tooltip.bp5-intent-primary {
+	.bp5-popover-content {
+		background-color: var(--primary-bg);
+	}
+	.bp5-popover-arrow-fill {
+		fill: var(--primary-bg);
+	}
 }
 
 /* container */
