@@ -1,5 +1,4 @@
 import { Button, Card, CardList, Classes, Divider, InputGroup, Spinner, SpinnerSize } from '@blueprintjs/core'
-import { Record, Star } from '@blueprintjs/icons'
 import {
   type CSSProperties,
   type Dispatch,
@@ -10,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Check, RotateCw, Search } from 'react-feather'
+import { Check, Circle, RotateCw, Search, Star } from 'react-feather'
 import type { Feed, Filter, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
 import { fromNow, length, param, xfetch } from './utils.ts'
 
@@ -332,10 +331,16 @@ function CardItem({
           <span
             style={{
               transitionDuration: '150ms',
-              ...(item.status === 'read' ? { width: 0 } : { width: '10px', marginRight: length(1) }),
+              ...(item.status === 'read'
+                ? { width: 0 }
+                : { width: '10px', marginRight: length(1), flexShrink: 0 }),
             }}
           >
-            {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? <Record /> : <Star />}
+            {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? (
+              <Circle style={{ transform: 'scale(0.8)' }} />
+            ) : (
+              <Star />
+            )}
           </span>
           <small
             style={{
