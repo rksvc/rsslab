@@ -1,5 +1,5 @@
 import { Button, Card, CardList, Classes, Divider, InputGroup, Spinner, SpinnerSize } from '@blueprintjs/core'
-import { Record, type SVGIconProps, Star } from '@blueprintjs/icons'
+import { Record, Star } from '@blueprintjs/icons'
 import {
   type CSSProperties,
   type Dispatch,
@@ -11,64 +11,62 @@ import {
   useState,
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
-import type { Feed, Filter, FolderWithFeeds, Item, ItemStatus, Items, Selected, Status } from './types.ts'
-import { fromNow, iconProps, length, panelStyle, param, xfetch } from './utils.ts'
+import type { Feed, Filter, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
+import { fromNow, iconProps, length, param, xfetch } from './utils.ts'
 
 export default function ItemList({
   style,
 
-  filter,
-  status,
-  setStatus,
-  selected,
-
   items,
   setItems,
-  itemsOutdated,
-  setItemsOutdated,
+  status,
+  setStatus,
   selectedItem,
   setSelectedItem,
 
+  filter,
+  selected,
+  itemsOutdated,
+  setItemsOutdated,
   contentRef,
 
   foldersById,
   feedsById,
 }: {
-  style?: CSSProperties
-
-  filter: Filter
-  status?: Status
-  setStatus: Dispatch<SetStateAction<Status | undefined>>
-  selected: Selected
+  style: CSSProperties
 
   items?: Items
   setItems: Dispatch<SetStateAction<Items | undefined>>
-  itemsOutdated: boolean
-  setItemsOutdated: Dispatch<SetStateAction<boolean>>
+  status?: Status
+  setStatus: Dispatch<SetStateAction<Status | undefined>>
   selectedItem?: Item
   setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
 
+  filter: Filter
+  selected: Selected
+  itemsOutdated: boolean
+  setItemsOutdated: Dispatch<SetStateAction<boolean>>
   contentRef: RefObject<HTMLDivElement>
 
-  foldersById: Map<number, FolderWithFeeds>
-  feedsById: Map<number, Feed>
+  foldersById?: Map<number, FolderWithFeeds>
+  feedsById?: Map<number, Feed>
 }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [itemsInited, setItemsInited] = useState(false)
   const [lastUnread, setLastUnread] = useState<number>()
   const timerId = useRef<ReturnType<typeof setTimeout>>()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
   const query = useCallback(
-    (status?: ItemStatus) => {
+    (status?: Item['status']) => {
       const query: Record<string, string | boolean> = {}
       if (selected) Object.assign(query, selected)
       if (status) query.status = status
       else if (filter !== 'Feeds') query.status = filter.toLowerCase()
       if (query.status === 'unread') query.oldest_first = true
-      const search = inputRef.current?.value
+      const search = searchRef.current?.value
       if (search) query.search = search
       return query
     },
@@ -131,10 +129,10 @@ export default function ItemList({
   const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
   const readItems = lastUnread == null ? null : items?.list.slice(lastUnread)
   return (
-    <div style={{ ...style, ...panelStyle }}>
+    <div style={style}>
       <div className="topbar" style={{ gap: length(1) }}>
         <InputGroup
-          inputRef={inputRef}
+          inputRef={searchRef}
           leftIcon={<Search style={{ pointerEvents: 'none' }} className={Classes.ICON} {...iconProps} />}
           type="search"
           value={search}
@@ -152,15 +150,9 @@ export default function ItemList({
           fill
         />
         <Button
-          icon={
-            !itemsOutdated || filter === 'Starred' ? (
-              <Check {...iconProps} />
-            ) : (
-              <RotateCw {...iconProps} strokeWidth={1.7} />
-            )
-          }
-          title={!itemsOutdated || filter === 'Starred' ? 'Mark All Read' : 'Refresh Outdated'}
-          disabled={filter === 'Starred'}
+          icon={itemsOutdated ? <RotateCw {...iconProps} strokeWidth={1.7} /> : <Check {...iconProps} />}
+          title={itemsOutdated ? 'Refresh Outdated' : 'Mark All Read'}
+          disabled={filter === 'Starred' && !itemsOutdated}
           minimal
           onClick={async () => {
             if (itemsOutdated) return await refresh()
@@ -182,7 +174,7 @@ export default function ItemList({
               : selected.feed_id != null
                 ? (id: number) => id === selected.feed_id
                 : (() => {
-                    const feeds = new Set(foldersById.get(selected.folder_id)?.feeds.map(feed => feed.id))
+                    const feeds = new Set(foldersById?.get(selected.folder_id)?.feeds.map(feed => feed.id))
                     return (id: number) => feeds.has(id)
                   })()
             setStatus(
@@ -211,8 +203,8 @@ export default function ItemList({
           <CardItem
             key={item.id}
             item={item}
-            setStatus={setStatus}
             setItems={setItems}
+            setStatus={setStatus}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
             contentRef={contentRef}
@@ -236,8 +228,8 @@ export default function ItemList({
               <CardItem
                 key={item.id}
                 item={item}
-                setStatus={setStatus}
                 setItems={setItems}
+                setStatus={setStatus}
                 selectedItem={selectedItem}
                 setSelectedItem={setSelectedItem}
                 contentRef={contentRef}
@@ -297,15 +289,11 @@ function CardItem({
   selectedItem?: Item
   setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
-  feedsById: Map<number, Feed>
+  feedsById?: Map<number, Feed>
   style?: CSSProperties
 }) {
   const prevStatus = usePrevious(item.status)
   const isSelected = item.id === selectedItem?.id
-  const iconProps = {
-    style: { display: 'flex', width: '100%' },
-    className: isSelected ? undefined : Classes.INTENT_PRIMARY,
-  } satisfies SVGIconProps
   return (
     <Card
       selected={isSelected}
@@ -346,11 +334,7 @@ function CardItem({
               ...(item.status === 'read' ? { width: 0 } : { width: '10px', marginRight: length(1) }),
             }}
           >
-            {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? (
-              <Record {...iconProps} />
-            ) : (
-              <Star {...iconProps} />
-            )}
+            {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? <Record /> : <Star />}
           </span>
           <small
             style={{
@@ -360,11 +344,11 @@ function CardItem({
               whiteSpace: 'nowrap',
             }}
           >
-            {feedsById.get(item.feed_id)?.title}
+            {feedsById?.get(item.feed_id)?.title}
           </small>
           <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
             <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
-              {fromNow(new Date(item.date))}
+              {fromNow(new Date(item.date), false)}
             </time>
           </small>
         </div>

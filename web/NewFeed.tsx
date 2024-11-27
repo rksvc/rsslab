@@ -23,7 +23,7 @@ import {
   useState,
 } from 'react'
 import { ExternalLink } from 'react-feather'
-import type { Feed, Folder, Selected, Status, Transformer } from './types.ts'
+import type { Feed, FolderWithFeeds, Selected, Status, Transformer } from './types.ts'
 import { compareTitle, iconProps, parseFeedLink, xfetch } from './utils.ts'
 
 type Param = {
@@ -39,20 +39,18 @@ export function NewFeedDialog({
   isOpen,
   setIsOpen,
   defaultFolderId,
-
-  folders,
   setFeeds,
   setStatus,
   setSelected,
+  foldersWithFeeds,
 }: {
   isOpen: boolean
   setIsOpen: Dispatch<SetStateAction<boolean>>
   defaultFolderId?: number | null
-
-  folders?: Folder[]
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   setStatus: Dispatch<React.SetStateAction<Status | undefined>>
   setSelected: Dispatch<SetStateAction<Selected>>
+  foldersWithFeeds?: FolderWithFeeds[]
 }) {
   const [loading, setLoading] = useState(false)
   const [feedLink, setFeedLink] = useState('')
@@ -282,9 +280,8 @@ export function NewFeedDialog({
               const [scheme, link] = parseFeedLink(feedLink)
               if (scheme)
                 try {
-                  const paramList = scheme === 'html' ? transHtmlParams : transJsonParams
                   const params: Record<string, any> = JSON.parse(link)
-                  for (const { key, setValue } of paramList) {
+                  for (const { key, setValue } of scheme === 'html' ? transHtmlParams : transJsonParams) {
                     const value = params[key] || ''
                     setValue(typeof value === 'string' ? value : JSON.stringify(value))
                   }
@@ -305,7 +302,7 @@ export function NewFeedDialog({
             iconName="caret-down"
             options={[
               { value: '', label: '--' },
-              ...(folders ?? []).map(({ id, title }) => ({
+              ...(foldersWithFeeds ?? []).map(({ id, title }) => ({
                 value: id,
                 label: title,
               })),

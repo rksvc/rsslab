@@ -14,27 +14,25 @@ import type {
   Items,
   Selected,
   Settings,
-  State,
   Status,
 } from './types.ts'
-import { iconProps, xfetch } from './utils.ts'
+import { iconProps, panelStyle, xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 const darkTheme = (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
 
 export default function App() {
-  const [filter, setFilter] = useState<Filter>('Unread')
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
   const [status, setStatus] = useState<Status>()
-  const [selected, setSelected] = useState<Selected>()
   const [settings, setSettings] = useState<Settings>({ dark_theme: darkTheme })
-  const [refreshed, setRefreshed] = useState<Record<never, never>>({})
-
   const [items, setItems] = useState<Items>()
-  const [itemsOutdated, setItemsOutdated] = useState(false)
   const [selectedItem, setSelectedItem] = useState<Item>()
 
+  const [filter, setFilter] = useState<Filter>('Unread')
+  const [selected, setSelected] = useState<Selected>()
+  const [refreshed, setRefreshed] = useState<Record<never, never>>({})
+  const [itemsOutdated, setItemsOutdated] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
 
   const caughtErrors = useRef(new Set<any>())
@@ -67,7 +65,7 @@ export default function App() {
   }
   const refreshStats = async () => {
     const { running, last_refreshed, state } = await xfetch<
-      State & { state: (FeedState & { id: number })[] }
+      Omit<Status, 'state'> & { state: (FeedState & { id: number })[] }
     >('api/status')
     setStatus({
       running,
@@ -91,54 +89,48 @@ export default function App() {
     else document.body.classList.remove('bp5-dark')
   }, [settings])
 
-  const [foldersById, foldersWithFeeds, feedsWithoutFolders, feedsById] = useMemo(() => {
+  const [feedsById, foldersById, feedsWithoutFolders, foldersWithFeeds] = useMemo(() => {
+    if (!feeds || !folders) return []
     const foldersById = new Map<number, FolderWithFeeds>()
-    for (const folder of folders ?? []) foldersById.set(folder.id, { ...folder, feeds: [] })
+    for (const folder of folders) foldersById.set(folder.id, { ...folder, feeds: [] })
     const feedsById = new Map<number, Feed>()
     const feedsWithoutFolders: Feed[] = []
-    for (const feed of feeds ?? []) {
+    for (const feed of feeds) {
       if (feed.folder_id === null) feedsWithoutFolders.push(feed)
       else foldersById.get(feed.folder_id)?.feeds.push(feed)
       feedsById.set(feed.id, feed)
     }
-    return [foldersById, [...foldersById.values()], feedsWithoutFolders, feedsById]
+    return [feedsById, foldersById, feedsWithoutFolders, [...foldersById.values()]]
   }, [feeds, folders])
-  const errorCount = useMemo(
-    () => status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0),
-    [status],
-  )
 
   const props = {
-    filter,
-    setFilter,
-    folders,
     setFolders,
     setFeeds,
     status,
     setStatus,
-    selected,
-    setSelected,
     settings,
     setSettings,
-    refreshed,
-    setRefreshed,
-
     items,
     setItems,
-    itemsOutdated,
-    setItemsOutdated,
     selectedItem,
     setSelectedItem,
 
+    filter,
+    setFilter,
+    selected,
+    setSelected,
+    refreshed,
+    setRefreshed,
+    itemsOutdated,
+    setItemsOutdated,
     contentRef,
 
     refreshFeeds,
     refreshStats,
-    errorCount,
-    foldersById,
-    foldersWithFeeds,
-    feedsWithoutFolders,
     feedsById,
+    foldersById,
+    feedsWithoutFolders,
+    foldersWithFeeds,
   }
 
   return (
@@ -153,14 +145,14 @@ export default function App() {
         borderRadius: 0,
       }}
     >
-      <FeedList {...props} style={{ minWidth: '300px', maxWidth: '300px' }} />
+      <FeedList {...props} style={{ ...panelStyle, minWidth: '300px', maxWidth: '300px' }} />
       <Divider />
-      <ItemList {...props} style={{ minWidth: '300px', maxWidth: '300px' }} />
+      <ItemList {...props} style={{ ...panelStyle, minWidth: '300px', maxWidth: '300px' }} />
       <Divider />
       {selectedItem?.content != null && (
         <ItemShow
           {...props}
-          style={{ flexGrow: 1, minWidth: '300px' }}
+          style={{ ...panelStyle, flexGrow: 1, minWidth: '300px' }}
           selectedItem={{ ...selectedItem, content: selectedItem.content }}
         />
       )}

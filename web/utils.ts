@@ -23,7 +23,7 @@ export function length(n: number) {
   return `${n * 0.25}rem`
 }
 
-export function fromNow(date: Date, withSuffix = false) {
+export function fromNow(date: Date, withSuffix = true) {
   let secs = (new Date().getTime() - date.getTime()) / 1000
   const neg = secs < 0
 

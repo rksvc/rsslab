@@ -5,12 +5,9 @@ export type FeedState = {
   error?: string
 }
 
-export type State = {
+export type Status = {
   running: number
   last_refreshed: string | null
-}
-
-export type Status = State & {
   state: Map<number, FeedState>
 }
 
@@ -33,8 +30,6 @@ export type FolderWithFeeds = Folder & {
   feeds: Feed[]
 }
 
-export type ItemStatus = 'unread' | 'read' | 'starred'
-
 export type Item = {
   id: number
   guid: string
@@ -43,7 +38,7 @@ export type Item = {
   link: string
   content?: string
   date: string
-  status: ItemStatus
+  status: 'unread' | 'read' | 'starred'
   image?: string
   podcast_url?: string
 }

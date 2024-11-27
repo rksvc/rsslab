@@ -35,7 +35,6 @@ import {
   Edit,
   ExternalLink,
   Folder as FolderIcon,
-  FolderMinus,
   Link,
   Menu as MenuIcon,
   Moon,
@@ -58,7 +57,6 @@ import {
   iconProps,
   length,
   menuIconProps,
-  panelStyle,
   parseFeedLink,
   statusBarStyle,
   xfetch,
@@ -67,51 +65,47 @@ import {
 export default function FeedList({
   style,
 
-  filter,
-  setFilter,
-  folders,
   setFolders,
   setFeeds,
   status,
   setStatus,
-  selected,
-  setSelected,
   settings,
   setSettings,
+
+  filter,
+  setFilter,
+  selected,
+  setSelected,
   refreshed,
   setRefreshed,
 
   refreshFeeds,
   refreshStats,
-  errorCount,
-  foldersById,
-  foldersWithFeeds,
-  feedsWithoutFolders,
   feedsById,
+  feedsWithoutFolders,
+  foldersWithFeeds,
 }: {
-  style?: CSSProperties
+  style: CSSProperties
 
-  filter: Filter
-  setFilter: Dispatch<SetStateAction<Filter>>
-  folders?: Folder[]
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   status?: Status
   setStatus: Dispatch<React.SetStateAction<Status | undefined>>
-  selected: Selected
-  setSelected: Dispatch<SetStateAction<Selected>>
   settings: Settings
   setSettings: Dispatch<SetStateAction<Settings>>
+
+  filter: Filter
+  setFilter: Dispatch<SetStateAction<Filter>>
+  selected: Selected
+  setSelected: Dispatch<SetStateAction<Selected>>
   refreshed: Record<never, never>
   setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
 
   refreshFeeds: () => Promise<void>
   refreshStats: (loop?: boolean) => Promise<void>
-  errorCount?: number
-  foldersById: Map<number, FolderWithFeeds>
-  foldersWithFeeds?: FolderWithFeeds[]
+  feedsById?: Map<number, Feed>
   feedsWithoutFolders?: Feed[]
-  feedsById: Map<number, Feed>
+  foldersWithFeeds?: FolderWithFeeds[]
 }) {
   const [newFeedDialogOpen, setNewFeedDialogOpen] = useState(false)
   const refreshRateRef = useRef<HTMLInputElement>(null)
@@ -128,7 +122,6 @@ export default function FeedList({
       body: JSON.stringify({ [attrName]: value ?? -1 }),
     })
     setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
-    if (attrName === 'folder_id') setRefreshed({})
   }
   const secondaryLabel = (state?: FeedState) =>
     filter === 'Unread' ? (
@@ -138,7 +131,7 @@ export default function FeedList({
     ) : state?.error ? (
       <span
         style={{ display: 'flex' }}
-        title={state.last_refreshed && `Last Refreshed: ${new Date(state.last_refreshed).toLocaleString()}`}
+        title={state.last_refreshed && `Last Refreshed: ${fromNow(new Date(state.last_refreshed))}`}
       >
         <AlertCircle {...iconProps} />
       </span>
@@ -214,22 +207,25 @@ export default function FeedList({
                   await refreshStats()
                 }}
               />
-              <MenuItem text="Move to..." icon={<Move {...menuIconProps} />} disabled={!folders?.length}>
-                {feed.folder_id != null && (
-                  <MenuItem
-                    text="--"
-                    icon={<FolderMinus {...menuIconProps} />}
-                    onClick={() => updateFeedAttr(feed.id, 'folder_id', null)}
-                  />
-                )}
-                {folders
-                  ?.filter(folder => folder.id !== feed.folder_id)
-                  .map(folder => (
+              <MenuItem
+                text="Move to..."
+                icon={<Move {...menuIconProps} />}
+                disabled={!foldersWithFeeds?.length}
+              >
+                {[
+                  { key: null, text: '--' },
+                  ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ key: id, text: title })),
+                ]
+                  .filter(({ key }) => key !== feed.folder_id)
+                  .map(({ key, text }) => (
                     <MenuItem
-                      key={folder.id}
-                      text={folder.title}
+                      key={key}
+                      text={text}
                       icon={<FolderIcon {...menuIconProps} />}
-                      onClick={() => updateFeedAttr(feed.id, 'folder_id', folder.id)}
+                      onClick={() => {
+                        updateFeedAttr(feed.id, 'folder_id', key)
+                        setRefreshed({})
+                      }}
                     />
                   ))}
               </MenuItem>
@@ -285,54 +281,46 @@ export default function FeedList({
       ),
     [foldersWithFeeds, status],
   )
-  const totalUnread = useMemo(
-    () =>
+  const [totalUnread, totalStarred, errorCount] = useMemo(
+    () => [
       status?.state
         .values()
         .reduce((acc, state) => acc + state.unread, 0)
         .toString(),
-    [status],
-  )
-  const totalStarred = useMemo(
-    () =>
       status?.state
         .values()
         .reduce((acc, state) => acc + state.starred, 0)
         .toString(),
+      status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0),
+    ],
     [status],
   )
-  // biome-ignore lint/correctness/useExhaustiveDependencies(foldersWithFeeds):
   // biome-ignore lint/correctness/useExhaustiveDependencies(feedsWithoutFolders):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(foldersWithFeeds):
   // biome-ignore lint/correctness/useExhaustiveDependencies(status?.state.get):
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshed):
-  const [hiddenFolderIds, hiddenFeedIds] = useMemo(() => {
+  const [hiddenFolders, hiddenFeeds] = useMemo(() => {
+    if (filter === 'Feeds' || !feedsWithoutFolders || !foldersWithFeeds) return []
+
     const folders = new Set<number>()
     const feeds = new Set<number>()
-    if (filter === 'Feeds') return [folders, feeds]
-
-    for (const folder of foldersWithFeeds ?? []) {
+    const hideFeed = (id: number) =>
+      selected?.feed_id !== id &&
+      !(filter === 'Unread' ? status?.state.get(id)?.unread : status?.state.get(id)?.starred)
+    for (const folder of foldersWithFeeds) {
       let hideFolder = true
       for (const feed of folder.feeds)
-        if (
-          selected?.feed_id !== feed.id &&
-          !(filter === 'Unread' ? status?.state.get(feed.id)?.unread : status?.state.get(feed.id)?.starred)
-        )
-          feeds.add(feed.id)
+        if (hideFeed(feed.id)) feeds.add(feed.id)
         else hideFolder = false
       if (hideFolder && selected?.folder_id !== folder.id) folders.add(folder.id)
     }
-    for (const feed of feedsWithoutFolders ?? [])
-      if (
-        selected?.feed_id !== feed.id &&
-        !(filter === 'Unread' ? status?.state.get(feed.id)?.unread : status?.state.get(feed.id)?.starred)
-      )
-        feeds.add(feed.id)
+    for (const feed of feedsWithoutFolders) if (hideFeed(feed.id)) feeds.add(feed.id)
 
     return [folders, feeds]
   }, [filter, selected, refreshed])
 
   return (
-    <div style={{ ...style, ...panelStyle }}>
+    <div style={style}>
       <div className="topbar" style={{ justifyContent: 'space-between' }}>
         <Button
           icon={
@@ -364,16 +352,16 @@ export default function FeedList({
         <ButtonGroup outlined>
           {(
             [
-              { value: 'Unread', title: 'Unread', icon: <Circle {...iconProps} /> },
-              { value: 'Feeds', title: 'All', icon: <MenuIcon {...iconProps} /> },
-              { value: 'Starred', title: 'Starred', icon: <Star {...iconProps} /> },
+              { value: 'Unread', title: 'Unread', Icon: Circle },
+              { value: 'Feeds', title: 'All', Icon: MenuIcon },
+              { value: 'Starred', title: 'Starred', Icon: Star },
             ] as const
-          ).map(({ value, title, icon }) => (
+          ).map(({ value, title, Icon }) => (
             <Button
               key={value}
               className="filter"
               intent={Intent.PRIMARY}
-              icon={icon}
+              icon={<Icon {...iconProps} />}
               title={title}
               active={value === filter}
               onClick={() => setFilter(value)}
@@ -408,7 +396,7 @@ export default function FeedList({
               <Tooltip
                 content={
                   status?.last_refreshed ? (
-                    <small>Last Refreshed: {fromNow(new Date(status.last_refreshed), true)}</small>
+                    <small>Last Refreshed: {fromNow(new Date(status.last_refreshed))}</small>
                   ) : undefined
                 }
                 intent={Intent.PRIMARY}
@@ -464,10 +452,10 @@ export default function FeedList({
                   <MenuItem
                     text="Import OPML File"
                     icon={<Download {...menuIconProps} />}
-                    onClick={evt => evt.stopPropagation()}
+                    shouldDismissPopover={false}
                   />
                 </label>
-                <div className={Classes.POPOVER_DISMISS} style={{ display: 'none' }} ref={menuCloserRef} />
+                <div className={Classes.POPOVER_DISMISS} ref={menuCloserRef} hidden />
               </form>
               <MenuItem text="Export OPML File" href="api/opml/export" icon={<Upload {...menuIconProps} />} />
             </Menu>
@@ -486,9 +474,9 @@ export default function FeedList({
             secondaryLabel:
               filter === 'Unread' ? totalUnread : filter === 'Starred' ? totalStarred : undefined,
           },
-          ...(feedsWithoutFolders ?? []).filter(f => !hiddenFeedIds.has(f.id)).map(f => feed(f)),
+          ...(feedsWithoutFolders ?? []).filter(({ id }) => !hiddenFeeds?.has(id)).map(f => feed(f)),
           ...(foldersWithFeeds ?? [])
-            .filter(f => !hiddenFolderIds.has(f.id))
+            .filter(({ id }) => !hiddenFolders?.has(id))
             .map(
               folder =>
                 ({
@@ -532,9 +520,7 @@ export default function FeedList({
                               isOpen={isOpen}
                               onConfirm={async () => {
                                 await xfetch(`api/folders/${folder.id}`, { method: 'DELETE' })
-                                const deletedFeeds = new Set(
-                                  foldersById.get(folder.id)?.feeds.map(feed => feed.id),
-                                )
+                                const deletedFeeds = new Set(folder.feeds.map(feed => feed.id))
                                 setFolders(folders => folders?.filter(f => f.id !== folder.id))
                                 setFeeds(feeds => feeds?.filter(feed => !deletedFeeds.has(feed.id)))
                                 setStatus(
@@ -565,7 +551,7 @@ export default function FeedList({
                   ),
                   isExpanded: folder.is_expanded,
                   isSelected: selected?.folder_id === folder.id,
-                  childNodes: folder.feeds.filter(f => !hiddenFeedIds.has(f.id)).map(f => feed(f)),
+                  childNodes: folder.feeds.filter(({ id }) => !hiddenFeeds?.has(id)).map(f => feed(f)),
                   secondaryLabel: secondaryLabel(folderStats.get(folder.id)),
                   nodeData: { folder_id: folder.id },
                 }) satisfies TreeNodeInfo,
@@ -597,8 +583,8 @@ export default function FeedList({
       <NewFeedDialog
         isOpen={newFeedDialogOpen}
         setIsOpen={setNewFeedDialogOpen}
-        defaultFolderId={selected && (selected.folder_id ?? feedsById.get(selected.feed_id)?.folder_id)}
-        folders={folders}
+        defaultFolderId={selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)}
+        foldersWithFeeds={foldersWithFeeds}
         setFeeds={setFeeds}
         setStatus={setStatus}
         setSelected={setSelected}
@@ -624,7 +610,7 @@ function TextEditor({
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const closerRef = useRef<HTMLDivElement>(null)
   const confirm = async () => {
-    if (inputRef.current == null) return
+    if (!inputRef.current) return
     setLoading(true)
     try {
       await onConfirm(inputRef.current.value)
@@ -668,12 +654,13 @@ function TextEditor({
           />
           <Button
             loading={loading}
-            style={{ width: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
             intent={Intent.PRIMARY}
             text="OK"
             onClick={confirm}
+            fill
           />
-          <div className={Classes.POPOVER_DISMISS} style={{ display: 'none' }} ref={closerRef} />
+          <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
         </>
       }
       onOpening={node => {
@@ -745,12 +732,13 @@ function RefreshRateEditor({
           </Tooltip>
           <Button
             loading={loading}
-            style={{ width: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
             intent={Intent.PRIMARY}
             text="OK"
             onClick={confirm}
+            fill
           />
-          <div className={Classes.POPOVER_DISMISS} style={{ display: 'none' }} ref={closerRef} />
+          <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
         </>
       }
       onOpening={node => node.querySelector<HTMLInputElement>('.bp5-input')?.focus()}
