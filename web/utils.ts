@@ -1,19 +1,4 @@
-import type { CSSProperties } from 'react'
 import type { Transformer } from './types.ts'
-
-export const iconProps = { size: 16 } as const
-export const menuIconProps = { size: 14 } as const
-export const panelStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100%',
-} satisfies CSSProperties
-export const statusBarStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  padding: length(1),
-  overflowWrap: 'break-word',
-} satisfies CSSProperties
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ')

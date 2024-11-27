@@ -50,17 +50,14 @@ import {
 } from 'react-feather'
 import { NewFeedDialog } from './NewFeed.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
-import {
-  cn,
-  compareTitle,
-  fromNow,
-  iconProps,
-  length,
-  menuIconProps,
-  parseFeedLink,
-  statusBarStyle,
-  xfetch,
-} from './utils.ts'
+import { cn, compareTitle, fromNow, length, parseFeedLink, xfetch } from './utils.ts'
+
+const statusBarStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  padding: length(1),
+  overflowWrap: 'break-word',
+} satisfies CSSProperties
 
 export default function FeedList({
   style,
@@ -133,7 +130,7 @@ export default function FeedList({
         style={{ display: 'flex' }}
         title={state.last_refreshed && `Last Refreshed: ${fromNow(new Date(state.last_refreshed))}`}
       >
-        <AlertCircle {...iconProps} />
+        <AlertCircle />
       </span>
     ) : undefined
   const feed = (feed: Feed) =>
@@ -146,7 +143,7 @@ export default function FeedList({
         <img style={{ width: length(4), marginRight: '7px' }} src={`api/feeds/${feed.id}/icon`} />
       ) : (
         <span style={{ display: 'flex' }}>
-          <Rss style={{ marginRight: '6px' }} {...iconProps} />
+          <Rss style={{ marginRight: '6px' }} />
         </span>
       ),
       label: (
@@ -157,8 +154,8 @@ export default function FeedList({
                 <MenuItem
                   text="Website"
                   intent={Intent.PRIMARY}
-                  labelElement={<ExternalLink {...menuIconProps} />}
-                  icon={<Link {...menuIconProps} />}
+                  labelElement={<ExternalLink />}
+                  icon={<Link />}
                   target="_blank"
                   href={feed.link}
                 />
@@ -166,8 +163,8 @@ export default function FeedList({
               <MenuItem
                 text="Feed Link"
                 intent={Intent.PRIMARY}
-                labelElement={<ExternalLink {...menuIconProps} />}
-                icon={<Rss {...menuIconProps} />}
+                labelElement={<ExternalLink />}
+                icon={<Rss />}
                 target="_blank"
                 href={(() => {
                   const [scheme, link] = parseFeedLink(feed.feed_link)
@@ -182,7 +179,7 @@ export default function FeedList({
                   await updateFeedAttr(feed.id, 'title', title)
                 }}
               >
-                <MenuItem text="Rename" icon={<Edit {...menuIconProps} />} shouldDismissPopover={false} />
+                <MenuItem text="Rename" icon={<Edit />} shouldDismissPopover={false} />
               </TextEditor>
               <TextEditor
                 defaultValue={feed.feed_link}
@@ -192,26 +189,18 @@ export default function FeedList({
                   await updateFeedAttr(feed.id, 'feed_link', feedLink)
                 }}
               >
-                <MenuItem
-                  text="Change Link"
-                  icon={<Edit {...menuIconProps} />}
-                  shouldDismissPopover={false}
-                />
+                <MenuItem text="Change Link" icon={<Edit />} shouldDismissPopover={false} />
               </TextEditor>
               <MenuItem
                 text="Refresh"
-                icon={<RotateCw {...menuIconProps} />}
+                icon={<RotateCw />}
                 disabled={!!status?.running}
                 onClick={async () => {
                   await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
                   await refreshStats()
                 }}
               />
-              <MenuItem
-                text="Move to..."
-                icon={<Move {...menuIconProps} />}
-                disabled={!foldersWithFeeds?.length}
-              >
+              <MenuItem text="Move to..." icon={<Move />} disabled={!foldersWithFeeds?.length}>
                 {[
                   { key: null, text: '--' },
                   ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ key: id, text: title })),
@@ -221,7 +210,7 @@ export default function FeedList({
                     <MenuItem
                       key={key}
                       text={text}
-                      icon={<FolderIcon {...menuIconProps} />}
+                      icon={<FolderIcon />}
                       onClick={() => {
                         updateFeedAttr(feed.id, 'folder_id', key)
                         setRefreshed({})
@@ -326,14 +315,12 @@ export default function FeedList({
           icon={
             settings.dark_theme ? (
               <Sun
-                {...iconProps}
                 fill={Colors.ORANGE5}
                 stroke={Colors.ORANGE4}
                 filter={`drop-shadow(0 0 1px ${Colors.ORANGE5})`}
               />
             ) : (
               <Moon
-                {...iconProps}
                 stroke={Colors.DARK_GRAY3}
                 strokeWidth={1.5}
                 filter={`drop-shadow(0 0 0.5px ${Colors.DARK_GRAY3})`}
@@ -352,16 +339,16 @@ export default function FeedList({
         <ButtonGroup outlined>
           {(
             [
-              { value: 'Unread', title: 'Unread', Icon: Circle },
-              { value: 'Feeds', title: 'All', Icon: MenuIcon },
-              { value: 'Starred', title: 'Starred', Icon: Star },
+              { value: 'Unread', title: 'Unread', icon: <Circle /> },
+              { value: 'Feeds', title: 'All', icon: <MenuIcon /> },
+              { value: 'Starred', title: 'Starred', icon: <Star /> },
             ] as const
-          ).map(({ value, title, Icon }) => (
+          ).map(({ value, title, icon }) => (
             <Button
               key={value}
               className="filter"
               intent={Intent.PRIMARY}
-              icon={<Icon {...iconProps} />}
+              icon={icon}
               title={title}
               active={value === filter}
               onClick={() => setFilter(value)}
@@ -373,11 +360,7 @@ export default function FeedList({
           transitionDuration={0}
           content={
             <Menu>
-              <MenuItem
-                text="New Feed"
-                icon={<Plus {...menuIconProps} />}
-                onClick={() => setNewFeedDialogOpen(true)}
-              />
+              <MenuItem text="New Feed" icon={<Plus />} onClick={() => setNewFeedDialogOpen(true)} />
               <TextEditor
                 placeholder="Folder title"
                 onConfirm={async title => {
@@ -390,7 +373,7 @@ export default function FeedList({
                   setSelected({ folder_id: folder.id })
                 }}
               >
-                <MenuItem text="New Folder" icon={<Plus {...menuIconProps} />} shouldDismissPopover={false} />
+                <MenuItem text="New Folder" icon={<Plus />} shouldDismissPopover={false} />
               </TextEditor>
               <MenuDivider />
               <Tooltip
@@ -406,7 +389,7 @@ export default function FeedList({
               >
                 <MenuItem
                   text="Refresh Feeds"
-                  icon={<RotateCw {...menuIconProps} />}
+                  icon={<RotateCw />}
                   disabled={!!status?.running}
                   onClick={async () => {
                     await xfetch('api/feeds/refresh', { method: 'POST' })
@@ -427,11 +410,7 @@ export default function FeedList({
                   setSettings(settings => settings && { ...settings, refresh_rate: refreshRate })
                 }}
               >
-                <MenuItem
-                  text="Change Refresh Rate"
-                  icon={<Edit {...menuIconProps} />}
-                  shouldDismissPopover={false}
-                />
+                <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
               </RefreshRateEditor>
               <MenuDivider />
               <form ref={opmlFormRef}>
@@ -449,19 +428,15 @@ export default function FeedList({
                   }}
                 />
                 <label htmlFor="opml-import">
-                  <MenuItem
-                    text="Import OPML File"
-                    icon={<Download {...menuIconProps} />}
-                    shouldDismissPopover={false}
-                  />
+                  <MenuItem text="Import OPML File" icon={<Download />} shouldDismissPopover={false} />
                 </label>
                 <div className={Classes.POPOVER_DISMISS} ref={menuCloserRef} hidden />
               </form>
-              <MenuItem text="Export OPML File" href="api/opml/export" icon={<Upload {...menuIconProps} />} />
+              <MenuItem text="Export OPML File" href="api/opml/export" icon={<Upload />} />
             </Menu>
           }
         >
-          <Button icon={<MoreHorizontal {...iconProps} />} minimal />
+          <Button icon={<MoreHorizontal />} minimal />
         </Popover>
       </div>
       <Divider />
@@ -499,15 +474,11 @@ export default function FeedList({
                                 )
                               }}
                             >
-                              <MenuItem
-                                text="Rename"
-                                icon={<Edit {...menuIconProps} />}
-                                shouldDismissPopover={false}
-                              />
+                              <MenuItem text="Rename" icon={<Edit />} shouldDismissPopover={false} />
                             </TextEditor>
                             <MenuItem
                               text="Refresh"
-                              icon={<RotateCw {...menuIconProps} />}
+                              icon={<RotateCw />}
                               disabled={!!status?.running}
                               onClick={async () => {
                                 await xfetch(`api/folders/${folder.id}/refresh`, {
@@ -575,7 +546,7 @@ export default function FeedList({
         <>
           <Divider />
           <div style={statusBarStyle}>
-            <AlertCircle style={{ marginLeft: length(3), marginRight: length(2) }} {...iconProps} />
+            <AlertCircle style={{ marginLeft: length(3), marginRight: length(2) }} />
             {errorCount} feeds have errors
           </div>
         </>
@@ -757,7 +728,7 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
       text={`Delete${state === false ? ' (confirm)' : ''}`}
       className={cn(state != null && Classes.ACTIVE)}
       disabled={state}
-      icon={state ? <Spinner {...menuIconProps} intent={Intent.DANGER} /> : <Trash {...menuIconProps} />}
+      icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash />}
       intent={Intent.DANGER}
       shouldDismissPopover={false}
       onClick={async () => {

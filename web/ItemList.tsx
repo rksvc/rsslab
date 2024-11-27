@@ -12,7 +12,7 @@ import {
 } from 'react'
 import { Check, RotateCw, Search } from 'react-feather'
 import type { Feed, Filter, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
-import { fromNow, iconProps, length, param, xfetch } from './utils.ts'
+import { fromNow, length, param, xfetch } from './utils.ts'
 
 export default function ItemList({
   style,
@@ -133,7 +133,7 @@ export default function ItemList({
       <div className="topbar" style={{ gap: length(1) }}>
         <InputGroup
           inputRef={searchRef}
-          leftIcon={<Search style={{ pointerEvents: 'none' }} className={Classes.ICON} {...iconProps} />}
+          leftIcon={<Search style={{ pointerEvents: 'none' }} className={Classes.ICON} />}
           type="search"
           value={search}
           placeholder="Search..."
@@ -150,7 +150,7 @@ export default function ItemList({
           fill
         />
         <Button
-          icon={itemsOutdated ? <RotateCw {...iconProps} strokeWidth={1.7} /> : <Check {...iconProps} />}
+          icon={itemsOutdated ? <RotateCw strokeWidth={1.7} /> : <Check />}
           title={itemsOutdated ? 'Refresh Outdated' : 'Mark All Read'}
           disabled={filter === 'Starred' && !itemsOutdated}
           minimal

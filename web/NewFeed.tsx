@@ -24,7 +24,7 @@ import {
 } from 'react'
 import { ExternalLink } from 'react-feather'
 import type { Feed, FolderWithFeeds, Selected, Status, Transformer } from './types.ts'
-import { compareTitle, iconProps, parseFeedLink, xfetch } from './utils.ts'
+import { compareTitle, parseFeedLink, xfetch } from './utils.ts'
 
 type Param = {
   value: string
@@ -421,7 +421,7 @@ function TransformerSection({
           href={`api/transform/${type}/${encodeURIComponent(stringify(params))}`}
           target="_blank"
           intent={Intent.PRIMARY}
-          rightIcon={<ExternalLink {...iconProps} />}
+          rightIcon={<ExternalLink />}
           outlined
           fill
         />

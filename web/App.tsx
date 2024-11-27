@@ -1,5 +1,5 @@
 import { Card, Divider, FocusStyleManager, Intent, OverlayToaster, Position } from '@blueprintjs/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle } from 'react-feather'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
@@ -16,10 +16,16 @@ import type {
   Settings,
   Status,
 } from './types.ts'
-import { iconProps, panelStyle, xfetch } from './utils.ts'
+import { xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 const darkTheme = (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
+
+const panelStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+} satisfies CSSProperties
 
 export default function App() {
   const [folders, setFolders] = useState<Folder[]>()
@@ -43,7 +49,7 @@ export default function App() {
         caughtErrors.current.add(evt.reason)
         const message = evt.reason instanceof Error ? evt.reason.message : String(evt.reason)
         toaster.current?.show({
-          icon: <AlertCircle {...iconProps} />,
+          icon: <AlertCircle />,
           intent: Intent.DANGER,
           message: message.split('\n', 2)[0],
           timeout: 0,

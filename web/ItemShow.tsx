@@ -2,7 +2,7 @@ import { AnchorButton, Button, ButtonGroup, Classes, Divider, H2 } from '@bluepr
 import type { CSSProperties, Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
 import type { Feed, Item, Items, Status } from './types.ts'
-import { cn, iconProps, length, xfetch } from './utils.ts'
+import { cn, length, xfetch } from './utils.ts'
 
 export default function ItemShow({
   style,
@@ -54,22 +54,18 @@ export default function ItemShow({
     <div style={style}>
       <ButtonGroup className="topbar" style={{ gap: length(0.5) }} minimal>
         <Button
-          icon={
-            <Star {...iconProps} fill={selectedItem.status === 'starred' ? 'currentColor' : 'transparent'} />
-          }
+          icon={<Star fill={selectedItem.status === 'starred' ? 'currentColor' : 'transparent'} />}
           onClick={toggleStatus('starred')}
           title="Mark Starred"
         />
         <Button
-          icon={
-            <Circle {...iconProps} fill={selectedItem.status === 'unread' ? 'currentColor' : 'transparent'} />
-          }
+          icon={<Circle fill={selectedItem.status === 'unread' ? 'currentColor' : 'transparent'} />}
           onClick={toggleStatus('unread')}
           title="Mark Unread"
         />
         <AnchorButton
           className={Classes.INTENT_PRIMARY}
-          icon={<ExternalLink {...iconProps} />}
+          icon={<ExternalLink />}
           href={selectedItem.link}
           target="_blank"
           title="Open Link"

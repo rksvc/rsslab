@@ -32,6 +32,15 @@ path.bp5-spinner-track {
 	stroke: none !important;
 }
 
+:not(.bp5-popover-arrow) > svg {
+	width: 16px;
+	height: 16px;
+}
+:is(.bp5-menu-item-icon, .bp5-menu-item-label) svg {
+	width: 14px;
+	height: 14px;
+}
+
 :is(pre, code) {
 	font-family: SFMono-Regular, Menlo, Consolas, monospace !important;
 }
