@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -60,16 +59,6 @@ func wrap(handleFunc func(context) error) func(http.ResponseWriter, *http.Reques
 			}()
 			w = gz
 		}
-		defer func() {
-			if err := recover(); err != nil {
-				log.Print(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				_, err = w.Write(utils.StringToBytes(fmt.Sprintf("%v", err)))
-				if err != nil {
-					log.Print(err)
-				}
-			}
-		}()
 		if err := handleFunc(context{w, r}); err != nil {
 			log.Printf("%s %s: %s", r.Method, r.URL.EscapedPath(), err)
 			if _, ok := err.(*errBadRequest); ok {
@@ -94,8 +83,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		p = "index.html"
 	}
 	if p == "index.html" {
-		dark, err := s.db.GetSettingInt(storage.DARK_THEME)
-		if err == nil {
+		if dark, err := s.db.GetSettingInt(storage.DARK_THEME); err == nil {
 			var new []byte
 			if dark != nil && *dark != 0 {
 				new = []byte{'1'}
@@ -107,17 +95,15 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write(utils.StringToBytes(err.Error()))
 		}
+	} else if f, err := assets.Open(path.Join("dist", p+".gz")); err == nil {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
+		w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
+		io.Copy(w, f)
+	} else if errors.Is(err, fs.ErrNotExist) {
+		http.NotFound(w, r)
 	} else {
-		f, err := assets.Open(path.Join("dist", p+".gz"))
-		if err == nil {
-			w.Header().Set("Content-Encoding", "gzip")
-			w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
-			io.Copy(w, f)
-		} else if errors.Is(err, fs.ErrNotExist) {
-			http.NotFound(w, r)
-		} else {
-			log.Print(err)
-		}
+		log.Print(err)
 	}
 }
 
@@ -253,7 +239,7 @@ func (s *Server) handleFeedIcon(c context) error {
 	}
 
 	c.w.Header().Set("Content-Type", http.DetectContentType(bytes))
-	c.w.Header().Set("Cache-Control", "max-age=86400") // one day
+	c.w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
 	return c.Write(bytes)
 }
 
