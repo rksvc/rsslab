@@ -21,7 +21,6 @@ import {
 import {
   type CSSProperties,
   type Dispatch,
-  type ReactNode,
   type RefObject,
   type SetStateAction,
   useMemo,
@@ -173,24 +172,24 @@ export default function FeedList({
               />
               <MenuDivider />
               <TextEditor
+                menuText="Rename"
+                menuIcon={<Edit />}
                 defaultValue={feed.title}
                 onConfirm={async title => {
                   if (!title) throw new Error('Feed name is required')
                   await updateFeedAttr(feed.id, 'title', title)
                 }}
-              >
-                <MenuItem text="Rename" icon={<Edit />} shouldDismissPopover={false} />
-              </TextEditor>
+              />
               <TextEditor
+                menuText="Change Link"
+                menuIcon={<Edit />}
                 defaultValue={feed.feed_link}
                 textAreaStyle={{ wordBreak: 'break-all' }}
                 onConfirm={async feedLink => {
                   if (!feedLink) throw new Error('Feed link is required')
                   await updateFeedAttr(feed.id, 'feed_link', feedLink)
                 }}
-              >
-                <MenuItem text="Change Link" icon={<Edit />} shouldDismissPopover={false} />
-              </TextEditor>
+              />
               <MenuItem
                 text="Refresh"
                 icon={<RotateCw />}
@@ -362,6 +361,8 @@ export default function FeedList({
             <Menu>
               <MenuItem text="New Feed" icon={<Plus />} onClick={() => setNewFeedDialogOpen(true)} />
               <TextEditor
+                menuText="New Folder"
+                menuIcon={<Plus />}
                 placeholder="Folder title"
                 onConfirm={async title => {
                   if (!title) throw new Error('Folder title is required')
@@ -372,9 +373,7 @@ export default function FeedList({
                   setFolders(folders => folders && [...folders, folder].toSorted(compareTitle))
                   setSelected({ folder_id: folder.id })
                 }}
-              >
-                <MenuItem text="New Folder" icon={<Plus />} shouldDismissPopover={false} />
-              </TextEditor>
+              />
               <MenuDivider />
               <Tooltip
                 content={
@@ -409,9 +408,7 @@ export default function FeedList({
                   })
                   setSettings(settings => settings && { ...settings, refresh_rate: refreshRate })
                 }}
-              >
-                <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
-              </RefreshRateEditor>
+              />
               <MenuDivider />
               <form ref={opmlFormRef}>
                 <FileInput
@@ -462,6 +459,8 @@ export default function FeedList({
                         content={({ isOpen }) => (
                           <Menu>
                             <TextEditor
+                              menuText="Rename"
+                              menuIcon={<Edit />}
                               defaultValue={folder.title}
                               onConfirm={async title => {
                                 if (!title) throw new Error('Folder title is required')
@@ -473,9 +472,7 @@ export default function FeedList({
                                   folders?.map(f => (f.id === folder.id ? { ...f, title } : f)),
                                 )
                               }}
-                            >
-                              <MenuItem text="Rename" icon={<Edit />} shouldDismissPopover={false} />
-                            </TextEditor>
+                            />
                             <MenuItem
                               text="Refresh"
                               icon={<RotateCw />}
@@ -565,17 +562,19 @@ export default function FeedList({
 }
 
 function TextEditor({
+  menuText,
+  menuIcon,
   defaultValue,
   placeholder,
   textAreaStyle,
   onConfirm,
-  children,
 }: {
+  menuText: string
+  menuIcon: JSX.Element
   defaultValue?: string
   placeholder?: string
   textAreaStyle?: CSSProperties
   onConfirm: (value: string) => Promise<void>
-  children: ReactNode
 }) {
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -642,7 +641,7 @@ function TextEditor({
         }
       }}
     >
-      {children}
+      <MenuItem text={menuText} icon={menuIcon} shouldDismissPopover={false} />
     </Popover>
   )
 }
@@ -651,12 +650,10 @@ function RefreshRateEditor({
   inputRef,
   defaultValue,
   onConfirm,
-  children,
 }: {
   defaultValue?: number
   inputRef: RefObject<HTMLInputElement>
   onConfirm: () => Promise<void>
-  children: ReactNode
 }) {
   const [loading, setLoading] = useState(false)
   const closerRef = useRef<HTMLDivElement>(null)
@@ -714,7 +711,7 @@ function RefreshRateEditor({
       }
       onOpening={node => node.querySelector<HTMLInputElement>('.bp5-input')?.focus()}
     >
-      {children}
+      <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
     </Popover>
   )
 }
