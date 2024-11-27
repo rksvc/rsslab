@@ -194,6 +194,7 @@ export default function ItemList({
                   ),
                 },
             )
+            setSelectedItem(item => item && (item.status === 'unread' ? { ...item, status: 'read' } : item))
           }}
         />
       </div>
