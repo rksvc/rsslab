@@ -66,7 +66,7 @@ export default function ItemShow({
         <AnchorButton icon={<ExternalLink />} href={selectedItem.link} target="_blank" title="Open Link" />
       </ButtonGroup>
       <Divider />
-      <div style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
+      <div style={{ padding: length(5), overflow: 'auto', wordBreak: 'break-all' }} ref={contentRef}>
         <H2 style={{ fontWeight: 700 }}>{selectedItem.title || 'untitled'}</H2>
         <div style={{ opacity: 0.95 }}>{feedsById?.get(selectedItem.feed_id)?.title}</div>
         <div style={{ opacity: 0.95 }}>{new Date(selectedItem.date).toLocaleString()}</div>
