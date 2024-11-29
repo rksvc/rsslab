@@ -101,7 +101,6 @@ body,
 #root,
 #root > .bp5-card {
 	height: 100%;
-	min-width: fit-content;
 }
 
 /* top bar */
