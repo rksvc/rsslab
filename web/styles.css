@@ -475,6 +475,10 @@ body,
 		max-width: 100%;
 	}
 
+	a code {
+		text-decoration: underline;
+	}
+
 	/* added by sanitizer */
 	.video-wrapper {
 		position: relative;
