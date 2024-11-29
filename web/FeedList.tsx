@@ -160,6 +160,8 @@ export default function FeedList({
                   icon={<Link />}
                   target="_blank"
                   href={feed.link}
+                  rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
                 />
               )}
               <MenuItem
@@ -172,6 +174,8 @@ export default function FeedList({
                   const [scheme, link] = parseFeedLink(feed.feed_link)
                   return scheme ? `api/transform/${scheme}/${encodeURIComponent(link)}` : link
                 })()}
+                rel="noopener noreferrer"
+                referrerPolicy="no-referrer"
               />
               <MenuDivider />
               <TextEditor
