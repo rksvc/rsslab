@@ -411,6 +411,10 @@ var allowedAttrs = map[atom.Atom]map[string]struct{}{
 		"src":             {},
 		"allowfullscreen": {},
 	},
+	atom.Progress: {
+		"value": {},
+		"max":   {},
+	},
 }
 
 var allowedSvgAttrs = map[string]struct{}{
