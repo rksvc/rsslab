@@ -439,6 +439,8 @@ body,
 
 /* content */
 .content {
+	overflow-wrap: break-word;
+
 	h1 {
 		font-size: 1.8rem;
 	}
@@ -472,7 +474,6 @@ body,
 
 	pre {
 		overflow-x: auto;
-		max-width: 100%;
 	}
 
 	a code {
