@@ -52,25 +52,19 @@ export default function ItemList({
 }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
-  const [itemsInited, setItemsInited] = useState(false)
-  const [lastUnread, setLastUnread] = useState<number>()
   const timerId = useRef<ReturnType<typeof setTimeout>>()
   const searchRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
-  const query = useCallback(
-    (status?: Item['status']) => {
-      const query: Record<string, string | boolean> = {}
-      if (selected) Object.assign(query, selected)
-      if (status) query.status = status
-      else if (filter !== 'Feeds') query.status = filter.toLowerCase()
-      if (query.status === 'unread') query.oldest_first = true
-      const search = searchRef.current?.value
-      if (search) query.search = search
-      return query
-    },
-    [selected, filter],
-  )
+  const query = useCallback(() => {
+    const query: Record<string, string | boolean> = {}
+    if (selected) Object.assign(query, selected)
+    if (filter !== 'Feeds') query.status = filter.toLowerCase()
+    if (filter === 'Unread') query.oldest_first = true
+    const search = searchRef.current?.value
+    if (search) query.search = search
+    return query
+  }, [selected, filter])
 
   const sentryNodeRef = useRef<Element>()
   const [isIntersecting, setIsIntersecting] = useState(false)
@@ -82,29 +76,14 @@ export default function ItemList({
         if (entry.target === sentryNodeRef.current && entry.isIntersecting) setIsIntersecting(true)
     })
   }
-  const prevQuery = usePrevious(query)
-  const needInitReadItems =
-    items &&
-    query === prevQuery &&
-    itemsInited &&
-    filter === 'Unread' &&
-    selected?.feed_id != null &&
-    lastUnread == null
-  if (!loading && isIntersecting && (items?.has_more || needInitReadItems)) {
+  if (!loading && isIntersecting && items?.has_more) {
     ;(async () => {
       setLoading(true)
       try {
-        if (items.has_more) {
-          const status = lastUnread == null ? undefined : 'read'
-          const { list, has_more } = await xfetch<Items>(
-            `api/items${param({ ...query(status), after: items.list.at(-1)?.id })}`,
-          )
-          setItems({ list: [...items.list, ...list], has_more })
-        } else {
-          const { list, has_more } = await xfetch<Items>(`api/items${param(query('read'))}`)
-          setLastUnread(items.list.length)
-          setItems({ list: [...items.list, ...list], has_more })
-        }
+        const { list, has_more } = await xfetch<Items>(
+          `api/items${param({ ...query(), after: items.list.at(-1)?.id })}`,
+        )
+        setItems({ list: [...items.list, ...list], has_more })
       } finally {
         setLoading(false)
         setIsIntersecting(false)
@@ -114,19 +93,15 @@ export default function ItemList({
 
   const refresh = useCallback(async () => {
     setItems(await xfetch<Items>(`api/items${param(query())}`))
-    setItemsInited(true)
-    setLastUnread(undefined)
     setSelectedItem(undefined)
     setItemsOutdated(false)
     itemListRef.current?.scrollTo(0, 0)
   }, [query, setItems, setSelectedItem, setItemsOutdated])
   useEffect(() => {
     refresh()
-    return () => setItemsInited(false)
   }, [refresh])
 
   const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
-  const readItems = lastUnread == null ? null : items?.list.slice(lastUnread)
   return (
     <div style={style}>
       <div className="topbar" style={{ gap: length(1) }}>
@@ -142,7 +117,6 @@ export default function ItemList({
             timerId.current = setTimeout(async () => {
               timerId.current = undefined
               setItems(await xfetch<Items>(`api/items${param(query())}`))
-              setLastUnread(undefined)
               setItemsOutdated(false)
             }, 200)
           }}
@@ -199,7 +173,7 @@ export default function ItemList({
       </div>
       <Divider />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
-        {items?.list.slice(0, lastUnread).map(item => (
+        {items?.list.map(item => (
           <CardItem
             key={item.id}
             item={item}
@@ -211,35 +185,7 @@ export default function ItemList({
             feedsById={feedsById}
           />
         ))}
-        {!!readItems?.length && (
-          <>
-            <div
-              style={{ display: 'flex', alignItems: 'center', columnGap: length(2), marginTop: length(1) }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                <Divider />
-              </div>
-              <span style={{ opacity: 0.9, fontSize: '0.9em' }}>read items</span>
-              <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                <Divider />
-              </div>
-            </div>
-            {readItems.map(item => (
-              <CardItem
-                key={item.id}
-                item={item}
-                setItems={setItems}
-                setStatus={setStatus}
-                selectedItem={selectedItem}
-                setSelectedItem={setSelectedItem}
-                contentRef={contentRef}
-                feedsById={feedsById}
-                style={{ opacity: 0.85 }}
-              />
-            ))}
-          </>
-        )}
-        {(loading || items?.has_more || needInitReadItems) && (
+        {(loading || items?.has_more) && (
           <div
             style={{ marginTop: length(4), marginBottom: length(3) }}
             ref={node => {
@@ -281,7 +227,6 @@ function CardItem({
   setSelectedItem,
   contentRef,
   feedsById,
-  style,
 }: {
   item: Item
   setItems: Dispatch<SetStateAction<Items | undefined>>
@@ -290,14 +235,12 @@ function CardItem({
   setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
   contentRef: RefObject<HTMLDivElement>
   feedsById?: Map<number, Feed>
-  style?: CSSProperties
 }) {
   const prevStatus = usePrevious(item.status)
   const isSelected = item.id === selectedItem?.id
   return (
     <Card
       selected={isSelected}
-      style={style}
       interactive
       onClick={async () => {
         if (isSelected) return
