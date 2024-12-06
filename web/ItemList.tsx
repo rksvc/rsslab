@@ -358,8 +358,18 @@ function CardItem({
             </time>
           </small>
         </div>
-        <span style={{ marginBottom: length(0.5), overflowWrap: 'break-word' }}>
-          {item.title.length > 100 ? `${item.title.slice(0, 100)}...` : item.title || 'untitled'}
+        <span
+          // https://tailwindcss.com/docs/line-clamp
+          style={{
+            marginBottom: length(0.5),
+            overflowWrap: 'break-word',
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitBoxOrient: 'vertical',
+            WebkitLineClamp: 3,
+          }}
+        >
+          {item.title}
         </span>
       </div>
     </Card>

@@ -193,8 +193,8 @@ func (s *Storage) ListItems(filter ItemFilter, limit int) ([]Item, error) {
 	}
 	rows, err := s.db.Query(fmt.Sprintf(`
 		select
-			id, guid, feed_id, title, link,
-			date, status, image, podcast_url
+			id, guid, feed_id, iif(title = '', content, title),
+			link, date, status, image, podcast_url
 		from items
 		where %s
 		order by %s
