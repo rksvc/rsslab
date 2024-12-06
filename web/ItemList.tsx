@@ -1,4 +1,4 @@
-import { Button, Card, CardList, Classes, Divider, InputGroup, Spinner, SpinnerSize } from '@blueprintjs/core'
+import { Button, Card, CardList, Classes, Divider, InputGroup, Spinner } from '@blueprintjs/core'
 import {
   type CSSProperties,
   type Dispatch,
@@ -197,7 +197,7 @@ export default function ItemList({
               }
             }}
           >
-            <Spinner size={SpinnerSize.SMALL} />
+            <Spinner className="loading-items" size={18} />
           </div>
         )}
       </CardList>

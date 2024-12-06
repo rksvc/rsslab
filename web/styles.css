@@ -32,7 +32,7 @@ path.bp5-spinner-track {
 	stroke: none !important;
 }
 
-:not(.bp5-popover-arrow) > svg {
+:not(.bp5-popover-arrow, .loading-items > div) > svg {
 	width: 16px;
 	height: 16px;
 }
