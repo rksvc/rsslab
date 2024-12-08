@@ -8,7 +8,6 @@
 	--danger: #dc3545;
 
 	--light-bg-hover: #f0f0f0;
-
 	--dark-bg: var(--dark-gray2);
 	--dark-bg-hover: rgb(from var(--gray1) r g b / 30%);
 }
@@ -17,6 +16,7 @@
 
 html {
 	font-size: 15px;
+	color-scheme: light;
 }
 
 body {
@@ -61,23 +61,14 @@ path.bp5-spinner-track {
 }
 
 a.bp5-button {
-	color: var(--primary) !important;
-	border-color: rgb(from var(--primary-bg) r g b / 95%) !important;
+	color: light-dark(var(--primary), var(--dark-primary)) !important;
+	--bg: light-dark(var(--primary-bg), var(--dark-primary));
+	border-color: rgb(from var(--bg) r g b / 95%) !important;
 	&:hover {
-		background-color: rgb(from var(--primary-bg) r g b / 10%) !important;
+		background-color: rgb(from var(--bg) r g b / 10%) !important;
 	}
 	&:active {
-		background-color: rgb(from var(--primary-bg) r g b / 15%) !important;
-	}
-}
-.bp5-dark a.bp5-button {
-	color: var(--dark-primary) !important;
-	border-color: rgb(from var(--dark-primary) r g b / 95%) !important;
-	&:hover {
-		background-color: rgb(from var(--dark-primary) r g b / 10%) !important;
-	}
-	&:active {
-		background-color: rgb(from var(--dark-primary) r g b / 15%) !important;
+		background-color: rgb(from var(--bg) r g b / 15%) !important;
 	}
 }
 
@@ -114,14 +105,9 @@ body,
 		min-width: auto;
 		border-radius: var(--border-radius);
 		&:not(:disabled):is(:hover, .bp5-active) {
-			background-color: var(--light-bg-hover);
-		}
-	}
-	.bp5-button.filter {
-		&:hover {
 			background-color: var(--light-bg-hover) !important;
 		}
-		&.bp5-active {
+		&.filter.bp5-active {
 			color: white !important;
 			background-color: var(--primary-bg) !important;
 		}
@@ -132,7 +118,7 @@ body,
 			display: none;
 		}
 		&:is(:hover, :focus) {
-			background-color: var(--light-bg-hover);
+			background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover)) !important;
 		}
 	}
 }
@@ -150,9 +136,6 @@ body,
 	/* item list search bar */
 	.bp5-input[type="search"] {
 		background-color: var(--dark-bg);
-		&:is(:hover, :focus) {
-			background-color: var(--dark-bg-hover);
-		}
 	}
 }
 
@@ -170,6 +153,14 @@ body,
 			}
 			&:not(.bp5-tree-node-expanded) .bp5-collapse {
 				height: 0 !important;
+			}
+			&:not(.bp5-tree-node-selected) {
+				.bp5-tree-node-caret {
+					color: light-dark(#374049, #d1d1d1);
+				}
+				& > .bp5-tree-node-content:is(:hover, :active) {
+					background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover));
+				}
 			}
 			.bp5-collapse {
 				transition: none;
@@ -207,22 +198,6 @@ body,
 				}
 			}
 		}
-	}
-}
-.bp5-tree-node:not(.bp5-tree-node-selected) {
-	.bp5-tree-node-caret {
-		color: #374049;
-	}
-	& > .bp5-tree-node-content:is(:hover, :active) {
-		background-color: var(--light-bg-hover);
-	}
-}
-.bp5-dark .bp5-tree-node:not(.bp5-tree-node-selected) {
-	.bp5-tree-node-caret {
-		color: #d1d1d1 !important;
-	}
-	& > .bp5-tree-node-content:is(:hover, :active) {
-		background-color: var(--dark-bg-hover);
 	}
 }
 
@@ -275,6 +250,9 @@ body,
 				}
 			}
 
+			&.bp5-intent-primary {
+				color: light-dark(var(--primary), var(--dark-primary));
+			}
 			&.bp5-intent-danger {
 				color: var(--danger);
 				&:not(.bp5-disabled) {
@@ -299,12 +277,6 @@ body,
 		}
 	}
 }
-.bp5-menu-item.bp5-intent-primary {
-	color: var(--primary);
-}
-.bp5-dark .bp5-menu-item.bp5-intent-primary {
-	color: var(--dark-primary);
-}
 
 /* item list */
 .bp5-card-list {
@@ -320,6 +292,14 @@ body,
 		border-bottom: 0 !important;
 		border-radius: var(--border-radius);
 		user-select: none;
+		&:not(.bp5-selected) {
+			&:hover {
+				background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover)) !important;
+			}
+			svg {
+				color: light-dark(var(--primary), var(--dark-primary));
+			}
+		}
 		&.bp5-selected,
 		&.bp5-selected:hover {
 			color: white;
@@ -330,22 +310,6 @@ body,
 			display: flex;
 			width: 100%;
 		}
-	}
-}
-.bp5-card-list > .bp5-card:not(.bp5-selected) {
-	&:hover {
-		background-color: var(--light-bg-hover);
-	}
-	svg {
-		color: var(--primary);
-	}
-}
-.bp5-dark .bp5-card-list > .bp5-card:not(.bp5-selected) {
-	&:hover {
-		background-color: var(--dark-bg-hover);
-	}
-	svg {
-		color: var(--primary-bg);
 	}
 }
 
@@ -373,6 +337,9 @@ body,
 		.bp5-label {
 			user-select: none;
 		}
+		select {
+			background-color: light-dark(white, var(--dark-bg));
+		}
 		.bp5-input,
 		select,
 		.bp5-section,
@@ -399,12 +366,6 @@ body,
 			}
 		}
 	}
-}
-.bp5-dialog-body select {
-	background-color: white !important;
-}
-.bp5-dark .bp5-dialog-body select {
-	background-color: var(--dark-bg) !important;
 }
 
 /* toast */
