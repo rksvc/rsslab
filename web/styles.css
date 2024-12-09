@@ -104,7 +104,7 @@ body,
 		min-height: 0;
 		min-width: auto;
 		border-radius: var(--border-radius);
-		&:not(:disabled):is(:hover, .bp5-active) {
+		&:not(:disabled, a):is(:hover, .bp5-active) {
 			background-color: var(--light-bg-hover) !important;
 		}
 		&.filter.bp5-active {
