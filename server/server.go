@@ -23,6 +23,7 @@ import (
 )
 
 type Server struct {
+	URL           string
 	db            *storage.Storage
 	client        http.Client
 	pending       atomic.Int32
@@ -107,7 +108,8 @@ func (s *Server) Start(addr string) error {
 	if host == "" {
 		host = "0.0.0.0"
 	}
-	log.Printf("server started on http://%s:%s", host, port)
+	s.URL = fmt.Sprintf("http://%s:%s", host, port)
+	log.Print("server started on " + s.URL)
 	return (&http.Server{
 		Addr:    addr,
 		Handler: mux,

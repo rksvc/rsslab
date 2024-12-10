@@ -8,7 +8,7 @@ import { pluginReact } from '@rsbuild/plugin-react'
 export default defineConfig({
   html: {
     title: 'RSSLab',
-    favicon: './web/assets/wind.svg',
+    favicon: './web/assets/icon.svg',
     meta: {
       'dark-theme': process.env.NODE_ENV === 'production' ? '%DARK_THEME%' : '',
     },
