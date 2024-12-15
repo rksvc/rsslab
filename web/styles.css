@@ -36,10 +36,6 @@ path.bp5-spinner-track {
 	width: 16px;
 	height: 16px;
 }
-:is(.bp5-menu-item-icon, .bp5-menu-item-label) svg {
-	width: 14px;
-	height: 14px;
-}
 
 :is(pre, code) {
 	font-family: SFMono-Regular, Menlo, Consolas, monospace !important;
@@ -234,6 +230,11 @@ body,
 			.bp5-menu-item-label {
 				display: flex;
 			}
+			svg {
+				stroke-width: 1.6px;
+				width: 15px;
+				height: 15px;
+			}
 
 			.bp5-menu-item-icon {
 				color: currentColor;
@@ -271,7 +272,7 @@ body,
 				}
 				.bp5-spinner-head {
 					stroke: currentColor;
-					stroke-width: 13;
+					stroke-width: 10px;
 				}
 			}
 		}
