@@ -39,28 +39,10 @@
   },
   "css": {
     "formatter": {
-      "enabled": true,
       "indentStyle": "tab"
     },
     "linter": {
       "enabled": true
     }
-  },
-  "overrides": [
-    {
-      "include": [
-        "*.js"
-      ],
-      "linter": {
-        "rules": {
-          "performance": {
-            "noDelete": "off"
-          },
-          "suspicious": {
-            "noGlobalIsNan": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }
