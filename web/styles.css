@@ -36,6 +36,18 @@ path.bp5-spinner-track {
 	width: 16px;
 	height: 16px;
 }
+.bp5-spinner-head {
+	stroke: currentColor !important;
+	stroke-width: 8px;
+}
+.loading-items svg {
+	opacity: 0.7;
+	width: 19px;
+	height: 19px;
+	.bp5-spinner-head {
+		stroke-width: 10px;
+	}
+}
 
 :is(pre, code) {
 	font-family: SFMono-Regular, Menlo, Consolas, monospace !important;
@@ -269,10 +281,6 @@ body,
 							background-color: color-mix(in srgb, var(--danger), black 15%) !important;
 						}
 					}
-				}
-				.bp5-spinner-head {
-					stroke: currentColor;
-					stroke-width: 10px;
 				}
 			}
 		}

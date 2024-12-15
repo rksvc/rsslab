@@ -187,7 +187,7 @@ export default function ItemList({
         ))}
         {(loading || items?.has_more) && (
           <div
-            style={{ marginTop: length(4), marginBottom: length(3) }}
+            style={{ marginTop: length(3.5), marginBottom: length(3) }}
             ref={node => {
               if (node) {
                 sentryNodeRef.current = node
