@@ -629,14 +629,7 @@ function TextEditor({
               }
             }}
           />
-          <Button
-            loading={loading}
-            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
-            intent={Intent.PRIMARY}
-            text="OK"
-            onClick={confirm}
-            fill
-          />
+          <Button loading={loading} intent={Intent.PRIMARY} text="OK" onClick={confirm} fill />
           <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
         </>
       }
@@ -705,14 +698,7 @@ function RefreshRateEditor({
               style={{ width: '120px' }}
             />
           </Tooltip>
-          <Button
-            loading={loading}
-            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
-            intent={Intent.PRIMARY}
-            text="OK"
-            onClick={confirm}
-            fill
-          />
+          <Button loading={loading} intent={Intent.PRIMARY} text="OK" onClick={confirm} fill />
           <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
         </>
       }
