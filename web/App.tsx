@@ -1,6 +1,5 @@
 import { Card, Divider, FocusStyleManager, Intent, OverlayToaster, Position } from '@blueprintjs/core'
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle } from 'react-feather'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
 import ItemShow from './ItemShow.tsx'
@@ -49,7 +48,6 @@ export default function App() {
         caughtErrors.current.add(evt.reason)
         const message = evt.reason instanceof Error ? evt.reason.message : String(evt.reason)
         toaster.current?.show({
-          icon: <AlertCircle />,
           intent: Intent.DANGER,
           message: message.split('\n', 2)[0],
           timeout: 0,

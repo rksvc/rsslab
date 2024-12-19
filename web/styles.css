@@ -379,13 +379,16 @@ body,
 
 /* toast */
 .bp5-toast.bp5-intent-danger {
-	margin-top: 15px;
 	border-radius: var(--border-radius);
 	align-items: center;
 	box-shadow: 0 1px 4px rgb(from var(--black) r g b / 20%), 0 2px 16px rgb(from var(--black) r g b / 20%);
 	.bp5-button:last-child {
 		min-height: auto;
+		min-width: 0;
+		padding: 0;
+		margin: 5px;
 		.bp5-icon-cross {
+			margin: 0;
 			color: rgb(from currentColor r g b / 87%) !important;
 		}
 		&:is(:hover, :active) {
@@ -394,16 +397,9 @@ body,
 			}
 			background-color: inherit !important;
 		}
-		svg {
-			margin-left: 10px;
-		}
-	}
-	& > svg {
-		margin-left: 10px;
-		color: rgb(from currentColor r g b / 90%) !important;
 	}
 	.bp5-toast-message {
-		padding: 9px;
+		padding: 9px 11px;
 	}
 }
 
