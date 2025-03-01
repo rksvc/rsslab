@@ -205,7 +205,6 @@ func (s *Server) handleFeedCreate(c context) error {
 	if err != nil {
 		return err
 	}
-	go s.FindFeedFavicon(*feed)
 
 	items := convertItems(rawFeed.Items, *feed)
 	lastRefreshed := time.Now()
@@ -223,24 +222,6 @@ func (s *Server) handleFeedCreate(c context) error {
 func (s *Server) handleFeedsRefresh(c context) error {
 	go s.RefreshAllFeeds()
 	return nil
-}
-
-func (s *Server) handleFeedIcon(c context) error {
-	id, err := c.VarInt("id")
-	if err != nil {
-		return err
-	}
-
-	bytes, err := s.db.GetFeedIcon(id)
-	if err != nil {
-		return err
-	} else if bytes == nil {
-		return c.NotFound()
-	}
-
-	c.w.Header().Set("Content-Type", http.DetectContentType(bytes))
-	c.w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
-	return c.Write(bytes)
 }
 
 func (s *Server) handleFeedRefresh(c context) error {
@@ -423,7 +404,6 @@ func (s *Server) handleOPMLImport(c context) error {
 		return errors.Join(errs...)
 	}
 
-	go s.FindFavicons()
 	go s.RefreshAllFeeds()
 	return nil
 }

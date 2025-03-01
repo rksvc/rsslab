@@ -15,7 +15,6 @@ type Feed struct {
 	Title         string     `json:"title"`
 	Link          string     `json:"link,omitempty"`
 	FeedLink      string     `json:"feed_link"`
-	HasIcon       bool       `json:"has_icon"`
 	LastRefreshed *time.Time `json:"last_refreshed,omitempty"`
 }
 
@@ -83,18 +82,9 @@ func (s *Storage) EditFeed(feedId int, editor FeedEditor) error {
 	return nil
 }
 
-func (s *Storage) UpdateFeedIcon(feedId int, icon []byte) {
-	_, err := s.db.Exec(`update feeds set icon = ? where id = ?`, icon, feedId)
-	if err != nil {
-		log.Print(err)
-	}
-}
-
 func (s *Storage) ListFeeds() ([]Feed, error) {
 	rows, err := s.db.Query(`
-		select
-			id, folder_id, title, link, feed_link,
-			icon is not null as has_icon
+		select id, folder_id, title, link, feed_link
 		from feeds
 		order by title collate nocase
 	`)
@@ -110,7 +100,6 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 			&f.Title,
 			&f.Link,
 			&f.FeedLink,
-			&f.HasIcon,
 		)
 		if err != nil {
 			return nil, utils.NewError(err)
@@ -121,36 +110,6 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 		return nil, utils.NewError(err)
 	}
 	return result, nil
-}
-
-func (s *Storage) ListFeedsMissingIcons() (result []Feed) {
-	rows, err := s.db.Query(`
-		select id, link, feed_link
-		from feeds
-		where icon is null
-	`)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	for rows.Next() {
-		var f Feed
-		err = rows.Scan(
-			&f.Id,
-			&f.Link,
-			&f.FeedLink,
-		)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		result = append(result, f)
-	}
-	if err = rows.Err(); err != nil {
-		log.Print(err)
-		return
-	}
-	return
 }
 
 func (s *Storage) GetFeed(id int) (*Feed, error) {
@@ -166,20 +125,6 @@ func (s *Storage) GetFeed(id int) (*Feed, error) {
 		return nil, utils.NewError(err)
 	}
 	return &f, nil
-}
-
-func (s *Storage) GetFeedIcon(id int) ([]byte, error) {
-	var icon []byte
-	err := s.db.QueryRow(`
-		select icon from feeds where id = ?
-	`, id).Scan(&icon)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, utils.NewError(err)
-	}
-	return icon, nil
 }
 
 func (s *Storage) GetFeeds(folderId int) ([]Feed, error) {

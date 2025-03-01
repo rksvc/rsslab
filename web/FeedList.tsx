@@ -138,15 +138,13 @@ export default function FeedList({
       isSelected: selected?.feed_id === feed.id,
       secondaryLabel: secondaryLabel(status?.state.get(feed.id)),
       nodeData: { feed_id: feed.id },
-      icon: feed.has_icon ? (
-        <img
+      icon: (
+        <object
+          data={`https://icons.duckduckgo.com/ip3/${URL.parse(feed.link || parseFeedLink(feed.feed_link, true)[1])?.hostname}.ico`}
           style={{ width: length(4), aspectRatio: '1/1', marginRight: '7px' }}
-          src={`api/feeds/${feed.id}/icon`}
-        />
-      ) : (
-        <span style={{ display: 'flex' }}>
-          <Rss style={{ marginRight: '6px' }} />
-        </span>
+        >
+          <Rss style={{ display: 'flex' }} />
+        </object>
       ),
       label: (
         <ContextMenu

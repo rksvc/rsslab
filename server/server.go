@@ -9,7 +9,6 @@ import (
 	"mime"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 	"rsslab/rss"
 	"rsslab/storage"
 	"rsslab/utils"
@@ -61,7 +60,6 @@ func New(db *storage.Storage) *Server {
 		go s.worker()
 	}
 
-	go s.FindFavicons()
 	refreshRate, err := s.db.GetSettingInt(storage.REFRESH_RATE)
 	if err != nil {
 		log.Print(err)
@@ -86,7 +84,6 @@ func (s *Server) Start(addr string) error {
 	mux.HandleFunc("GET    /api/feeds", wrap(s.handleFeedList))
 	mux.HandleFunc("POST   /api/feeds", wrap(s.handleFeedCreate))
 	mux.HandleFunc("POST   /api/feeds/refresh", wrap(s.handleFeedsRefresh))
-	mux.HandleFunc("GET    /api/feeds/{id}/icon", wrap(s.handleFeedIcon))
 	mux.HandleFunc("POST   /api/feeds/{id}/refresh", wrap(s.handleFeedRefresh))
 	mux.HandleFunc("PUT    /api/feeds/{id}", wrap(s.handleFeedUpdate))
 	mux.HandleFunc("DELETE /api/feeds/{id}", wrap(s.handleFeedDelete))
@@ -114,43 +111,6 @@ func (s *Server) Start(addr string) error {
 		Addr:    addr,
 		Handler: mux,
 	}).ListenAndServe()
-}
-
-func (s *Server) FindFavicons() {
-	for _, feed := range s.db.ListFeedsMissingIcons() {
-		s.FindFeedFavicon(feed)
-	}
-}
-
-func (s *Server) FindFeedFavicon(feed storage.Feed) {
-	var icon []byte
-	for _, rawUrl := range []string{feed.Link, feed.FeedLink} {
-		url, err := url.Parse(rawUrl)
-		if err != nil || url.Host == "" {
-			continue
-		}
-		resp, err := s.client.Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		defer resp.Body.Close()
-		if utils.IsErrorResponse(resp.StatusCode) {
-			if resp.StatusCode != http.StatusNotFound {
-				log.Print(utils.ResponseError(resp))
-			}
-			continue
-		}
-		icon, err = io.ReadAll(resp.Body)
-		if err != nil {
-			log.Print(err)
-			icon = nil
-		}
-		break
-	}
-	if len(icon) > 0 {
-		s.db.UpdateFeedIcon(feed.Id, icon)
-	}
 }
 
 func (s *Server) SetRefreshRate(minute int) {
