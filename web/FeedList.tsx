@@ -696,6 +696,12 @@ function RefreshRateEditor({
               majorStepSize={60}
               disabled={loading}
               style={{ width: '120px' }}
+              onKeyDown={async evt => {
+                if (evt.key === 'Enter') {
+                  evt.preventDefault()
+                  await confirm()
+                }
+              }}
             />
           </Tooltip>
           <Button loading={loading} intent={Intent.PRIMARY} text="OK" onClick={confirm} fill />
