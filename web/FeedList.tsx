@@ -138,7 +138,14 @@ export default function FeedList({
       isSelected: selected?.feed_id === feed.id,
       secondaryLabel: secondaryLabel(status?.state.get(feed.id)),
       nodeData: { feed_id: feed.id },
-      icon: <FeedIcon feed={feed} />,
+      icon: (
+        <object
+          data={`https://icons.duckduckgo.com/ip3/${URL.parse(feed.link || parseFeedLink(feed.feed_link, true)[1])?.hostname}.ico`}
+          style={{ width: length(4), aspectRatio: '1/1', marginRight: '7px' }}
+        >
+          <Rss style={{ display: 'flex' }} />
+        </object>
+      ),
       label: (
         <ContextMenu
           content={({ isOpen }) => (
@@ -731,18 +738,5 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
         }
       }}
     />
-  )
-}
-
-function FeedIcon({ feed }: { feed: Feed }) {
-  const [ok, setOk] = useState(true)
-  return ok ? (
-    <img
-      src={`https://icons.duckduckgo.com/ip3/${URL.parse(feed.link || parseFeedLink(feed.feed_link, true)[1])?.hostname}.ico`}
-      style={{ width: length(4), aspectRatio: '1/1', marginRight: '7px' }}
-      onError={() => setOk(false)}
-    />
-  ) : (
-    <Rss style={{ display: 'flex', marginRight: '6px' }} />
   )
 }
