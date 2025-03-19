@@ -9,24 +9,44 @@ export function length(n: number) {
 }
 
 export function fromNow(date: Date, withSuffix = true) {
-  let secs = (new Date().getTime() - date.getTime()) / 1000
-  const neg = secs < 0
+  let minutes = (new Date().getTime() - date.getTime()) / 1000 / 60
+  const neg = minutes < 0
 
-  secs = Math.abs(secs)
+  minutes = Math.abs(minutes)
   const suffix = withSuffix ? ' ago' : ''
   const repr =
-    secs < 45 * 60
-      ? `${Math.round(secs / 60)}m${suffix}`
-      : secs < 24 * 60 * 60
-        ? `${Math.round(secs / 3600)}h${suffix}`
-        : secs < 7 * 24 * 60 * 60
-          ? `${Math.round(secs / 86400)}d${suffix}`
+    minutes < 60
+      ? `${Math.round(minutes)}m${suffix}`
+      : minutes < 24 * 60
+        ? `${Math.round(minutes / 60)}h${suffix}`
+        : minutes < 7 * 24 * 60
+          ? `${Math.round(minutes / (24 * 60))}d${suffix}`
           : date.toLocaleDateString(undefined, {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
             })
 
+  return neg ? `-${repr}` : repr
+}
+
+export function fromNowVerbose(date: Date) {
+  let minutes = (new Date().getTime() - date.getTime()) / 1000 / 60
+  const neg = minutes < 0
+
+  minutes = Math.abs(minutes)
+  const parts = []
+  if (minutes > 24 * 60) {
+    parts.push(`${Math.floor(minutes / (24 * 60))}d`)
+    minutes %= 24 * 60
+  }
+  if (minutes > 60) {
+    parts.push(`${Math.floor(minutes / 60)}h`)
+    minutes %= 60
+  }
+  if (minutes > 0) parts.push(`${Math.round(minutes)}m`)
+
+  const repr = `${parts.join('')} ago`
   return neg ? `-${repr}` : repr
 }
 

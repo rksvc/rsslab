@@ -49,7 +49,7 @@ import {
 } from 'react-feather'
 import { NewFeedDialog } from './NewFeed.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
-import { compareTitle, fromNow, length, parseFeedLink, xfetch } from './utils.ts'
+import { compareTitle, fromNow, fromNowVerbose, length, parseFeedLink, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -383,7 +383,7 @@ export default function FeedList({
               <Tooltip
                 content={
                   status?.last_refreshed ? (
-                    <small>Last Refreshed: {fromNow(new Date(status.last_refreshed))}</small>
+                    <small>Last Refreshed: {fromNowVerbose(new Date(status.last_refreshed))}</small>
                   ) : undefined
                 }
                 intent={Intent.PRIMARY}
