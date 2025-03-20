@@ -45,7 +45,7 @@ export function fromNowVerbose(date: Date) {
     minutes %= 60
   }
   minutes = Math.round(minutes)
-  if (minutes > 0) parts.push(`${minutes}m`)
+  if (minutes > 0 || !parts.length) parts.push(`${minutes}m`)
 
   const repr = `${parts.join('')} ago`
   return neg ? `-${repr}` : repr
