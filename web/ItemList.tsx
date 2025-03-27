@@ -1,4 +1,13 @@
-import { Button, Card, CardList, Classes, Divider, InputGroup, Spinner } from '@blueprintjs/core'
+import {
+  Button,
+  ButtonVariant,
+  Card,
+  CardList,
+  Classes,
+  Divider,
+  InputGroup,
+  Spinner,
+} from '@blueprintjs/core'
 import {
   type CSSProperties,
   type Dispatch,
@@ -126,7 +135,7 @@ export default function ItemList({
           icon={itemsOutdated ? <RotateCw strokeWidth={1.7} /> : <Check />}
           title={itemsOutdated ? 'Refresh Outdated' : 'Mark All Read'}
           disabled={filter === 'Starred' && !itemsOutdated}
-          minimal
+          variant={ButtonVariant.MINIMAL}
           onClick={async () => {
             if (itemsOutdated) return await refresh()
             const after = items?.list.at(0)?.id

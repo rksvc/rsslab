@@ -1,6 +1,7 @@
 import {
   AnchorButton,
   Button,
+  ButtonVariant,
   Code,
   Dialog,
   DialogBody,
@@ -421,8 +422,8 @@ function TransformerSection({
           href={`api/transform/${type}/${encodeURIComponent(stringify(params))}`}
           target="_blank"
           intent={Intent.PRIMARY}
-          rightIcon={<ExternalLink />}
-          outlined
+          endIcon={<ExternalLink />}
+          variant={ButtonVariant.OUTLINED}
           fill
         />
       </SectionCard>

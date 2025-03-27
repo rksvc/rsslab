@@ -1,6 +1,7 @@
 import {
   Button,
   ButtonGroup,
+  ButtonVariant,
   Classes,
   Colors,
   ContextMenu,
@@ -338,9 +339,9 @@ export default function FeedList({
             })
             setSettings(settings => ({ ...settings, dark_theme: !settings.dark_theme }))
           }}
-          minimal
+          variant={ButtonVariant.MINIMAL}
         />
-        <ButtonGroup outlined>
+        <ButtonGroup variant={ButtonVariant.OUTLINED}>
           {(
             [
               { value: 'Unread', title: 'Unread', icon: <Circle /> },
@@ -438,7 +439,7 @@ export default function FeedList({
             </Menu>
           }
         >
-          <Button icon={<MoreHorizontal />} minimal />
+          <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} />
         </Popover>
       </div>
       <Divider />

@@ -1,4 +1,4 @@
-import { AnchorButton, Button, ButtonGroup, Classes, Divider, H2 } from '@blueprintjs/core'
+import { AnchorButton, Button, ButtonGroup, ButtonVariant, Classes, Divider, H2 } from '@blueprintjs/core'
 import type { CSSProperties, Dispatch, RefObject, SetStateAction } from 'react'
 import { Circle, ExternalLink, Star } from 'react-feather'
 import type { Feed, Item, Items, Status } from './types.ts'
@@ -52,7 +52,7 @@ export default function ItemShow({
 
   return (
     <div style={style}>
-      <ButtonGroup className="topbar" style={{ gap: length(0.5) }} minimal>
+      <ButtonGroup className="topbar" style={{ gap: length(0.5) }} variant={ButtonVariant.MINIMAL}>
         <Button
           icon={<Star fill={selectedItem.status === 'starred' ? 'currentColor' : 'transparent'} />}
           onClick={toggleStatus('starred')}

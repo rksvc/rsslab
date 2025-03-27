@@ -9,18 +9,18 @@
     "lint": "tsc && biome check"
   },
   "dependencies": {
-    "@blueprintjs/core": "^5.16.6",
+    "@blueprintjs/core": "^5.17.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-feather": "^2.0.10"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@rsbuild/core": "^1.2.10",
+    "@rsbuild/core": "^1.2.19",
     "@rsbuild/plugin-react": "^1.1.1",
-    "@types/node": "^22.13.4",
-    "@types/react": "^18.3.18",
+    "@types/node": "^22.13.14",
+    "@types/react": "^18.3.20",
     "@types/react-dom": "^18.3.5",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.2"
   }
 }
