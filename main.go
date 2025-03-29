@@ -69,12 +69,7 @@ func main() {
 		systray.SetTitle("RSSLab")
 		systray.SetTooltip("RSSLab")
 
-		autoStart, err := utils.AutoStart()
-		if err != nil && err != utils.ErrAutoStartNotImplemented {
-			log.Print(err)
-		}
 		menuOpen := systray.AddMenuItem("Open", "")
-		menuAutoStart := systray.AddMenuItemCheckbox("Run at Startup", "", autoStart)
 		systray.AddSeparator()
 		menuQuit := systray.AddMenuItem("Quit", "")
 		go func() {
@@ -83,15 +78,6 @@ func main() {
 				case <-menuOpen.ClickedCh:
 					if err := browser.OpenURL(srv.URL); err != nil {
 						log.Print(err)
-					}
-				case <-menuAutoStart.ClickedCh:
-					autoStart = !autoStart
-					if err := utils.SetAutoStart(autoStart); err != nil {
-						log.Print(err)
-					} else if autoStart {
-						menuAutoStart.Check()
-					} else {
-						menuAutoStart.Uncheck()
 					}
 				case <-menuQuit.ClickedCh:
 					systray.Quit()

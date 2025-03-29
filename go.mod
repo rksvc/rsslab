@@ -12,12 +12,12 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/net v0.37.0
-	golang.org/x/sys v0.31.0
 )
 
 require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 )
