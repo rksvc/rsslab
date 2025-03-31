@@ -39,7 +39,7 @@ func match(s string, lower string) (string, bool) {
 	if len(s) < len(lower) {
 		return s, false
 	}
-	for i := 0; i < len(lower); i++ {
+	for i := range len(lower) {
 		c1 := s[i]
 		c2 := lower[i]
 		if c1 != c2 {

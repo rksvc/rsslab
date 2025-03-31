@@ -1,3 +1,5 @@
+// https://github.com/go-errors/errors
+
 package utils
 
 import (
