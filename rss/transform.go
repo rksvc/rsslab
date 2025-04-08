@@ -220,7 +220,7 @@ func tryGet(url string, headers map[string]string, client *http.Client) (resp *h
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", utils.USER_AGENT)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0")
 	for key, val := range headers {
 		req.Header.Set(key, val)
 	}
