@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "rsbuild dev",
-    "build": "rsbuild build",
-    "lint": "tsc && biome check"
+    "bundle": "rsbuild build",
+    "lint": "tsc && biome check",
+    "serve": "go run -tags=sqlite_foreign_keys . -addr=:1234",
+    "build_windows": "CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows go build -tags=sqlite_foreign_keys -ldflags='-s -w -H=windowsgui' -trimpath"
   },
   "dependencies": {
     "@blueprintjs/core": "^5.17.6",

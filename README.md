@@ -4,7 +4,7 @@ RSS reader with built-in feed generator.
 
 ```sh
 pnpm install
-pnpm build
+pnpm bundle
 go build -tags=sqlite_foreign_keys -trimpath -ldflags='-s -w' # append ' -H=windowsgui' to -ldflags on Windows
 ```
 
