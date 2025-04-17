@@ -59,7 +59,8 @@ func Parse(r io.Reader, baseUrl string) (*Feed, error) {
 	if err != nil {
 		return nil, err
 	}
-	feed.SiteURL = base.ResolveReference(siteUrl).String()
+	siteUrl = base.ResolveReference(siteUrl)
+	feed.SiteURL = siteUrl.String()
 
 	for i := range feed.Items {
 		itemUrl, err := url.Parse(feed.Items[i].URL)
