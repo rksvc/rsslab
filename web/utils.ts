@@ -57,14 +57,14 @@ export function compareTitle(a: { title: string }, b: { title: string }) {
   return lhs === rhs ? 0 : lhs < rhs ? -1 : +1
 }
 
-export function parseFeedLink(link: string, onlyURL = false): [Transformer | undefined, string] {
+export function parseFeedLink(link: string): [Transformer | undefined, string] {
   const i = link.indexOf(':')
   if (i !== -1) {
     const scheme = link.slice(0, i)
     switch (scheme) {
       case 'html':
       case 'json':
-        return [scheme, onlyURL ? JSON.parse(link.slice(i + 1)).url : link.slice(i + 1)]
+        return [scheme, link.slice(i + 1)]
     }
   }
   return [undefined, link]

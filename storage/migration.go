@@ -107,4 +107,8 @@ var migrations = []func(*sql.Tx) error{
 		_, err := tx.Exec(`alter table feeds drop icon`)
 		return err
 	},
+	func(tx *sql.Tx) error {
+		_, err := tx.Exec(`alter table feeds add column icon blob`)
+		return err
+	},
 }
