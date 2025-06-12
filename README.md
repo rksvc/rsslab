@@ -1,4 +1,8 @@
-RSS reader with built-in feed generator.
+RSS reader with built-in feed generator which can transform HTML/JSON links into RSS feeds.
+
+## Usage
+
+Run the executable, click the system tray icon, select "Open".
 
 ## Build
 
