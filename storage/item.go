@@ -265,7 +265,7 @@ const (
 	ITEMS_KEEP_DAYS = 90
 )
 
-// Delete old articles from the database to cleanup space.
+// Delete old articles from the database to clean up space.
 //
 // The rules:
 //   - Never delete unread/starred entries.
