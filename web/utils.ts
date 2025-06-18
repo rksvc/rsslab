@@ -9,7 +9,7 @@ export function length(n: number) {
 }
 
 export function fromNow(date: Date, withSuffix = true) {
-  let minutes = (new Date().getTime() - date.getTime()) / 1000 / 60
+  let minutes = (Date.now() - date.getTime()) / 1000 / 60
   const neg = minutes < 0
 
   minutes = Math.abs(minutes)
@@ -31,7 +31,7 @@ export function fromNow(date: Date, withSuffix = true) {
 }
 
 export function fromNowVerbose(date: Date) {
-  let minutes = (new Date().getTime() - date.getTime()) / 1000 / 60
+  let minutes = (Date.now() - date.getTime()) / 1000 / 60
   const neg = minutes < 0
 
   minutes = Math.abs(minutes)

@@ -218,8 +218,8 @@ export default function FeedList({
                       key={key}
                       text={text}
                       icon={<FolderIcon />}
-                      onClick={() => {
-                        updateFeedAttr(feed.id, 'folder_id', key)
+                      onClick={async () => {
+                        await updateFeedAttr(feed.id, 'folder_id', key)
                         setRefreshed({})
                       }}
                     />
@@ -291,10 +291,10 @@ export default function FeedList({
     ],
     [status],
   )
-  // biome-ignore lint/correctness/useExhaustiveDependencies(feedsWithoutFolders):
-  // biome-ignore lint/correctness/useExhaustiveDependencies(foldersWithFeeds):
-  // biome-ignore lint/correctness/useExhaustiveDependencies(status?.state.get):
-  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshed):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(feedsWithoutFolders): controlled by `refreshed`
+  // biome-ignore lint/correctness/useExhaustiveDependencies(foldersWithFeeds): controlled by `refreshed`
+  // biome-ignore lint/correctness/useExhaustiveDependencies(status?.state.get): controlled by `refreshed`
+  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshed): controller
   const [hiddenFolders, hiddenFeeds] = useMemo(() => {
     if (filter === 'Feeds' || !feedsWithoutFolders || !foldersWithFeeds) return []
 

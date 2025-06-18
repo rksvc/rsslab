@@ -80,9 +80,10 @@ export default function App() {
     setItemsOutdated(true)
     if (running) setTimeout(() => refreshStats(), 500)
   }
-  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds):
-  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats):
+  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds): run only at startup
+  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats): run only at startup
   useEffect(() => {
+    // biome-ignore lint/nursery/noFloatingPromises: expected
     ;(async () => {
       await Promise.all([refreshFeeds(), refreshStats()])
       setItemsOutdated(false)

@@ -2,7 +2,7 @@ import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import zlib from 'node:zlib'
-import { type RsbuildPlugin, defineConfig } from '@rsbuild/core'
+import { defineConfig, type RsbuildPlugin } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
 
 export default defineConfig({

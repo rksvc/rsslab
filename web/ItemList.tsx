@@ -86,6 +86,7 @@ export default function ItemList({
     })
   }
   if (!loading && isIntersecting && items?.has_more) {
+    // biome-ignore lint/nursery/noFloatingPromises: expected
     ;(async () => {
       setLoading(true)
       try {
@@ -107,6 +108,7 @@ export default function ItemList({
     itemListRef.current?.scrollTo(0, 0)
   }, [query, setItems, setSelectedItem, setItemsOutdated])
   useEffect(() => {
+    // biome-ignore lint/nursery/noFloatingPromises: expected
     refresh()
   }, [refresh])
 

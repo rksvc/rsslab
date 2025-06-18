@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -10,6 +10,10 @@
     "lineWidth": 110
   },
   "linter": {
+    "domains": {
+      "project": "recommended",
+      "react": "recommended"
+    },
     "rules": {
       "a11y": {
         "recommended": false
@@ -18,7 +22,8 @@
         "noDangerouslySetInnerHtml": "off"
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noDescendingSpecificity": "off"
       },
       "suspicious": {
         "noExplicitAny": "off"
@@ -32,17 +37,9 @@
       "arrowParentheses": "asNeeded"
     }
   },
-  "json": {
-    "formatter": {
-      "enabled": false
-    }
-  },
   "css": {
     "formatter": {
       "indentStyle": "tab"
-    },
-    "linter": {
-      "enabled": true
     }
   }
 }

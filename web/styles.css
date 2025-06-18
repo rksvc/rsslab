@@ -385,7 +385,9 @@ body,
 .bp5-toast.bp5-intent-danger {
 	border-radius: var(--border-radius);
 	align-items: center;
-	box-shadow: 0 1px 4px rgb(from var(--black) r g b / 20%), 0 2px 16px rgb(from var(--black) r g b / 20%);
+	box-shadow:
+		0 1px 4px rgb(from var(--black) r g b / 20%),
+		0 2px 16px rgb(from var(--black) r g b / 20%);
 	.bp5-button:last-child {
 		min-height: auto;
 		min-width: 0;

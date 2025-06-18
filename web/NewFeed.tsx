@@ -156,6 +156,7 @@ export function NewFeedDialog({
       style={{ color: 'inherit', textDecoration: 'underline' }}
       href="https://github.com/tidwall/gjson"
       target="_blank"
+      rel="noopener"
     >
       JSON path
     </a>
