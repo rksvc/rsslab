@@ -4,7 +4,6 @@ import {
   ButtonVariant,
   Classes,
   Colors,
-  ContextMenu,
   Divider,
   FileInput,
   Intent,
@@ -14,7 +13,6 @@ import {
   NumericInput,
   Popover,
   Spinner,
-  TextArea,
   Tooltip,
   Tree,
   type TreeNodeInfo,
@@ -33,24 +31,20 @@ import {
   Circle,
   Download,
   Edit,
-  ExternalLink,
-  Folder as FolderIcon,
-  Link,
   Menu as MenuIcon,
   Moon,
   MoreHorizontal,
-  Move,
   Plus,
   RotateCw,
   Rss,
   Star,
   Sun,
-  Trash,
   Upload,
 } from 'react-feather'
 import { NewFeedDialog } from './NewFeed.tsx'
+import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
-import { compareTitle, fromNow, fromNowVerbose, length, parseFeedLink, xfetch } from './utils.ts'
+import { compareTitle, fromNow, fromNowVerbose, length, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -74,7 +68,6 @@ export default function FeedList({
   selected,
   setSelected,
   refreshed,
-  setRefreshed,
 
   refreshFeeds,
   refreshStats,
@@ -96,7 +89,6 @@ export default function FeedList({
   selected: Selected
   setSelected: Dispatch<SetStateAction<Selected>>
   refreshed: Record<never, never>
-  setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
 
   refreshFeeds: () => Promise<void>
   refreshStats: (loop?: boolean) => Promise<void>
@@ -109,17 +101,6 @@ export default function FeedList({
   const opmlFormRef = useRef<HTMLFormElement>(null)
   const menuCloserRef = useRef<HTMLDivElement>(null)
 
-  const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
-    id: number,
-    attrName: T,
-    value: Feed[T],
-  ) => {
-    await xfetch(`api/feeds/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ [attrName]: value ?? -1 }),
-    })
-    setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
-  }
   const secondaryLabel = (state?: FeedState) =>
     filter === 'Unread' ? (
       state?.unread.toString()
@@ -150,106 +131,9 @@ export default function FeedList({
         </span>
       ),
       label: (
-        <ContextMenu
-          content={({ isOpen }) => (
-            <Menu>
-              {feed.link && (
-                <MenuItem
-                  text="Website"
-                  intent={Intent.PRIMARY}
-                  labelElement={<ExternalLink />}
-                  icon={<Link />}
-                  target="_blank"
-                  href={feed.link}
-                  rel="noopener noreferrer"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <MenuItem
-                text="Feed Link"
-                intent={Intent.PRIMARY}
-                labelElement={<ExternalLink />}
-                icon={<Rss />}
-                target="_blank"
-                href={(() => {
-                  const [scheme, link] = parseFeedLink(feed.feed_link)
-                  return scheme ? `api/transform/${scheme}/${encodeURIComponent(link)}` : link
-                })()}
-                rel="noopener noreferrer"
-                referrerPolicy="no-referrer"
-              />
-              <MenuDivider />
-              <TextEditor
-                menuText="Rename"
-                menuIcon={<Edit />}
-                defaultValue={feed.title}
-                onConfirm={async title => {
-                  if (!title) throw new Error('Feed name is required')
-                  await updateFeedAttr(feed.id, 'title', title)
-                }}
-              />
-              <TextEditor
-                menuText="Change Link"
-                menuIcon={<Edit />}
-                defaultValue={feed.feed_link}
-                textAreaStyle={{ wordBreak: 'break-all' }}
-                onConfirm={async feedLink => {
-                  if (!feedLink) throw new Error('Feed link is required')
-                  await updateFeedAttr(feed.id, 'feed_link', feedLink)
-                }}
-              />
-              <MenuItem
-                text="Refresh"
-                icon={<RotateCw />}
-                disabled={!!status?.running}
-                onClick={async () => {
-                  await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
-                  await refreshStats()
-                }}
-              />
-              <MenuItem text="Move to..." icon={<Move />} disabled={!foldersWithFeeds?.length}>
-                {[
-                  { key: null, text: '--' },
-                  ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ key: id, text: title })),
-                ]
-                  .filter(({ key }) => key !== feed.folder_id)
-                  .map(({ key, text }) => (
-                    <MenuItem
-                      key={key}
-                      text={text}
-                      icon={<FolderIcon />}
-                      onClick={async () => {
-                        await updateFeedAttr(feed.id, 'folder_id', key)
-                        setRefreshed({})
-                      }}
-                    />
-                  ))}
-              </MenuItem>
-              <Deleter
-                isOpen={isOpen}
-                onConfirm={async () => {
-                  await xfetch(`api/feeds/${feed.id}`, { method: 'DELETE' })
-                  setFeeds(feeds => feeds?.filter(f => f.id !== feed.id))
-                  setStatus(
-                    status =>
-                      status && {
-                        ...status,
-                        state: new Map(status.state.entries().filter(([id]) => id !== feed.id)),
-                      },
-                  )
-                  setSelected(feed.folder_id === null ? undefined : { folder_id: feed.folder_id })
-                }}
-              />
-            </Menu>
-          )}
-          onContextMenu={() =>
-            setSelected(selected => (selected?.feed_id === feed.id ? selected : { feed_id: feed.id }))
-          }
-        >
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={feed.title}>
-            {feed.title || 'untitled'}
-          </span>
-        </ContextMenu>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={feed.title}>
+          {feed.title || 'untitled'}
+        </span>
       ),
     }) satisfies TreeNodeInfo<Selected>
   const setExpanded = (isExpanded: boolean) => async (node: TreeNodeInfo<Selected>) => {
@@ -363,7 +247,6 @@ export default function FeedList({
           ))}
         </ButtonGroup>
         <Popover
-          placement="bottom"
           transitionDuration={0}
           content={
             <Menu>
@@ -462,68 +345,9 @@ export default function FeedList({
                 ({
                   id: `folder:${folder.id}`,
                   label: (
-                    <>
-                      <ContextMenu
-                        content={({ isOpen }) => (
-                          <Menu>
-                            <TextEditor
-                              menuText="Rename"
-                              menuIcon={<Edit />}
-                              defaultValue={folder.title}
-                              onConfirm={async title => {
-                                if (!title) throw new Error('Folder title is required')
-                                await xfetch(`api/folders/${folder.id}`, {
-                                  method: 'PUT',
-                                  body: JSON.stringify({ title }),
-                                })
-                                setFolders(folders =>
-                                  folders?.map(f => (f.id === folder.id ? { ...f, title } : f)),
-                                )
-                              }}
-                            />
-                            <MenuItem
-                              text="Refresh"
-                              icon={<RotateCw />}
-                              disabled={!!status?.running}
-                              onClick={async () => {
-                                await xfetch(`api/folders/${folder.id}/refresh`, {
-                                  method: 'POST',
-                                })
-                                await refreshStats()
-                              }}
-                            />
-                            <Deleter
-                              isOpen={isOpen}
-                              onConfirm={async () => {
-                                await xfetch(`api/folders/${folder.id}`, { method: 'DELETE' })
-                                const deletedFeeds = new Set(folder.feeds.map(feed => feed.id))
-                                setFolders(folders => folders?.filter(f => f.id !== folder.id))
-                                setFeeds(feeds => feeds?.filter(feed => !deletedFeeds.has(feed.id)))
-                                setStatus(
-                                  status =>
-                                    status && {
-                                      ...status,
-                                      state: new Map(
-                                        status.state.entries().filter(([id]) => !deletedFeeds.has(id)),
-                                      ),
-                                    },
-                                )
-                                setSelected(undefined)
-                              }}
-                            />
-                          </Menu>
-                        )}
-                        onContextMenu={() =>
-                          setSelected(selected =>
-                            selected?.folder_id === folder.id ? selected : { folder_id: folder.id },
-                          )
-                        }
-                      >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={folder.title}>
-                          {folder.title || 'untitled'}
-                        </span>
-                      </ContextMenu>
-                    </>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={folder.title}>
+                      {folder.title || 'untitled'}
+                    </span>
                   ),
                   isExpanded: folder.is_expanded,
                   isSelected: selected?.folder_id === folder.id,
@@ -566,84 +390,6 @@ export default function FeedList({
         setSelected={setSelected}
       />
     </div>
-  )
-}
-
-function TextEditor({
-  menuText,
-  menuIcon,
-  defaultValue,
-  placeholder,
-  textAreaStyle,
-  onConfirm,
-}: {
-  menuText: string
-  menuIcon: JSX.Element
-  defaultValue?: string
-  placeholder?: string
-  textAreaStyle?: CSSProperties
-  onConfirm: (value: string) => Promise<void>
-}) {
-  const [loading, setLoading] = useState(false)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-  const closerRef = useRef<HTMLDivElement>(null)
-  const confirm = async () => {
-    if (!inputRef.current) return
-    setLoading(true)
-    try {
-      await onConfirm(inputRef.current.value)
-      closerRef.current?.click()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Popover
-      usePortal={false}
-      placement="right"
-      transitionDuration={0}
-      modifiers={{
-        flip: { enabled: true },
-        offset: { enabled: true, options: { offset: [0, 4] } },
-      }}
-      shouldReturnFocusOnClose
-      content={
-        <>
-          <TextArea
-            defaultValue={defaultValue}
-            placeholder={placeholder}
-            inputRef={inputRef}
-            cols={30}
-            spellCheck="false"
-            disabled={loading}
-            autoResize
-            style={{
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              ...textAreaStyle,
-            }}
-            onKeyDown={async evt => {
-              if (evt.key === 'Enter') {
-                evt.preventDefault()
-                await confirm()
-              }
-            }}
-          />
-          <Button loading={loading} intent={Intent.PRIMARY} text="OK" onClick={confirm} fill />
-          <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
-        </>
-      }
-      onOpening={node => {
-        const elem = node.querySelector<HTMLInputElement>('.bp5-input')
-        if (elem) {
-          elem.focus()
-          elem.setSelectionRange(elem.value.length, elem.value.length)
-        }
-      }}
-    >
-      <MenuItem text={menuText} icon={menuIcon} shouldDismissPopover={false} />
-    </Popover>
   )
 }
 
@@ -713,33 +459,5 @@ function RefreshRateEditor({
     >
       <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
     </Popover>
-  )
-}
-
-function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Promise<void> }) {
-  const [state, setState] = useState<boolean>()
-  if (!isOpen && state === false) setState(undefined)
-
-  return (
-    <MenuItem
-      text={`Delete${state === false ? ' (confirm)' : ''}`}
-      active={state != null}
-      disabled={state}
-      icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash />}
-      intent={Intent.DANGER}
-      shouldDismissPopover={false}
-      onClick={async () => {
-        if (state === false) {
-          setState(true)
-          try {
-            await onConfirm()
-          } finally {
-            setState(undefined)
-          }
-        } else if (state === undefined) {
-          setState(false)
-        }
-      }}
-    />
   )
 }

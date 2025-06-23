@@ -6,6 +6,11 @@ import {
   Classes,
   Divider,
   InputGroup,
+  Intent,
+  Menu,
+  MenuDivider,
+  MenuItem,
+  Popover,
   Spinner,
 } from '@blueprintjs/core'
 import {
@@ -18,13 +23,30 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Check, Circle, RotateCw, Search, Star } from 'react-feather'
-import type { Feed, Filter, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
-import { fromNow, length, param, xfetch } from './utils.ts'
+import {
+  Check,
+  Circle,
+  Edit,
+  ExternalLink,
+  Folder as FolderIcon,
+  Link,
+  MoreHorizontal,
+  Move,
+  RotateCw,
+  Rss,
+  Search,
+  Star,
+  Trash,
+} from 'react-feather'
+import TextEditor from './TextEditor.tsx'
+import type { Feed, Filter, Folder, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
+import { fromNow, length, param, parseFeedLink, xfetch } from './utils.ts'
 
 export default function ItemList({
   style,
 
+  setFolders,
+  setFeeds,
   items,
   setItems,
   status,
@@ -34,15 +56,21 @@ export default function ItemList({
 
   filter,
   selected,
+  setSelected,
   itemsOutdated,
   setItemsOutdated,
+  setRefreshed,
   contentRef,
 
+  refreshStats,
   foldersById,
   feedsById,
+  foldersWithFeeds,
 }: {
   style: CSSProperties
 
+  setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
+  setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   items?: Items
   setItems: Dispatch<SetStateAction<Items | undefined>>
   status?: Status
@@ -52,15 +80,20 @@ export default function ItemList({
 
   filter: Filter
   selected: Selected
+  setSelected: Dispatch<SetStateAction<Selected>>
   itemsOutdated: boolean
   setItemsOutdated: Dispatch<SetStateAction<boolean>>
+  setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
   contentRef: RefObject<HTMLDivElement>
 
+  refreshStats: (loop?: boolean) => Promise<void>
   foldersById?: Map<number, FolderWithFeeds>
   feedsById?: Map<number, Feed>
+  foldersWithFeeds?: FolderWithFeeds[]
 }) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const timerId = useRef<ReturnType<typeof setTimeout>>()
   const searchRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
@@ -74,6 +107,17 @@ export default function ItemList({
     if (search) query.search = search
     return query
   }, [selected, filter])
+  const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
+    id: number,
+    attrName: T,
+    value: Feed[T],
+  ) => {
+    await xfetch(`api/feeds/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ [attrName]: value ?? -1 }),
+    })
+    setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
+  }
 
   const sentryNodeRef = useRef<Element>()
   const [isIntersecting, setIsIntersecting] = useState(false)
@@ -181,6 +225,166 @@ export default function ItemList({
             setSelectedItem(item => item && (item.status === 'unread' ? { ...item, status: 'read' } : item))
           }}
         />
+        <Popover
+          transitionDuration={0}
+          onOpening={() => setMenuOpen(true)}
+          onClosed={() => setMenuOpen(false)}
+          content={
+            selected?.feed_id != null
+              ? (() => {
+                  const feed = feedsById?.get(selected.feed_id)
+                  if (!feed) return undefined
+                  return (
+                    <Menu>
+                      {feed.link && (
+                        <MenuItem
+                          text="Website"
+                          intent={Intent.PRIMARY}
+                          labelElement={<ExternalLink />}
+                          icon={<Link />}
+                          target="_blank"
+                          href={feed.link}
+                          rel="noopener noreferrer"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                      <MenuItem
+                        text="Feed Link"
+                        intent={Intent.PRIMARY}
+                        labelElement={<ExternalLink />}
+                        icon={<Rss />}
+                        target="_blank"
+                        href={(() => {
+                          const [scheme, link] = parseFeedLink(feed.feed_link)
+                          return scheme ? `api/transform/${scheme}/${encodeURIComponent(link)}` : link
+                        })()}
+                        rel="noopener noreferrer"
+                        referrerPolicy="no-referrer"
+                      />
+                      <MenuDivider />
+                      <TextEditor
+                        menuText="Rename"
+                        menuIcon={<Edit />}
+                        defaultValue={feed.title}
+                        onConfirm={async title => {
+                          if (!title) throw new Error('Feed name is required')
+                          await updateFeedAttr(feed.id, 'title', title)
+                        }}
+                      />
+                      <TextEditor
+                        menuText="Change Link"
+                        menuIcon={<Edit />}
+                        defaultValue={feed.feed_link}
+                        textAreaStyle={{ wordBreak: 'break-all' }}
+                        onConfirm={async feedLink => {
+                          if (!feedLink) throw new Error('Feed link is required')
+                          await updateFeedAttr(feed.id, 'feed_link', feedLink)
+                        }}
+                      />
+                      <MenuItem
+                        text="Refresh"
+                        icon={<RotateCw />}
+                        disabled={!!status?.running}
+                        onClick={async () => {
+                          await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
+                          await refreshStats()
+                        }}
+                      />
+                      <MenuItem text="Move to..." icon={<Move />} disabled={!foldersWithFeeds?.length}>
+                        {[
+                          { key: null, text: '--' },
+                          ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ key: id, text: title })),
+                        ]
+                          .filter(({ key }) => key !== feed.folder_id)
+                          .map(({ key, text }) => (
+                            <MenuItem
+                              key={key}
+                              text={text}
+                              icon={<FolderIcon />}
+                              onClick={async () => {
+                                await updateFeedAttr(feed.id, 'folder_id', key)
+                                setRefreshed({})
+                              }}
+                            />
+                          ))}
+                      </MenuItem>
+                      <Deleter
+                        isOpen={menuOpen}
+                        onConfirm={async () => {
+                          await xfetch(`api/feeds/${feed.id}`, { method: 'DELETE' })
+                          setFeeds(feeds => feeds?.filter(f => f.id !== feed.id))
+                          setStatus(
+                            status =>
+                              status && {
+                                ...status,
+                                state: new Map(status.state.entries().filter(([id]) => id !== feed.id)),
+                              },
+                          )
+                          setSelected(feed.folder_id === null ? undefined : { folder_id: feed.folder_id })
+                        }}
+                      />
+                    </Menu>
+                  )
+                })()
+              : selected?.folder_id != null
+                ? (() => {
+                    const folder = foldersById?.get(selected.folder_id)
+                    if (!folder) return undefined
+                    return (
+                      <Menu>
+                        <TextEditor
+                          menuText="Rename"
+                          menuIcon={<Edit />}
+                          defaultValue={folder.title}
+                          onConfirm={async title => {
+                            if (!title) throw new Error('Folder title is required')
+                            await xfetch(`api/folders/${folder.id}`, {
+                              method: 'PUT',
+                              body: JSON.stringify({ title }),
+                            })
+                            setFolders(folders =>
+                              folders?.map(f => (f.id === folder.id ? { ...f, title } : f)),
+                            )
+                          }}
+                        />
+                        <MenuItem
+                          text="Refresh"
+                          icon={<RotateCw />}
+                          disabled={!!status?.running}
+                          onClick={async () => {
+                            await xfetch(`api/folders/${folder.id}/refresh`, {
+                              method: 'POST',
+                            })
+                            await refreshStats()
+                          }}
+                        />
+                        <Deleter
+                          isOpen={menuOpen}
+                          onConfirm={async () => {
+                            await xfetch(`api/folders/${folder.id}`, { method: 'DELETE' })
+                            const deletedFeeds = new Set(folder.feeds.map(feed => feed.id))
+                            setFolders(folders => folders?.filter(f => f.id !== folder.id))
+                            setFeeds(feeds => feeds?.filter(feed => !deletedFeeds.has(feed.id)))
+                            setStatus(
+                              status =>
+                                status && {
+                                  ...status,
+                                  state: new Map(
+                                    status.state.entries().filter(([id]) => !deletedFeeds.has(id)),
+                                  ),
+                                },
+                            )
+                            setSelected(undefined)
+                          }}
+                        />
+                      </Menu>
+                    )
+                  })()
+                : undefined
+          }
+        >
+          <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} disabled={!selected} />
+        </Popover>
       </div>
       <Divider />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
@@ -327,6 +531,39 @@ function CardItem({
         </span>
       </div>
     </Card>
+  )
+}
+
+function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Promise<void> }) {
+  const [state, setState] = useState<boolean>()
+  const closerRef = useRef<HTMLDivElement>(null)
+  if (!isOpen && state === false) setState(undefined)
+
+  return (
+    <>
+      <MenuItem
+        text={`Delete${state === false ? ' (confirm)' : ''}`}
+        active={state != null}
+        disabled={state}
+        icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash />}
+        intent={Intent.DANGER}
+        shouldDismissPopover={false}
+        onClick={async () => {
+          if (state === false) {
+            setState(true)
+            try {
+              await onConfirm()
+              closerRef.current?.click()
+            } finally {
+              setState(undefined)
+            }
+          } else if (state === undefined) {
+            setState(false)
+          }
+        }}
+      />
+      <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
+    </>
   )
 }
 
