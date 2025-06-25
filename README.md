@@ -1,4 +1,4 @@
-RSS reader with built-in feed generator which can transform HTML/JSON links into RSS feeds.
+RSS reader with built-in feed builder which can transform HTML/JSON links into RSS feeds.
 
 ## Usage
 
