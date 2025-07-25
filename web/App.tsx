@@ -69,12 +69,12 @@ export default function App() {
   }
   const refreshStats = async () => {
     const { running, last_refreshed, state } = await xfetch<
-      Omit<Status, 'state'> & { state: (FeedState & { id: number })[] }
+      Omit<Status, 'state'> & { state: Record<number, FeedState> }
     >('api/status')
     setStatus({
       running,
       last_refreshed,
-      state: new Map(state.map(({ id, ...state }) => [id, state])),
+      state: new Map(Object.entries(state).map(([id, state]) => [parseInt(id), state])),
     })
     setRefreshed({})
     setItemsOutdated(true)

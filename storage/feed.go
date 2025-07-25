@@ -238,40 +238,60 @@ func (s *Storage) GetHTTPState(feedId int) (state HTTPState, err error) {
 }
 
 type FeedState struct {
-	Id            int        `json:"id"`
 	Unread        int        `json:"unread"`
 	Starred       int        `json:"starred"`
 	LastRefreshed *time.Time `json:"last_refreshed,omitempty"`
 	Error         *string    `json:"error,omitempty"`
 }
 
-func (s *Storage) FeedState() ([]FeedState, error) {
+func (s *Storage) FeedState() (map[int]FeedState, error) {
 	rows, err := s.db.Query(fmt.Sprintf(`
 		select
-			feeds.id,
+			feed_id,
 			sum(iif(status = %d, 1, 0)),
-			sum(iif(status = %d, 1, 0)),
-			last_refreshed,
-			error
-		from feeds
-		left join items
-		on feeds.id = items.feed_id
-		group by feeds.id
+			sum(iif(status = %d, 1, 0))
+		from items
+		group by feed_id
 	`, UNREAD, STARRED))
 	if err != nil {
 		return nil, utils.NewError(err)
 	}
-	result := make([]FeedState, 0)
+
+	result := make(map[int]FeedState)
 	for rows.Next() {
+		var id int
 		var s FeedState
-		err = rows.Scan(&s.Id, &s.Unread, &s.Starred, &s.LastRefreshed, &s.Error)
+		err = rows.Scan(&id, &s.Unread, &s.Starred)
 		if err != nil {
 			return nil, utils.NewError(err)
 		}
-		result = append(result, s)
+		result[id] = s
 	}
 	if err = rows.Err(); err != nil {
 		return nil, utils.NewError(err)
 	}
+
+	rows, err = s.db.Query(`select id, last_refreshed, error from feeds`)
+	if err != nil {
+		return nil, utils.NewError(err)
+	}
+
+	for rows.Next() {
+		var id int
+		var lastRefreshed *time.Time
+		var error *string
+		if err = rows.Scan(&id, &lastRefreshed, &error); err != nil {
+			return nil, utils.NewError(err)
+		}
+		if state, ok := result[id]; ok {
+			state.LastRefreshed = lastRefreshed
+			state.Error = error
+			result[id] = state
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, utils.NewError(err)
+	}
+
 	return result, nil
 }
