@@ -254,14 +254,6 @@ body,
 			.bp5-submenu-icon {
 				margin-top: 0;
 			}
-			&:is(:hover, .bp5-active):not(.bp5-disabled) {
-				&,
-				.bp5-menu-item-icon,
-				.bp5-submenu-icon {
-					color: white !important;
-					background-color: var(--primary-bg) !important;
-				}
-			}
 
 			&.bp5-intent-primary {
 				color: light-dark(var(--primary), var(--dark-primary));
@@ -284,6 +276,15 @@ body,
 				}
 			}
 		}
+	}
+}
+.bp5-popover-open > .bp5-menu-item,
+.bp5-menu-item:is(:hover, .bp5-active):not(.bp5-disabled) {
+	&,
+	.bp5-menu-item-icon,
+	.bp5-submenu-icon {
+		color: white !important;
+		background-color: var(--primary-bg) !important;
 	}
 }
 
