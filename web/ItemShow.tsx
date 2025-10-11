@@ -72,12 +72,12 @@ export default function ItemShow({
           referrerPolicy="no-referrer"
         />
       </ButtonGroup>
-      <Divider />
+      <Divider compact />
       <div style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
         <H2 style={{ fontWeight: 700 }}>{selectedItem.title || 'untitled'}</H2>
         <div style={{ opacity: 0.95 }}>{feedsById?.get(selectedItem.feed_id)?.title}</div>
         <div style={{ opacity: 0.95 }}>{new Date(selectedItem.date).toLocaleString()}</div>
-        <Divider style={{ marginTop: length(3), marginBottom: length(3) }} />
+        <Divider compact style={{ marginTop: length(3), marginBottom: length(3) }} />
         <div
           style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
           className={cn(Classes.RUNNING_TEXT, 'content')}

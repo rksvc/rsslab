@@ -130,7 +130,6 @@ export default function ItemList({
     })
   }
   if (!loading && isIntersecting && items?.has_more) {
-    // biome-ignore lint/nursery/noFloatingPromises: expected
     ;(async () => {
       setLoading(true)
       try {
@@ -152,7 +151,6 @@ export default function ItemList({
     itemListRef.current?.scrollTo(0, 0)
   }, [query, setItems, setSelectedItem, setItemsOutdated])
   useEffect(() => {
-    // biome-ignore lint/nursery/noFloatingPromises: expected
     refresh()
   }, [refresh])
 
@@ -386,7 +384,7 @@ export default function ItemList({
           <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} disabled={!selected} />
         </Popover>
       </div>
-      <Divider />
+      <Divider compact />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
         {items?.list.map(item => (
           <CardItem
@@ -418,7 +416,7 @@ export default function ItemList({
       </CardList>
       {feedError && (
         <>
-          <Divider />
+          <Divider compact />
           <div
             style={{
               padding: length(3),

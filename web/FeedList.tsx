@@ -292,7 +292,7 @@ export default function FeedList({
                 inputRef={refreshRateRef}
                 onConfirm={async () => {
                   if (!refreshRateRef.current) return
-                  const refreshRate = Number.parseInt(refreshRateRef.current.value)
+                  const refreshRate = parseInt(refreshRateRef.current.value, 10)
                   await xfetch('api/settings', {
                     method: 'PUT',
                     body: JSON.stringify({ refresh_rate: refreshRate }),
@@ -327,7 +327,7 @@ export default function FeedList({
           <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} />
         </Popover>
       </div>
-      <Divider />
+      <Divider compact />
       <Tree<Selected>
         contents={[
           {
@@ -365,7 +365,7 @@ export default function FeedList({
       />
       {status?.running ? (
         <>
-          <Divider />
+          <Divider compact />
           <div style={statusBarStyle}>
             <Spinner style={{ marginLeft: length(3), marginRight: length(2) }} size={15} />
             Refreshing ({status.running} left)
@@ -373,7 +373,7 @@ export default function FeedList({
         </>
       ) : errorCount ? (
         <>
-          <Divider />
+          <Divider compact />
           <div style={statusBarStyle}>
             <AlertCircle style={{ marginLeft: length(3), marginRight: length(2) }} />
             {errorCount} feeds have errors
@@ -455,7 +455,7 @@ function RefreshRateEditor({
           <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
         </>
       }
-      onOpening={node => node.querySelector<HTMLInputElement>('.bp5-input')?.focus()}
+      onOpening={node => node.querySelector<HTMLInputElement>('.bp6-input')?.focus()}
     >
       <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
     </Popover>

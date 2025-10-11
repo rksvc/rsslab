@@ -18,6 +18,9 @@
       "a11y": {
         "recommended": false
       },
+      "complexity": {
+        "noImportantStyles": "off"
+      },
       "security": {
         "noDangerouslySetInnerHtml": "off"
       },

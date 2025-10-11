@@ -74,7 +74,7 @@ export default function App() {
     setStatus({
       running,
       last_refreshed,
-      state: new Map(Object.entries(state).map(([id, state]) => [parseInt(id), state])),
+      state: new Map(Object.entries(state).map(([id, state]) => [parseInt(id, 10), state])),
     })
     setRefreshed({})
     setItemsOutdated(true)
@@ -83,15 +83,14 @@ export default function App() {
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds): run only at startup
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats): run only at startup
   useEffect(() => {
-    // biome-ignore lint/nursery/noFloatingPromises: expected
     ;(async () => {
       await Promise.all([refreshFeeds(), refreshStats()])
       setItemsOutdated(false)
     })()
   }, [])
   useEffect(() => {
-    if (settings.dark_theme) document.body.classList.add('bp5-dark')
-    else document.body.classList.remove('bp5-dark')
+    if (settings.dark_theme) document.body.classList.add('bp6-dark')
+    else document.body.classList.remove('bp6-dark')
   }, [settings])
 
   const [feedsById, foldersById, feedsWithoutFolders, foldersWithFeeds] = useMemo(() => {
@@ -151,9 +150,9 @@ export default function App() {
       }}
     >
       <FeedList {...props} style={{ ...panelStyle, minWidth: '300px', maxWidth: '300px' }} />
-      <Divider />
+      <Divider compact />
       <ItemList {...props} style={{ ...panelStyle, minWidth: '300px', maxWidth: '300px' }} />
-      <Divider />
+      <Divider compact />
       {selectedItem?.content != null && (
         <ItemShow
           {...props}

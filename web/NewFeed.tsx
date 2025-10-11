@@ -238,9 +238,7 @@ export function NewFeedDialog({
         method: 'POST',
         body: JSON.stringify({
           url: feedLink,
-          folder_id: selectedFolderRef.current.value
-            ? Number.parseInt(selectedFolderRef.current.value)
-            : null,
+          folder_id: selectedFolderRef.current.value ? parseInt(selectedFolderRef.current.value, 10) : null,
         }),
       })
       setFeeds(feeds => feeds && [...feeds, feed].toSorted(compareTitle))
@@ -266,7 +264,7 @@ export function NewFeedDialog({
       onClose={() => setIsOpen(false)}
       canEscapeKeyClose
       canOutsideClickClose
-      onOpened={node => node.querySelector<HTMLInputElement>('.bp5-input')?.focus()}
+      onOpened={node => node.querySelector<HTMLInputElement>('.bp6-input')?.focus()}
     >
       <DialogBody>
         <FormGroup label="URL" fill>
@@ -335,7 +333,7 @@ export function NewFeedDialog({
               setCurType={setTransType}
               setFeedLink={setFeedLink}
             />
-            <Divider />
+            <Divider compact />
             <TransformerSection
               style={{
                 borderTopLeftRadius: 0,
