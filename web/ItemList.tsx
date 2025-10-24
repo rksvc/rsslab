@@ -157,7 +157,7 @@ export default function ItemList({
   const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
   return (
     <div style={style}>
-      <div className="topbar" style={{ gap: length(1) }}>
+      <div className="topbar" style={{ gap: length(1.5) }}>
         <InputGroup
           inputRef={searchRef}
           leftIcon={<Search style={{ pointerEvents: 'none' }} className={Classes.ICON} />}

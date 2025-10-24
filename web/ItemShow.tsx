@@ -52,7 +52,7 @@ export default function ItemShow({
 
   return (
     <div style={style}>
-      <ButtonGroup className="topbar" style={{ gap: length(0.5) }} variant={ButtonVariant.MINIMAL}>
+      <ButtonGroup className="topbar" style={{ gap: length(1) }} variant={ButtonVariant.MINIMAL}>
         <Button
           icon={<Star fill={selectedItem.status === 'starred' ? 'currentColor' : 'transparent'} />}
           onClick={toggleStatus('starred')}
