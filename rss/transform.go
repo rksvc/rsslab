@@ -1,6 +1,7 @@
 package rss
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/andybalholm/cascadia"
+	"github.com/dop251/goja"
 	"github.com/tidwall/gjson"
 	"golang.org/x/net/html"
 )
@@ -36,6 +38,10 @@ type JSONRule struct {
 	ItemUrlPrefix string            `json:"item_url_prefix"`
 	ItemContent   string            `json:"item_content"`
 	ItemDate      string            `json:"item_date_published"`
+}
+
+type JavaScriptRule struct {
+	JavaScript string `json:"js"`
 }
 
 func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
@@ -201,6 +207,32 @@ func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
 	}
 
 	slices.SortStableFunc(feed.Items, cmpItem)
+	return &feed, nil
+}
+
+func RunJavaScript(rule *JavaScriptRule, client *http.Client) (*Feed, error) {
+	vm := goja.New()
+	vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
+
+	module := vm.NewObject()
+	vm.Set("module", module)
+
+	_, err := vm.RunString(rule.JavaScript)
+	if err != nil {
+		return nil, err
+	}
+	exports := []byte("{}")
+	if v := module.Get("exports"); v != nil {
+		exports, err = json.Marshal(v.Export())
+		if err != nil {
+			return nil, err
+		}
+	}
+	var feed Feed
+	err = json.Unmarshal(exports, &feed)
+	if err != nil {
+		return nil, err
+	}
 	return &feed, nil
 }
 

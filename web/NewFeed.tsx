@@ -34,6 +34,7 @@ type Param = {
   desc?: string | JSX.Element
   parse?: (input: string) => any
   placeholder?: string
+  multiline?: boolean
 }
 
 export function NewFeedDialog({
@@ -226,6 +227,17 @@ export function NewFeedDialog({
     },
   ]
 
+  const [js, setJs] = useState('')
+  const jsParams: Param[] = [
+    {
+      value: js,
+      setValue: setJs,
+      key: 'js',
+      desc: 'JavaScript',
+      multiline: true,
+    },
+  ]
+
   const onConfirm = async () => {
     if (!selectedFolderRef.current) return
     if (!feedLink) throw new Error('Feed link is required')
@@ -326,7 +338,23 @@ export function NewFeedDialog({
                 boxShadow: 'none',
               }}
               type="html"
+              title="HTML Transformer"
               params={[transUrlParam, ...transHtmlParams]}
+              isOpen={transOpen}
+              setIsOpen={setTransOpen}
+              curType={transType}
+              setCurType={setTransType}
+              setFeedLink={setFeedLink}
+            />
+            <Divider compact />
+            <TransformerSection
+              style={{
+                borderRadius: 0,
+                boxShadow: 'none',
+              }}
+              type="json"
+              title="JSON Transformer"
+              params={[transUrlParam, ...transJsonParams]}
               isOpen={transOpen}
               setIsOpen={setTransOpen}
               curType={transType}
@@ -340,8 +368,9 @@ export function NewFeedDialog({
                 borderTopRightRadius: 0,
                 boxShadow: 'none',
               }}
-              type="json"
-              params={[transUrlParam, ...transJsonParams]}
+              type="js"
+              title="JavaScript"
+              params={jsParams}
               isOpen={transOpen}
               setIsOpen={setTransOpen}
               curType={transType}
@@ -361,6 +390,7 @@ export function NewFeedDialog({
 function TransformerSection({
   style,
   type,
+  title,
   params,
   isOpen,
   setIsOpen,
@@ -370,6 +400,7 @@ function TransformerSection({
 }: {
   style: CSSProperties
   type: Transformer
+  title: string
   params: Param[]
   isOpen: boolean
   setIsOpen: Dispatch<SetStateAction<boolean>>
@@ -377,10 +408,13 @@ function TransformerSection({
   setCurType: Dispatch<SetStateAction<Transformer>>
   setFeedLink: Dispatch<SetStateAction<string>>
 }) {
+  const updateFeedLink = (i: number, value: string) =>
+    setFeedLink(`${curType}:${stringify(params.with(i, { ...params[i], value }))}`)
+
   return (
     <Section
       style={style}
-      title={`${type.toUpperCase()} Transformer`}
+      title={title}
       titleRenderer={Span}
       collapseProps={{
         isOpen: isOpen && curType === type,
@@ -398,22 +432,41 @@ function TransformerSection({
       compact
     >
       <SectionCard>
-        {params.map(({ value, setValue, key, desc, placeholder }, i) => (
+        {params.map(({ value, setValue, key, desc, placeholder, multiline }, i) => (
           <FormGroup
             key={`${type}_${key}`}
             label={<Code>{key}</Code>}
             labelInfo={<span style={{ fontSize: '0.9em' }}>{desc}</span>}
             fill
           >
-            <InputGroup
-              value={value}
-              placeholder={placeholder}
-              spellCheck="false"
-              onValueChange={value => {
-                setValue(value)
-                setFeedLink(`${curType}:${stringify(params.with(i, { ...params[i], value }))}`)
-              }}
-            />
+            {multiline ? (
+              <TextArea
+                fill
+                autoResize
+                spellCheck="false"
+                size="small"
+                wrap="off"
+                value={value}
+                style={{
+                  minHeight: '10em',
+                  fontFamily: 'var(--monospace)',
+                }}
+                onChange={evt => {
+                  setValue(evt.target.value)
+                  updateFeedLink(i, evt.target.value)
+                }}
+              />
+            ) : (
+              <InputGroup
+                value={value}
+                placeholder={placeholder}
+                spellCheck="false"
+                onValueChange={value => {
+                  setValue(value)
+                  updateFeedLink(i, value)
+                }}
+              />
+            )}
           </FormGroup>
         ))}
         <AnchorButton

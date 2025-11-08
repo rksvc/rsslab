@@ -1,5 +1,6 @@
 :root {
 	--border-radius: 0.25rem;
+	--monospace: SFMono-Regular, Menlo, Consolas, monospace;
 
 	--primary: #0056b3;
 	--primary-bg: #0080d4;
@@ -50,7 +51,7 @@ path.bp6-spinner-track {
 }
 
 :is(pre, code) {
-	font-family: SFMono-Regular, Menlo, Consolas, monospace !important;
+	font-family: var(--monospace) !important;
 }
 
 .bp6-button.bp6-intent-primary:not(.filter, a) {

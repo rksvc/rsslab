@@ -68,4 +68,4 @@ export type Selected =
     >
   | undefined
 
-export type Transformer = 'html' | 'json'
+export type Transformer = 'html' | 'json' | 'js'

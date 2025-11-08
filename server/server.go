@@ -224,6 +224,14 @@ func (s *Server) do(url string, state *storage.HTTPState) (*rss.Feed, error) {
 		}
 		return rss.TransformJSON(rule, &s.client)
 
+	case "js":
+		rule := new(rss.JavaScriptRule)
+		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
+		if err != nil {
+			return nil, err
+		}
+		return rss.RunJavaScript(rule, &s.client)
+
 	default:
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
