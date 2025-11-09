@@ -64,6 +64,7 @@ export function parseFeedLink(link: string): [Transformer | undefined, string] {
     switch (scheme) {
       case 'html':
       case 'json':
+      case 'js':
         return [scheme, link.slice(i + 1)]
     }
   }
