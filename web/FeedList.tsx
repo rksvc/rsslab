@@ -292,7 +292,7 @@ export default function FeedList({
                 inputRef={refreshRateRef}
                 onConfirm={async () => {
                   if (!refreshRateRef.current) return
-                  const refreshRate = parseInt(refreshRateRef.current.value, 10)
+                  const refreshRate = +refreshRateRef.current.value
                   await xfetch('api/settings', {
                     method: 'PUT',
                     body: JSON.stringify({ refresh_rate: refreshRate }),

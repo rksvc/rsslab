@@ -250,7 +250,7 @@ export function NewFeedDialog({
         method: 'POST',
         body: JSON.stringify({
           url: feedLink,
-          folder_id: selectedFolderRef.current.value ? parseInt(selectedFolderRef.current.value, 10) : null,
+          folder_id: selectedFolderRef.current.value ? +selectedFolderRef.current.value : null,
         }),
       })
       setFeeds(feeds => feeds && [...feeds, feed].toSorted(compareTitle))

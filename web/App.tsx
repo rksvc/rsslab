@@ -74,7 +74,7 @@ export default function App() {
     setStatus({
       running,
       last_refreshed,
-      state: new Map(Object.entries(state).map(([id, state]) => [parseInt(id, 10), state])),
+      state: new Map(Object.entries(state).map(([id, state]) => [+id, state])),
     })
     setRefreshed({})
     setItemsOutdated(true)
