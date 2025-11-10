@@ -293,7 +293,11 @@ export function NewFeedDialog({
               if (scheme)
                 try {
                   const params: Record<string, any> = JSON.parse(link)
-                  for (const { key, setValue } of scheme === 'html' ? transHtmlParams : transJsonParams) {
+                  for (const { key, setValue } of {
+                    html: transHtmlParams,
+                    json: transJsonParams,
+                    js: jsParams,
+                  }[scheme]) {
                     const value = params[key] || ''
                     setValue(typeof value === 'string' ? value : JSON.stringify(value))
                   }
