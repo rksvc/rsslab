@@ -232,7 +232,7 @@ export function NewFeedDialog({
     {
       value: js,
       setValue: setJs,
-      key: 'js',
+      key: 'script',
       desc: 'JavaScript',
       multiline: true,
     },

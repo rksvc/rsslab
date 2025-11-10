@@ -41,7 +41,7 @@ type JSONRule struct {
 }
 
 type JavaScriptRule struct {
-	JavaScript string `json:"js"`
+	Script string `json:"script"`
 }
 
 func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
@@ -217,7 +217,7 @@ func RunJavaScript(rule *JavaScriptRule, client *http.Client) (*Feed, error) {
 	module := vm.NewObject()
 	vm.Set("module", module)
 
-	_, err := vm.RunString(rule.JavaScript)
+	_, err := vm.RunString(rule.Script)
 	if err != nil {
 		return nil, err
 	}
