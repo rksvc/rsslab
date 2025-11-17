@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -310,7 +311,7 @@ func convertItems(items []rss.Item, feed storage.Feed) []storage.Item {
 	now := time.Now()
 	for i, item := range items {
 		result[i] = storage.Item{
-			GUID:    utils.FirstNonEmpty(item.GUID, item.URL),
+			GUID:    cmp.Or(item.GUID, item.URL),
 			FeedId:  feed.Id,
 			Title:   item.Title,
 			Link:    item.URL,

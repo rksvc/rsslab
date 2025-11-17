@@ -1,6 +1,7 @@
 package rss
 
 import (
+	"cmp"
 	"encoding/xml"
 	"io"
 	"rsslab/utils"
@@ -40,9 +41,10 @@ type atomLink struct {
 type atomLinks []atomLink
 
 func (a *atomText) Text() string {
-	if a.Type == "html" {
+	switch a.Type {
+	case "html":
 		return utils.ExtractText(a.Data)
-	} else if a.Type == "xhtml" {
+	case "xhtml":
 		return utils.ExtractText(a.XML)
 	}
 	return strings.TrimSpace(a.Data)
@@ -72,7 +74,7 @@ func ParseAtom(r io.Reader) (*Feed, error) {
 	}
 	feed := &Feed{
 		Title:   atom.Title.String(),
-		SiteURL: utils.FirstNonEmpty(atom.Links.First("alternate"), atom.Links.First("")),
+		SiteURL: cmp.Or(atom.Links.First("alternate"), atom.Links.First("")),
 	}
 
 	for _, item := range atom.Entries {
@@ -81,13 +83,13 @@ func ParseAtom(r io.Reader) (*Feed, error) {
 			linkFromID = item.ID
 			guidFromID = item.ID + "::" + item.Updated
 		}
-		link := utils.FirstNonEmpty(item.OrigLink, item.Links.First("alternate"), item.Links.First(""), linkFromID)
+		link := cmp.Or(item.OrigLink, item.Links.First("alternate"), item.Links.First(""), linkFromID)
 		feed.Items = append(feed.Items, Item{
-			GUID:    utils.FirstNonEmpty(guidFromID, item.ID),
-			Date:    utils.ParseDate(utils.FirstNonEmpty(item.Published, item.Updated)),
+			GUID:    cmp.Or(guidFromID, item.ID),
+			Date:    utils.ParseDate(cmp.Or(item.Published, item.Updated)),
 			URL:     link,
 			Title:   item.Title.Text(),
-			Content: utils.FirstNonEmpty(item.Content.String(), item.Summary.String()),
+			Content: cmp.Or(item.Content.String(), item.Summary.String()),
 		})
 	}
 	return feed, nil

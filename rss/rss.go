@@ -1,6 +1,7 @@
 package rss
 
 import (
+	"cmp"
 	"encoding/xml"
 	"io"
 	"path"
@@ -78,10 +79,10 @@ func ParseRSS(r io.Reader) (*Feed, error) {
 
 		feed.Items = append(feed.Items, Item{
 			GUID:     strings.TrimSpace(item.GUID.GUID),
-			Date:     utils.ParseDate(utils.FirstNonEmpty(item.DublinCoreDate, item.PubDate, item.Torrent.PubDate)),
-			URL:      utils.FirstNonEmpty(item.OrigLink, item.Link, permalink),
+			Date:     utils.ParseDate(cmp.Or(item.DublinCoreDate, item.PubDate, item.Torrent.PubDate)),
+			URL:      cmp.Or(item.OrigLink, item.Link, permalink),
 			Title:    strings.TrimSpace(item.Title),
-			Content:  utils.FirstNonEmpty(item.ContentEncoded, item.Description),
+			Content:  cmp.Or(item.ContentEncoded, item.Description),
 			AudioURL: podcastURL,
 		})
 	}

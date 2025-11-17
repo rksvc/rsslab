@@ -27,15 +27,6 @@ func StringToBytes(s string) []byte {
 	))
 }
 
-func FirstNonEmpty(vals ...string) string {
-	for _, val := range vals {
-		if val = strings.TrimSpace(val); val != "" {
-			return val
-		}
-	}
-	return ""
-}
-
 func IsAPossibleLink(s string) bool {
 	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
 }

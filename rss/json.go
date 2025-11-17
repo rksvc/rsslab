@@ -1,6 +1,7 @@
 package rss
 
 import (
+	"cmp"
 	"encoding/json"
 	"io"
 	"rsslab/utils"
@@ -37,10 +38,10 @@ func ParseJSON(r io.Reader) (*Feed, error) {
 	for _, item := range jsonFeed.Items {
 		feed.Items = append(feed.Items, Item{
 			GUID:    item.ID,
-			Date:    utils.ParseDate(utils.FirstNonEmpty(item.DatePublished, item.DateModified)),
+			Date:    utils.ParseDate(cmp.Or(item.DatePublished, item.DateModified)),
 			URL:     item.URL,
 			Title:   item.Title,
-			Content: utils.FirstNonEmpty(item.HTML, item.Text, item.Summary),
+			Content: cmp.Or(item.HTML, item.Text, item.Summary),
 		})
 	}
 	return feed, nil
