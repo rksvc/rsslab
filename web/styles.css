@@ -91,14 +91,6 @@ a.bp6-button {
 	}
 }
 
-/* container */
-html,
-body,
-#root,
-#root > .bp6-card {
-	height: 100%;
-}
-
 /* top bar */
 .topbar {
 	display: flex;

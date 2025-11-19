@@ -141,7 +141,7 @@ export default function App() {
     <Card
       style={{
         padding: 0,
-        width: '100vw',
+        height: '100vh',
         display: 'flex',
         fontSize: '1rem',
         lineHeight: '1.5rem',
