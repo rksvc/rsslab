@@ -1,5 +1,5 @@
 import { Card, Divider, FocusStyleManager, Intent, OverlayToaster, Position } from '@blueprintjs/core'
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
 import ItemShow from './ItemShow.tsx'
@@ -15,16 +15,10 @@ import type {
   Settings,
   Status,
 } from './types.ts'
-import { xfetch } from './utils.ts'
+import { cn, xfetch } from './utils.ts'
 
 FocusStyleManager.onlyShowFocusOnTabs()
 const darkTheme = (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
-
-const panelStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100%',
-} satisfies CSSProperties
 
 export default function App() {
   const [folders, setFolders] = useState<Folder[]>()
@@ -32,10 +26,11 @@ export default function App() {
   const [status, setStatus] = useState<Status>()
   const [settings, setSettings] = useState<Settings>({ dark_theme: darkTheme })
   const [items, setItems] = useState<Items>()
-  const [selectedItem, setSelectedItem] = useState<Item>()
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number>()
+  const [selectedItemContent, setSelectedItemContent] = useState<string>()
 
   const [filter, setFilter] = useState<Filter>('Unread')
-  const [selected, setSelected] = useState<Selected>()
+  const [selected, setSelected] = useState<Selected>(null)
   const [refreshed, setRefreshed] = useState<Record<never, never>>({})
   const [itemsOutdated, setItemsOutdated] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -56,7 +51,7 @@ export default function App() {
     })
   }, [])
 
-  const refreshFeeds = async () => {
+  const refreshFeeds = useCallback(async () => {
     const [folders, feeds, settings] = await Promise.all([
       xfetch<Folder[]>('api/folders'),
       xfetch<Feed[]>('api/feeds'),
@@ -66,8 +61,8 @@ export default function App() {
     setFeeds(feeds)
     setRefreshed({})
     setSettings(settings)
-  }
-  const refreshStats = async () => {
+  }, [])
+  const refreshStats = useCallback(async () => {
     const { running, last_refreshed, state } = await xfetch<
       Omit<Status, 'state'> & { state: Record<number, FeedState> }
     >('api/status')
@@ -79,7 +74,37 @@ export default function App() {
     setRefreshed({})
     setItemsOutdated(true)
     if (running) setTimeout(() => refreshStats(), 500)
-  }
+  }, [])
+  const selectItem = useCallback(
+    async (index: number) => {
+      const item = items?.list[index]
+      if (!item) return
+      setSelectedItemIndex(index)
+      setSelectedItemContent((await xfetch<Item>(`api/items/${item.id}`)).content)
+      contentRef.current?.scrollTo(0, 0)
+      if (item.status === 'unread') {
+        await xfetch(`api/items/${item.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'read' }),
+        })
+        setStatus(status => {
+          if (!status) return
+          const state = new Map(status.state)
+          const s = state.get(item.feed_id)
+          if (s) state.set(item.feed_id, { ...s, unread: s.unread - 1 })
+          return { ...status, state }
+        })
+        setItems(
+          items =>
+            items && {
+              list: items.list.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),
+              has_more: items.has_more,
+            },
+        )
+      }
+    },
+    [items?.list],
+  )
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds): run only at startup
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats): run only at startup
   useEffect(() => {
@@ -116,8 +141,9 @@ export default function App() {
     setSettings,
     items,
     setItems,
-    selectedItem,
-    setSelectedItem,
+    selectedItemIndex,
+    setSelectedItemIndex,
+    setSelectedItemContent,
 
     filter,
     setFilter,
@@ -131,6 +157,7 @@ export default function App() {
 
     refreshFeeds,
     refreshStats,
+    selectItem,
     feedsById,
     foldersById,
     feedsWithoutFolders,
@@ -139,6 +166,7 @@ export default function App() {
 
   return (
     <Card
+      className={cn(selected !== undefined && 'feed-selected', selectedItemIndex != null && 'item-selected')}
       style={{
         padding: 0,
         height: '100vh',
@@ -149,15 +177,16 @@ export default function App() {
         borderRadius: 0,
       }}
     >
-      <FeedList {...props} style={{ ...panelStyle, minWidth: '300px', maxWidth: '300px' }} />
-      <Divider compact />
-      <ItemList {...props} style={{ ...panelStyle, minWidth: '300px', maxWidth: '300px' }} />
-      <Divider compact />
-      {selectedItem?.content != null && (
+      <FeedList {...props} />
+      <Divider id="list-divider" compact />
+      <ItemList {...props} />
+      <Divider id="item-divider" compact />
+      {items != null && selectedItemIndex != null && selectedItemContent != null && (
         <ItemShow
           {...props}
-          style={{ ...panelStyle, flexGrow: 1, minWidth: '300px' }}
-          selectedItem={{ ...selectedItem, content: selectedItem.content }}
+          items={items}
+          selectedItemIndex={selectedItemIndex}
+          item={{ ...items.list[selectedItemIndex], content: selectedItemContent }}
         />
       )}
       <OverlayToaster canEscapeKeyClear={false} position={Position.BOTTOM_RIGHT} ref={toaster} />

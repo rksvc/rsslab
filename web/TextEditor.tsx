@@ -35,10 +35,7 @@ export default function TextEditor({
       usePortal={false}
       placement="right"
       transitionDuration={0}
-      modifiers={{
-        flip: { enabled: true },
-        offset: { enabled: true, options: { offset: [0, 4] } },
-      }}
+      modifiers={{ offset: { options: { offset: [0, 4] } } }}
       shouldReturnFocusOnClose
       content={
         <>

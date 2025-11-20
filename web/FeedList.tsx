@@ -44,7 +44,7 @@ import {
 import { NewFeedDialog } from './NewFeed.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
-import { compareTitle, fromNow, fromNowVerbose, length, xfetch } from './utils.ts'
+import { compareTitle, fromNow, fromNowVerbose, length, menuModifiers, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -54,8 +54,6 @@ const statusBarStyle = {
 } satisfies CSSProperties
 
 export default function FeedList({
-  style,
-
   setFolders,
   setFeeds,
   status,
@@ -75,8 +73,6 @@ export default function FeedList({
   feedsWithoutFolders,
   foldersWithFeeds,
 }: {
-  style: CSSProperties
-
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   status?: Status
@@ -200,7 +196,7 @@ export default function FeedList({
   }, [filter, selected, refreshed])
 
   return (
-    <div style={style}>
+    <div id="feed-list">
       <div className="topbar" style={{ justifyContent: 'space-between' }}>
         <Button
           icon={
@@ -248,6 +244,7 @@ export default function FeedList({
         </ButtonGroup>
         <Popover
           transitionDuration={0}
+          modifiers={menuModifiers}
           content={
             <Menu>
               <MenuItem text="New Feed" icon={<Plus />} onClick={() => setNewFeedDialogOpen(true)} />
@@ -274,7 +271,7 @@ export default function FeedList({
                 }
                 intent={Intent.PRIMARY}
                 placement="right"
-                modifiers={{ offset: { enabled: true, options: { offset: [0, 6] } } }}
+                modifiers={{ offset: { options: { offset: [0, 6] } } }}
                 compact
               >
                 <MenuItem
@@ -333,9 +330,10 @@ export default function FeedList({
           {
             id: '',
             label: `All ${filter}`,
-            isSelected: !selected,
+            isSelected: selected === null,
             secondaryLabel:
               filter === 'Unread' ? totalUnread : filter === 'Starred' ? totalStarred : undefined,
+            nodeData: null,
           },
           ...(feedsWithoutFolders ?? []).filter(({ id }) => !hiddenFeeds?.has(id)).map(f => feed(f)),
           ...(foldersWithFeeds ?? [])
@@ -419,10 +417,7 @@ function RefreshRateEditor({
       usePortal={false}
       placement="right"
       transitionDuration={0}
-      modifiers={{
-        flip: { enabled: true },
-        offset: { enabled: true, options: { offset: [0, 3] } },
-      }}
+      modifiers={{ offset: { options: { offset: [0, 3] } } }}
       shouldReturnFocusOnClose
       content={
         <>
@@ -430,7 +425,7 @@ function RefreshRateEditor({
             content={<small>minutes</small>}
             intent={Intent.PRIMARY}
             placement="top"
-            modifiers={{ offset: { enabled: true, options: { offset: [0, 5] } } }}
+            modifiers={{ offset: { options: { offset: [0, 5] } } }}
             compact
           >
             <NumericInput

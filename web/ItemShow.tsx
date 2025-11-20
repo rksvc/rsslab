@@ -1,39 +1,45 @@
 import { AnchorButton, Button, ButtonGroup, ButtonVariant, Classes, Divider, H2 } from '@blueprintjs/core'
-import type { CSSProperties, Dispatch, RefObject, SetStateAction } from 'react'
-import { Circle, ExternalLink, Star } from 'react-feather'
+import type { Dispatch, RefObject, SetStateAction } from 'react'
+import { ChevronLeft, ChevronRight, Circle, ExternalLink, Star, X } from 'react-feather'
 import type { Feed, Item, Items, Status } from './types.ts'
 import { cn, length, xfetch } from './utils.ts'
 
 export default function ItemShow({
-  style,
-  setStatus,
-  setItems,
-  selectedItem,
-  setSelectedItem,
+  item,
+  selectedItemIndex,
+  setSelectedItemIndex,
+  setSelectedItemContent,
+  items,
   contentRef,
   feedsById,
+  setStatus,
+  setItems,
+  selectItem,
 }: {
-  style: CSSProperties
-  setStatus: Dispatch<SetStateAction<Status | undefined>>
-  setItems: Dispatch<SetStateAction<Items | undefined>>
-  selectedItem: Item & { content: string }
-  setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
+  item: Item & { content: string }
+  selectedItemIndex: number
+  setSelectedItemIndex: Dispatch<SetStateAction<number | undefined>>
+  setSelectedItemContent: Dispatch<SetStateAction<string | undefined>>
+  items: Items
   contentRef: RefObject<HTMLDivElement>
   feedsById?: Map<number, Feed>
+  setStatus: Dispatch<SetStateAction<Status | undefined>>
+  setItems: Dispatch<SetStateAction<Items | undefined>>
+  selectItem: (index: number) => Promise<void>
 }) {
   const toggleStatus = (target: Item['status']) => async () => {
-    const status = target === selectedItem.status ? 'read' : target
-    await xfetch(`api/items/${selectedItem.id}`, {
+    const status = target === item.status ? 'read' : target
+    await xfetch(`api/items/${item.id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     })
-    const diff = (s: Item['status']) => (status === s ? +1 : selectedItem.status === s ? -1 : 0)
+    const diff = (s: Item['status']) => (status === s ? +1 : item.status === s ? -1 : 0)
     setStatus(status => {
       if (!status) return
       const state = new Map(status.state)
-      const s = state.get(selectedItem.feed_id)
+      const s = state.get(item.feed_id)
       if (s)
-        state.set(selectedItem.feed_id, {
+        state.set(item.feed_id, {
           ...s,
           starred: s.starred + diff('starred'),
           unread: s.unread + diff('unread'),
@@ -43,45 +49,68 @@ export default function ItemShow({
     setItems(
       items =>
         items && {
-          list: items.list.map(i => (i.id === selectedItem.id ? { ...i, status } : i)),
+          list: items.list.map(i => (i.id === item.id ? { ...i, status } : i)),
           has_more: items.has_more,
         },
     )
-    setSelectedItem({ ...selectedItem, status })
   }
 
   return (
-    <div style={style}>
+    <div id="item">
       <ButtonGroup className="topbar" style={{ gap: length(1) }} variant={ButtonVariant.MINIMAL}>
         <Button
-          icon={<Star fill={selectedItem.status === 'starred' ? 'currentColor' : 'transparent'} />}
+          icon={<Star fill={item.status === 'starred' ? 'currentColor' : 'transparent'} />}
           onClick={toggleStatus('starred')}
           title="Mark Starred"
         />
         <Button
-          icon={<Circle fill={selectedItem.status === 'unread' ? 'currentColor' : 'transparent'} />}
+          icon={<Circle fill={item.status === 'unread' ? 'currentColor' : 'transparent'} />}
           onClick={toggleStatus('unread')}
           title="Mark Unread"
         />
         <AnchorButton
           icon={<ExternalLink />}
-          href={selectedItem.link}
+          href={item.link}
           target="_blank"
           title="Open Link"
           rel="noopener noreferrer"
           referrerPolicy="no-referrer"
         />
+        <div style={{ flexGrow: 1 }} />
+        <Button
+          icon={<ChevronLeft />}
+          title={'Previous Article'}
+          variant={ButtonVariant.MINIMAL}
+          disabled={selectedItemIndex === 0}
+          onClick={() => selectItem(selectedItemIndex - 1)}
+        />
+        <Button
+          icon={<ChevronRight />}
+          title={'Next Article'}
+          variant={ButtonVariant.MINIMAL}
+          disabled={selectedItemIndex + 1 >= items.list.length}
+          onClick={() => selectItem(selectedItemIndex + 1)}
+        />
+        <Button
+          icon={<X />}
+          title={'Close Article'}
+          variant={ButtonVariant.MINIMAL}
+          onClick={() => {
+            setSelectedItemIndex(undefined)
+            setSelectedItemContent(undefined)
+          }}
+        />
       </ButtonGroup>
       <Divider compact />
       <div style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
-        <H2 style={{ fontWeight: 700 }}>{selectedItem.title || 'untitled'}</H2>
-        <div style={{ opacity: 0.95 }}>{feedsById?.get(selectedItem.feed_id)?.title}</div>
-        <div style={{ opacity: 0.95 }}>{new Date(selectedItem.date).toLocaleString()}</div>
+        <H2 style={{ fontWeight: 700 }}>{item.title || 'untitled'}</H2>
+        <div style={{ opacity: 0.95 }}>{feedsById?.get(item.feed_id)?.title}</div>
+        <div style={{ opacity: 0.95 }}>{new Date(item.date).toLocaleString()}</div>
         <Divider compact style={{ marginTop: length(3), marginBottom: length(3) }} />
         <div
           style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
           className={cn(Classes.RUNNING_TEXT, 'content')}
-          dangerouslySetInnerHTML={{ __html: selectedItem.content }}
+          dangerouslySetInnerHTML={{ __html: item.content }}
         />
       </div>
     </div>

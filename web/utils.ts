@@ -1,4 +1,7 @@
+import type { PopperModifierOverrides } from '@blueprintjs/core'
 import type { Transformer } from './types.ts'
+
+export const menuModifiers = { offset: { options: { offset: [-70, 8] } } } satisfies PopperModifierOverrides
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ')

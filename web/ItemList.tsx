@@ -13,18 +13,10 @@ import {
   Popover,
   Spinner,
 } from '@blueprintjs/core'
-import {
-  type CSSProperties,
-  type Dispatch,
-  type RefObject,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react'
 import {
   Check,
+  ChevronLeft,
   Circle,
   Edit,
   ExternalLink,
@@ -40,19 +32,18 @@ import {
 } from 'react-feather'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, Filter, Folder, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
-import { fromNow, length, param, parseFeedLink, xfetch } from './utils.ts'
+import { fromNow, length, menuModifiers, param, parseFeedLink, xfetch } from './utils.ts'
 
 export default function ItemList({
-  style,
-
   setFolders,
   setFeeds,
   items,
   setItems,
   status,
   setStatus,
-  selectedItem,
-  setSelectedItem,
+  selectedItemIndex,
+  setSelectedItemIndex,
+  setSelectedItemContent,
 
   filter,
   selected,
@@ -60,23 +51,22 @@ export default function ItemList({
   itemsOutdated,
   setItemsOutdated,
   setRefreshed,
-  contentRef,
 
   refreshStats,
+  selectItem,
   foldersById,
   feedsById,
   foldersWithFeeds,
 }: {
-  style: CSSProperties
-
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   items?: Items
   setItems: Dispatch<SetStateAction<Items | undefined>>
   status?: Status
   setStatus: Dispatch<SetStateAction<Status | undefined>>
-  selectedItem?: Item
-  setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
+  selectedItemIndex?: number
+  setSelectedItemIndex: Dispatch<SetStateAction<number | undefined>>
+  setSelectedItemContent: Dispatch<SetStateAction<string | undefined>>
 
   filter: Filter
   selected: Selected
@@ -84,9 +74,9 @@ export default function ItemList({
   itemsOutdated: boolean
   setItemsOutdated: Dispatch<SetStateAction<boolean>>
   setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
-  contentRef: RefObject<HTMLDivElement>
 
   refreshStats: (loop?: boolean) => Promise<void>
+  selectItem: (index: number) => Promise<void>
   foldersById?: Map<number, FolderWithFeeds>
   feedsById?: Map<number, Feed>
   foldersWithFeeds?: FolderWithFeeds[]
@@ -146,21 +136,32 @@ export default function ItemList({
 
   const refresh = useCallback(async () => {
     setItems(await xfetch<Items>(`api/items${param(query())}`))
-    setSelectedItem(undefined)
+    setSelectedItemIndex(undefined)
+    setSelectedItemContent(undefined)
     setItemsOutdated(false)
     itemListRef.current?.scrollTo(0, 0)
-  }, [query, setItems, setSelectedItem, setItemsOutdated])
+  }, [query, setItems, setSelectedItemIndex, setSelectedItemContent, setItemsOutdated])
   useEffect(() => {
     refresh()
   }, [refresh])
 
   const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
   return (
-    <div style={style}>
+    <div id="item-list">
       <div className="topbar" style={{ gap: length(1.5) }}>
+        <Button
+          id="show-feeds"
+          style={{ display: 'none' }}
+          icon={<ChevronLeft />}
+          title={'Show Feeds'}
+          variant={ButtonVariant.MINIMAL}
+          onClick={() => setSelected(undefined)}
+        />
         <InputGroup
           inputRef={searchRef}
-          leftIcon={<Search style={{ pointerEvents: 'none' }} className={Classes.ICON} />}
+          leftIcon={
+            <Search style={{ pointerEvents: 'none', alignSelf: 'anchor-center' }} className={Classes.ICON} />
+          }
           type="search"
           value={search}
           placeholder="Search..."
@@ -220,11 +221,11 @@ export default function ItemList({
                   ),
                 },
             )
-            setSelectedItem(item => item && (item.status === 'unread' ? { ...item, status: 'read' } : item))
           }}
         />
         <Popover
           transitionDuration={0}
+          modifiers={menuModifiers}
           onOpening={() => setMenuOpen(true)}
           onClosed={() => setMenuOpen(false)}
           content={
@@ -372,7 +373,7 @@ export default function ItemList({
                                   ),
                                 },
                             )
-                            setSelected(undefined)
+                            setSelected(null)
                           }}
                         />
                       </Menu>
@@ -386,16 +387,14 @@ export default function ItemList({
       </div>
       <Divider compact />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
-        {items?.list.map(item => (
+        {items?.list.map((item, i) => (
           <CardItem
             key={item.id}
             item={item}
-            setItems={setItems}
-            setStatus={setStatus}
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
-            contentRef={contentRef}
+            index={i}
+            isSelected={selectedItemIndex != null && item.id === items.list[selectedItemIndex].id}
             feedsById={feedsById}
+            selectItem={selectItem}
           />
         ))}
         {(loading || items?.has_more) && (
@@ -434,52 +433,24 @@ export default function ItemList({
 
 function CardItem({
   item,
-  setItems,
-  setStatus,
-  selectedItem,
-  setSelectedItem,
-  contentRef,
+  index,
+  isSelected,
   feedsById,
+  selectItem,
 }: {
   item: Item
-  setItems: Dispatch<SetStateAction<Items | undefined>>
-  setStatus: Dispatch<SetStateAction<Status | undefined>>
-  selectedItem?: Item
-  setSelectedItem: Dispatch<SetStateAction<Item | undefined>>
-  contentRef: RefObject<HTMLDivElement>
+  index: number
+  isSelected: boolean
   feedsById?: Map<number, Feed>
+  selectItem: (index: number) => Promise<void>
 }) {
   const prevStatus = usePrevious(item.status)
-  const isSelected = item.id === selectedItem?.id
   return (
     <Card
       selected={isSelected}
       interactive
       onClick={async () => {
-        if (isSelected) return
-        setSelectedItem(await xfetch<Item>(`api/items/${item.id}`))
-        contentRef.current?.scrollTo(0, 0)
-        if (item.status === 'unread') {
-          await xfetch(`api/items/${item.id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ status: 'read' }),
-          })
-          setStatus(status => {
-            if (!status) return
-            const state = new Map(status.state)
-            const s = state.get(item.feed_id)
-            if (s) state.set(item.feed_id, { ...s, unread: s.unread - 1 })
-            return { ...status, state }
-          })
-          setItems(
-            items =>
-              items && {
-                list: items.list.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),
-                has_more: items.has_more,
-              },
-          )
-          setSelectedItem(item => item && { ...item, status: 'read' })
-        }
+        if (!isSelected) await selectItem(index)
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
