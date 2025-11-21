@@ -295,7 +295,7 @@ export default function ItemList({
                           updateStatus(status => {
                             status?.state.delete(feed.id)
                           })
-                          setSelected(feed.folder_id === null ? undefined : { folder_id: feed.folder_id })
+                          setSelected(feed.folder_id == null ? null : { folder_id: feed.folder_id })
                         }}
                       />
                     </Menu>
