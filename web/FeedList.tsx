@@ -41,6 +41,7 @@ import {
   Sun,
   Upload,
 } from 'react-feather'
+import type { Updater } from 'use-immer'
 import { NewFeedDialog } from './NewFeed.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
@@ -57,7 +58,7 @@ export default function FeedList({
   setFolders,
   setFeeds,
   status,
-  setStatus,
+  updateStatus,
   settings,
   setSettings,
 
@@ -76,7 +77,7 @@ export default function FeedList({
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   status?: Status
-  setStatus: Dispatch<React.SetStateAction<Status | undefined>>
+  updateStatus: Updater<Status | undefined>
   settings: Settings
   setSettings: Dispatch<SetStateAction<Settings>>
 
@@ -384,7 +385,7 @@ export default function FeedList({
         defaultFolderId={selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)}
         foldersWithFeeds={foldersWithFeeds}
         setFeeds={setFeeds}
-        setStatus={setStatus}
+        updateStatus={updateStatus}
         setSelected={setSelected}
       />
     </div>

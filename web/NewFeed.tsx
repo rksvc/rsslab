@@ -24,6 +24,7 @@ import {
   useState,
 } from 'react'
 import { ExternalLink } from 'react-feather'
+import type { Updater } from 'use-immer'
 import type { Feed, FolderWithFeeds, Selected, Status, Transformer } from './types.ts'
 import { compareTitle, parseFeedLink, xfetch } from './utils.ts'
 
@@ -42,7 +43,7 @@ export function NewFeedDialog({
   setIsOpen,
   defaultFolderId,
   setFeeds,
-  setStatus,
+  updateStatus,
   setSelected,
   foldersWithFeeds,
 }: {
@@ -50,7 +51,7 @@ export function NewFeedDialog({
   setIsOpen: Dispatch<SetStateAction<boolean>>
   defaultFolderId?: number | null
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
-  setStatus: Dispatch<React.SetStateAction<Status | undefined>>
+  updateStatus: Updater<Status | undefined>
   setSelected: Dispatch<SetStateAction<Selected>>
   foldersWithFeeds?: FolderWithFeeds[]
 }) {
@@ -254,13 +255,9 @@ export function NewFeedDialog({
         }),
       })
       setFeeds(feeds => feeds && [...feeds, feed].toSorted(compareTitle))
-      setStatus(
-        status =>
-          status && {
-            ...status,
-            state: new Map([...status.state.entries(), [feed.id, { unread: item_count, starred: 0 }]]),
-          },
-      )
+      updateStatus(status => {
+        status?.state.set(feed.id, { unread: item_count, starred: 0 })
+      })
       setSelected({ feed_id: feed.id })
       setFeedLink('')
       setIsOpen(false)

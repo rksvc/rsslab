@@ -30,6 +30,7 @@ import {
   Star,
   Trash,
 } from 'react-feather'
+import type { Updater } from 'use-immer'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, Filter, Folder, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
 import { fromNow, length, menuModifiers, param, parseFeedLink, xfetch } from './utils.ts'
@@ -38,9 +39,9 @@ export default function ItemList({
   setFolders,
   setFeeds,
   items,
-  setItems,
+  updateItems,
   status,
-  setStatus,
+  updateStatus,
   selectedItemIndex,
   setSelectedItemIndex,
   setSelectedItemContent,
@@ -61,9 +62,9 @@ export default function ItemList({
   setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
   setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
   items?: Items
-  setItems: Dispatch<SetStateAction<Items | undefined>>
+  updateItems: Updater<Items | undefined>
   status?: Status
-  setStatus: Dispatch<SetStateAction<Status | undefined>>
+  updateStatus: Updater<Status | undefined>
   selectedItemIndex?: number
   setSelectedItemIndex: Dispatch<SetStateAction<number | undefined>>
   setSelectedItemContent: Dispatch<SetStateAction<string | undefined>>
@@ -126,7 +127,7 @@ export default function ItemList({
         const { list, has_more } = await xfetch<Items>(
           `api/items${param({ ...query(), after: items.list.at(-1)?.id })}`,
         )
-        setItems({ list: [...items.list, ...list], has_more })
+        updateItems({ list: [...items.list, ...list], has_more })
       } finally {
         setLoading(false)
         setIsIntersecting(false)
@@ -135,12 +136,12 @@ export default function ItemList({
   }
 
   const refresh = useCallback(async () => {
-    setItems(await xfetch<Items>(`api/items${param(query())}`))
+    updateItems(await xfetch<Items>(`api/items${param(query())}`))
     setSelectedItemIndex(undefined)
     setSelectedItemContent(undefined)
     setItemsOutdated(false)
     itemListRef.current?.scrollTo(0, 0)
-  }, [query, setItems, setSelectedItemIndex, setSelectedItemContent, setItemsOutdated])
+  }, [query, updateItems, setSelectedItemIndex, setSelectedItemContent, setItemsOutdated])
   useEffect(() => {
     refresh()
   }, [refresh])
@@ -170,7 +171,7 @@ export default function ItemList({
             clearTimeout(timerId.current)
             timerId.current = setTimeout(async () => {
               timerId.current = undefined
-              setItems(await xfetch<Items>(`api/items${param(query())}`))
+              updateItems(await xfetch<Items>(`api/items${param(query())}`))
               setItemsOutdated(false)
             }, 200)
           }}
@@ -186,16 +187,9 @@ export default function ItemList({
             const after = items?.list.at(0)?.id
             if (after == null) return
             await xfetch(`api/items${param({ ...query(), after })}`, { method: 'PUT' })
-            setItems(
-              items =>
-                items && {
-                  list: items.list.map(item => ({
-                    ...item,
-                    status: item.status === 'starred' ? 'starred' : 'read',
-                  })),
-                  has_more: items.has_more,
-                },
-            )
+            updateItems(items => {
+              for (const item of items?.list ?? []) if (item.status !== 'starred') item.status = 'read'
+            })
             const isSelected = !selected
               ? (_: number) => true
               : selected.feed_id != null
@@ -204,23 +198,9 @@ export default function ItemList({
                     const feeds = new Set(foldersById?.get(selected.folder_id)?.feeds.map(feed => feed.id))
                     return (id: number) => feeds.has(id)
                   })()
-            setStatus(
-              status =>
-                status && {
-                  ...status,
-                  state: new Map(
-                    status.state.entries().map(([id, state]) => [
-                      id,
-                      isSelected(id)
-                        ? {
-                            ...state,
-                            unread: 0,
-                          }
-                        : state,
-                    ]),
-                  ),
-                },
-            )
+            updateStatus(status => {
+              for (const [id, state] of status?.state ?? []) if (isSelected(id)) state.unread = 0
+            })
           }}
         />
         <Popover
@@ -232,7 +212,7 @@ export default function ItemList({
             selected?.feed_id != null
               ? (() => {
                   const feed = feedsById?.get(selected.feed_id)
-                  if (!feed) return undefined
+                  if (!feed) return
                   return (
                     <Menu>
                       {feed.link && (
@@ -312,13 +292,9 @@ export default function ItemList({
                         onConfirm={async () => {
                           await xfetch(`api/feeds/${feed.id}`, { method: 'DELETE' })
                           setFeeds(feeds => feeds?.filter(f => f.id !== feed.id))
-                          setStatus(
-                            status =>
-                              status && {
-                                ...status,
-                                state: new Map(status.state.entries().filter(([id]) => id !== feed.id)),
-                              },
-                          )
+                          updateStatus(status => {
+                            status?.state.delete(feed.id)
+                          })
                           setSelected(feed.folder_id === null ? undefined : { folder_id: feed.folder_id })
                         }}
                       />
@@ -364,15 +340,10 @@ export default function ItemList({
                             const deletedFeeds = new Set(folder.feeds.map(feed => feed.id))
                             setFolders(folders => folders?.filter(f => f.id !== folder.id))
                             setFeeds(feeds => feeds?.filter(feed => !deletedFeeds.has(feed.id)))
-                            setStatus(
-                              status =>
-                                status && {
-                                  ...status,
-                                  state: new Map(
-                                    status.state.entries().filter(([id]) => !deletedFeeds.has(id)),
-                                  ),
-                                },
-                            )
+                            updateStatus(status => {
+                              for (const [id] of status?.state ?? [])
+                                if (deletedFeeds.has(id)) status?.state.delete(id)
+                            })
                             setSelected(null)
                           }}
                         />

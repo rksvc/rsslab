@@ -1,5 +1,7 @@
 import { Card, Divider, FocusStyleManager, Intent, OverlayToaster, Position } from '@blueprintjs/core'
+import { enableMapSet } from 'immer'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useImmer } from 'use-immer'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
 import ItemShow from './ItemShow.tsx'
@@ -17,15 +19,16 @@ import type {
 } from './types.ts'
 import { cn, xfetch } from './utils.ts'
 
+enableMapSet()
 FocusStyleManager.onlyShowFocusOnTabs()
 const darkTheme = (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
 
 export default function App() {
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
-  const [status, setStatus] = useState<Status>()
+  const [status, updateStatus] = useImmer<Status | undefined>(undefined)
   const [settings, setSettings] = useState<Settings>({ dark_theme: darkTheme })
-  const [items, setItems] = useState<Items>()
+  const [items, updateItems] = useImmer<Items | undefined>(undefined)
   const [selectedItemIndex, setSelectedItemIndex] = useState<number>()
   const [selectedItemContent, setSelectedItemContent] = useState<string>()
 
@@ -66,7 +69,7 @@ export default function App() {
     const { running, last_refreshed, state } = await xfetch<
       Omit<Status, 'state'> & { state: Record<number, FeedState> }
     >('api/status')
-    setStatus({
+    updateStatus({
       running,
       last_refreshed,
       state: new Map(Object.entries(state).map(([id, state]) => [+id, state])),
@@ -74,7 +77,7 @@ export default function App() {
     setRefreshed({})
     setItemsOutdated(true)
     if (running) setTimeout(() => refreshStats(), 500)
-  }, [])
+  }, [updateStatus])
   const selectItem = useCallback(
     async (index: number) => {
       const item = items?.list[index]
@@ -87,23 +90,20 @@ export default function App() {
           method: 'PUT',
           body: JSON.stringify({ status: 'read' }),
         })
-        setStatus(status => {
-          if (!status) return
-          const state = new Map(status.state)
-          const s = state.get(item.feed_id)
-          if (s) state.set(item.feed_id, { ...s, unread: s.unread - 1 })
-          return { ...status, state }
+        updateStatus(status => {
+          const state = status?.state.get(item.feed_id)
+          if (state) --state.unread
         })
-        setItems(
-          items =>
-            items && {
-              list: items.list.map(i => (i.id === item.id ? { ...i, status: 'read' } : i)),
-              has_more: items.has_more,
-            },
-        )
+        updateItems(items => {
+          for (const i of items?.list ?? [])
+            if (i.id === item.id) {
+              i.status = 'read'
+              break
+            }
+        })
       }
     },
-    [items?.list],
+    [items?.list, updateStatus, updateItems],
   )
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds): run only at startup
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshStats): run only at startup
@@ -136,11 +136,11 @@ export default function App() {
     setFolders,
     setFeeds,
     status,
-    setStatus,
+    updateStatus,
     settings,
     setSettings,
     items,
-    setItems,
+    updateItems,
     selectedItemIndex,
     setSelectedItemIndex,
     setSelectedItemContent,

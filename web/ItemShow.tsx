@@ -1,6 +1,7 @@
 import { AnchorButton, Button, ButtonGroup, ButtonVariant, Classes, Divider, H2 } from '@blueprintjs/core'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { ChevronLeft, ChevronRight, Circle, ExternalLink, Star, X } from 'react-feather'
+import type { Updater } from 'use-immer'
 import type { Feed, Item, Items, Status } from './types.ts'
 import { cn, length, xfetch } from './utils.ts'
 
@@ -12,8 +13,8 @@ export default function ItemShow({
   items,
   contentRef,
   feedsById,
-  setStatus,
-  setItems,
+  updateStatus,
+  updateItems,
   selectItem,
 }: {
   item: Item & { content: string }
@@ -23,8 +24,8 @@ export default function ItemShow({
   items: Items
   contentRef: RefObject<HTMLDivElement>
   feedsById?: Map<number, Feed>
-  setStatus: Dispatch<SetStateAction<Status | undefined>>
-  setItems: Dispatch<SetStateAction<Items | undefined>>
+  updateStatus: Updater<Status | undefined>
+  updateItems: Updater<Items | undefined>
   selectItem: (index: number) => Promise<void>
 }) {
   const toggleStatus = (target: Item['status']) => async () => {
@@ -34,25 +35,16 @@ export default function ItemShow({
       body: JSON.stringify({ status }),
     })
     const diff = (s: Item['status']) => (status === s ? +1 : item.status === s ? -1 : 0)
-    setStatus(status => {
-      if (!status) return
-      const state = new Map(status.state)
-      const s = state.get(item.feed_id)
-      if (s)
-        state.set(item.feed_id, {
-          ...s,
-          starred: s.starred + diff('starred'),
-          unread: s.unread + diff('unread'),
-        })
-      return { ...status, state }
+    updateStatus(status => {
+      const state = status?.state.get(item.feed_id)
+      if (state) {
+        state.starred += diff('starred')
+        state.unread += diff('unread')
+      }
     })
-    setItems(
-      items =>
-        items && {
-          list: items.list.map(i => (i.id === item.id ? { ...i, status } : i)),
-          has_more: items.has_more,
-        },
-    )
+    updateItems(items => {
+      for (const i of items?.list ?? []) if (i.id === item.id) i.status = status
+    })
   }
 
   return (
