@@ -11,26 +11,22 @@ export function length(n: number) {
   return `${n * 0.25}rem`
 }
 
-export function fromNow(date: Date, withSuffix = true) {
+export function fromNow(date: Date) {
   let minutes = (Date.now() - date.getTime()) / 1000 / 60
-  const neg = minutes < 0
+  const sign = minutes < 0 ? '-' : ''
 
   minutes = Math.abs(minutes)
-  const suffix = withSuffix ? ' ago' : ''
-  const repr =
-    minutes < 60
-      ? `${Math.round(minutes)}m${suffix}`
-      : minutes < 24 * 60
-        ? `${Math.round(minutes / 60)}h${suffix}`
-        : minutes < 7 * 24 * 60
-          ? `${Math.round(minutes / (24 * 60))}d${suffix}`
-          : date.toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })
-
-  return neg ? `-${repr}` : repr
+  return minutes < 60
+    ? `${sign}${Math.round(minutes)}m`
+    : minutes < 24 * 60
+      ? `${sign}${Math.round(minutes / 60)}h`
+      : minutes < 7 * 24 * 60
+        ? `${sign}${Math.round(minutes / (24 * 60))}d`
+        : date.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
 }
 
 export function fromNowVerbose(date: Date) {
@@ -40,7 +36,14 @@ export function fromNowVerbose(date: Date) {
   minutes = Math.abs(minutes)
   const parts = []
   if (minutes > 24 * 60) {
-    parts.push(`${Math.floor(minutes / (24 * 60))}d`)
+    const days = Math.floor(minutes / (24 * 60))
+    if (days > 7)
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    parts.push(`${days}d`)
     minutes %= 24 * 60
   }
   if (minutes > 60) {

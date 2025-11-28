@@ -452,7 +452,7 @@ function CardItem({
           </small>
           <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
             <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
-              {fromNow(new Date(item.date), false)}
+              {fromNow(new Date(item.date))}
             </time>
           </small>
         </div>

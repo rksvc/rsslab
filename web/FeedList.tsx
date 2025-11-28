@@ -45,7 +45,7 @@ import type { Updater } from 'use-immer'
 import { NewFeedDialog } from './NewFeed.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
-import { compareTitle, fromNow, fromNowVerbose, length, menuModifiers, xfetch } from './utils.ts'
+import { compareTitle, fromNowVerbose, length, menuModifiers, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -106,7 +106,7 @@ export default function FeedList({
     ) : state?.error ? (
       <span
         style={{ display: 'flex' }}
-        title={state.last_refreshed && `Last Refreshed: ${fromNow(new Date(state.last_refreshed))}`}
+        title={state.last_refreshed && `Last Refreshed: ${fromNowVerbose(new Date(state.last_refreshed))}`}
       >
         <AlertCircle />
       </span>
