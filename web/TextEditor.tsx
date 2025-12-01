@@ -43,15 +43,10 @@ export default function TextEditor({
             defaultValue={defaultValue}
             placeholder={placeholder}
             inputRef={inputRef}
-            cols={30}
             spellCheck="false"
             disabled={loading}
             autoResize
-            style={{
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              ...textAreaStyle,
-            }}
+            style={textAreaStyle}
             onKeyDown={async evt => {
               if (evt.key === 'Enter') {
                 evt.preventDefault()

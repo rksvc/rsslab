@@ -220,6 +220,8 @@ a.bp6-button {
 	}
 
 	.bp6-menu {
+		max-height: 90vh;
+		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
 		gap: 3px;
@@ -229,6 +231,13 @@ a.bp6-button {
 		.bp6-menu-divider {
 			margin-top: 2px;
 			margin-bottom: 2px;
+		}
+		.bp6-menu-header {
+			color: light-dark(var(--gray1), var(--gray4));
+			user-select: none;
+			.bp6-heading {
+				font-weight: inherit;
+			}
 		}
 
 		.bp6-menu-item {
@@ -245,8 +254,12 @@ a.bp6-button {
 			.bp6-menu-item-icon {
 				color: currentColor;
 			}
-			.bp6-submenu-icon {
-				margin-top: 0;
+			&:is(:hover, .bp6-active):not(.bp6-disabled) {
+				&,
+				.bp6-menu-item-icon {
+					color: white !important;
+					background-color: var(--primary-bg) !important;
+				}
 			}
 
 			&.bp6-intent-primary {
@@ -270,15 +283,6 @@ a.bp6-button {
 				}
 			}
 		}
-	}
-}
-.bp6-popover-open > .bp6-menu-item,
-.bp6-menu-item:is(:hover, .bp6-active):not(.bp6-disabled) {
-	&,
-	.bp6-menu-item-icon,
-	.bp6-submenu-icon {
-		color: white !important;
-		background-color: var(--primary-bg) !important;
 	}
 }
 

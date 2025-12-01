@@ -23,7 +23,6 @@ import {
   Folder as FolderIcon,
   Link,
   MoreHorizontal,
-  Move,
   RotateCw,
   Rss,
   Search,
@@ -269,24 +268,28 @@ export default function ItemList({
                           await refreshStats()
                         }}
                       />
-                      <MenuItem text="Move to..." icon={<Move />} disabled={!foldersWithFeeds?.length}>
-                        {[
-                          { key: null, text: '--' },
-                          ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ key: id, text: title })),
-                        ]
-                          .filter(({ key }) => key !== feed.folder_id)
-                          .map(({ key, text }) => (
-                            <MenuItem
-                              key={key}
-                              text={text}
-                              icon={<FolderIcon />}
-                              onClick={async () => {
-                                await updateFeedAttr(feed.id, 'folder_id', key)
-                                setRefreshed({})
-                              }}
-                            />
-                          ))}
-                      </MenuItem>
+                      {foldersWithFeeds?.length ? (
+                        <>
+                          <MenuDivider title="Move to..." />
+                          {[
+                            { key: null, text: '--' },
+                            ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ key: id, text: title })),
+                          ]
+                            .filter(({ key }) => key !== feed.folder_id)
+                            .map(({ key, text }) => (
+                              <MenuItem
+                                key={key}
+                                text={text}
+                                icon={<FolderIcon />}
+                                onClick={async () => {
+                                  await updateFeedAttr(feed.id, 'folder_id', key)
+                                  setRefreshed({})
+                                }}
+                              />
+                            ))}
+                        </>
+                      ) : undefined}
+                      <MenuDivider />
                       <Deleter
                         isOpen={menuOpen}
                         onConfirm={async () => {
