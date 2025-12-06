@@ -1,33 +1,25 @@
 import { AnchorButton, Button, ButtonGroup, ButtonVariant, Classes, Divider, H2 } from '@blueprintjs/core'
-import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { ChevronLeft, ChevronRight, Circle, ExternalLink, Star, X } from 'react-feather'
-import type { Updater } from 'use-immer'
-import type { Feed, Item, Items, Status } from './types.ts'
+import { useMyContext } from './Context.tsx'
+import type { Item } from './types.ts'
 import { cn, length, xfetch } from './utils.ts'
 
-export default function ItemShow({
-  item,
-  selectedItemIndex,
-  setSelectedItemIndex,
-  setSelectedItemContent,
-  items,
-  contentRef,
-  feedsById,
-  updateStatus,
-  updateItems,
-  selectItem,
-}: {
-  item: Item & { content: string }
-  selectedItemIndex: number
-  setSelectedItemIndex: Dispatch<SetStateAction<number | undefined>>
-  setSelectedItemContent: Dispatch<SetStateAction<string | undefined>>
-  items: Items
-  contentRef: RefObject<HTMLDivElement>
-  feedsById?: Map<number, Feed>
-  updateStatus: Updater<Status | undefined>
-  updateItems: Updater<Items | undefined>
-  selectItem: (index: number) => Promise<void>
-}) {
+export default function ItemShow() {
+  const {
+    selectedItemIndex,
+    setSelectedItemIndex,
+    setSelectedItemContent,
+    items,
+    contentRef,
+    feedsById,
+    updateStatus,
+    updateItems,
+    selectItem,
+    selectedItemContent,
+  } = useMyContext()
+  if (!items || selectedItemIndex == null || selectedItemContent == null) return undefined
+  const item = items.list[selectedItemIndex]
+
   const toggleStatus = (target: Item['status']) => async () => {
     const status = target === item.status ? 'read' : target
     await xfetch(`api/items/${item.id}`, {
@@ -102,7 +94,7 @@ export default function ItemShow({
         <div
           style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
           className={cn(Classes.RUNNING_TEXT, 'content')}
-          dangerouslySetInnerHTML={{ __html: item.content }}
+          dangerouslySetInnerHTML={{ __html: selectedItemContent }}
         />
       </div>
     </div>

@@ -17,15 +17,7 @@ import {
   Tree,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
-import {
-  type CSSProperties,
-  type Dispatch,
-  type RefObject,
-  type SetStateAction,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type CSSProperties, type RefObject, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   Circle,
@@ -41,10 +33,10 @@ import {
   Sun,
   Upload,
 } from 'react-feather'
-import type { Updater } from 'use-immer'
+import { useMyContext } from './Context.tsx'
 import { NewFeedDialog } from './NewFeed.tsx'
 import TextEditor from './TextEditor.tsx'
-import type { Feed, FeedState, Filter, Folder, FolderWithFeeds, Selected, Settings, Status } from './types.ts'
+import type { Feed, FeedState, Folder, Selected } from './types.ts'
 import { compareTitle, fromNowVerbose, length, menuModifiers, xfetch } from './utils.ts'
 
 const statusBarStyle = {
@@ -54,45 +46,24 @@ const statusBarStyle = {
   overflowWrap: 'break-word',
 } satisfies CSSProperties
 
-export default function FeedList({
-  setFolders,
-  setFeeds,
-  status,
-  updateStatus,
-  settings,
-  setSettings,
+export default function FeedList() {
+  const {
+    setFolders,
+    status,
+    settings,
+    setSettings,
 
-  filter,
-  setFilter,
-  selected,
-  setSelected,
-  refreshed,
+    filter,
+    setFilter,
+    selected,
+    setSelected,
+    refreshed,
 
-  refreshFeeds,
-  refreshStats,
-  feedsById,
-  feedsWithoutFolders,
-  foldersWithFeeds,
-}: {
-  setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
-  setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
-  status?: Status
-  updateStatus: Updater<Status | undefined>
-  settings: Settings
-  setSettings: Dispatch<SetStateAction<Settings>>
-
-  filter: Filter
-  setFilter: Dispatch<SetStateAction<Filter>>
-  selected: Selected
-  setSelected: Dispatch<SetStateAction<Selected>>
-  refreshed: Record<never, never>
-
-  refreshFeeds: () => Promise<void>
-  refreshStats: (loop?: boolean) => Promise<void>
-  feedsById?: Map<number, Feed>
-  feedsWithoutFolders?: Feed[]
-  foldersWithFeeds?: FolderWithFeeds[]
-}) {
+    refreshFeeds,
+    refreshStats,
+    feedsWithoutFolders,
+    foldersWithFeeds,
+  } = useMyContext()
   const [newFeedDialogOpen, setNewFeedDialogOpen] = useState(false)
   const refreshRateRef = useRef<HTMLInputElement>(null)
   const opmlFormRef = useRef<HTMLFormElement>(null)
@@ -379,15 +350,7 @@ export default function FeedList({
           </div>
         </>
       ) : undefined}
-      <NewFeedDialog
-        isOpen={newFeedDialogOpen}
-        setIsOpen={setNewFeedDialogOpen}
-        defaultFolderId={selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)}
-        foldersWithFeeds={foldersWithFeeds}
-        setFeeds={setFeeds}
-        updateStatus={updateStatus}
-        setSelected={setSelected}
-      />
+      <NewFeedDialog isOpen={newFeedDialogOpen} setIsOpen={setNewFeedDialogOpen} />
     </div>
   )
 }

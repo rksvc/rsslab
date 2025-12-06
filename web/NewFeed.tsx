@@ -24,8 +24,8 @@ import {
   useState,
 } from 'react'
 import { ExternalLink } from 'react-feather'
-import type { Updater } from 'use-immer'
-import type { Feed, FolderWithFeeds, Selected, Status, Transformer } from './types.ts'
+import { useMyContext } from './Context.tsx'
+import type { Feed, Transformer } from './types.ts'
 import { compareTitle, parseFeedLink, xfetch } from './utils.ts'
 
 type Param = {
@@ -41,23 +41,15 @@ type Param = {
 export function NewFeedDialog({
   isOpen,
   setIsOpen,
-  defaultFolderId,
-  setFeeds,
-  updateStatus,
-  setSelected,
-  foldersWithFeeds,
 }: {
   isOpen: boolean
   setIsOpen: Dispatch<SetStateAction<boolean>>
-  defaultFolderId?: number | null
-  setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
-  updateStatus: Updater<Status | undefined>
-  setSelected: Dispatch<SetStateAction<Selected>>
-  foldersWithFeeds?: FolderWithFeeds[]
 }) {
+  const { setFeeds, updateStatus, setSelected, foldersWithFeeds, selected, feedsById } = useMyContext()
   const [loading, setLoading] = useState(false)
   const [feedLink, setFeedLink] = useState('')
   const selectedFolderRef = useRef<HTMLSelectElement>(null)
+  const defaultFolderId = selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)
 
   const [transOpen, setTransOpen] = useState(false)
   const [transType, setTransType] = useState<Transformer>('html')

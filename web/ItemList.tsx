@@ -13,7 +13,7 @@ import {
   Popover,
   Spinner,
 } from '@blueprintjs/core'
-import { type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Check,
   ChevronLeft,
@@ -29,58 +29,35 @@ import {
   Star,
   Trash,
 } from 'react-feather'
-import type { Updater } from 'use-immer'
+import { useMyContext } from './Context.tsx'
 import TextEditor from './TextEditor.tsx'
-import type { Feed, Filter, Folder, FolderWithFeeds, Item, Items, Selected, Status } from './types.ts'
+import type { Feed, Item, Items } from './types.ts'
 import { fromNow, length, menuModifiers, param, parseFeedLink, xfetch } from './utils.ts'
 
-export default function ItemList({
-  setFolders,
-  setFeeds,
-  items,
-  updateItems,
-  status,
-  updateStatus,
-  selectedItemIndex,
-  setSelectedItemIndex,
-  setSelectedItemContent,
+export default function ItemList() {
+  const {
+    setFolders,
+    setFeeds,
+    items,
+    updateItems,
+    status,
+    updateStatus,
+    selectedItemIndex,
+    setSelectedItemIndex,
+    setSelectedItemContent,
 
-  filter,
-  selected,
-  setSelected,
-  itemsOutdated,
-  setItemsOutdated,
-  setRefreshed,
+    filter,
+    selected,
+    setSelected,
+    itemsOutdated,
+    setItemsOutdated,
+    setRefreshed,
 
-  refreshStats,
-  selectItem,
-  foldersById,
-  feedsById,
-  foldersWithFeeds,
-}: {
-  setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
-  setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
-  items?: Items
-  updateItems: Updater<Items | undefined>
-  status?: Status
-  updateStatus: Updater<Status | undefined>
-  selectedItemIndex?: number
-  setSelectedItemIndex: Dispatch<SetStateAction<number | undefined>>
-  setSelectedItemContent: Dispatch<SetStateAction<string | undefined>>
-
-  filter: Filter
-  selected: Selected
-  setSelected: Dispatch<SetStateAction<Selected>>
-  itemsOutdated: boolean
-  setItemsOutdated: Dispatch<SetStateAction<boolean>>
-  setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
-
-  refreshStats: (loop?: boolean) => Promise<void>
-  selectItem: (index: number) => Promise<void>
-  foldersById?: Map<number, FolderWithFeeds>
-  feedsById?: Map<number, Feed>
-  foldersWithFeeds?: FolderWithFeeds[]
-}) {
+    refreshStats,
+    foldersById,
+    feedsById,
+    foldersWithFeeds,
+  } = useMyContext()
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -367,8 +344,6 @@ export default function ItemList({
             item={item}
             index={i}
             isSelected={selectedItemIndex != null && item.id === items.list[selectedItemIndex].id}
-            feedsById={feedsById}
-            selectItem={selectItem}
           />
         ))}
         {(loading || items?.has_more) && (
@@ -405,19 +380,8 @@ export default function ItemList({
   )
 }
 
-function CardItem({
-  item,
-  index,
-  isSelected,
-  feedsById,
-  selectItem,
-}: {
-  item: Item
-  index: number
-  isSelected: boolean
-  feedsById?: Map<number, Feed>
-  selectItem: (index: number) => Promise<void>
-}) {
+function CardItem({ item, index, isSelected }: { item: Item; index: number; isSelected: boolean }) {
+  const { feedsById, selectItem } = useMyContext()
   const prevStatus = usePrevious(item.status)
   return (
     <Card
