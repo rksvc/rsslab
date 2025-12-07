@@ -204,7 +204,7 @@ a.bp6-button {
 /* context menu */
 *:has(.bp6-popover-content),
 .bp6-popover-content,
-.bp6-popover-content * {
+.bp6-popover-content *:not(.bp6-menu-header) {
 	border-radius: var(--border-radius) !important;
 }
 .bp6-popover {
@@ -229,10 +229,11 @@ a.bp6-button {
 			margin: -1.5px auto;
 		}
 		.bp6-menu-divider {
-			margin-top: 2px;
-			margin-bottom: 2px;
+			margin-top: 1px;
+			margin-bottom: 1px;
 		}
 		.bp6-menu-header {
+			margin-top: 1px;
 			color: light-dark(var(--gray1), var(--gray4));
 			user-select: none;
 			.bp6-heading {
