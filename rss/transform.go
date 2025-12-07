@@ -1,7 +1,6 @@
 package rss
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -10,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/andybalholm/cascadia"
-	"github.com/dop251/goja"
+	"github.com/buke/quickjs-go"
 	"github.com/tidwall/gjson"
 	"golang.org/x/net/html"
 )
@@ -211,27 +210,26 @@ func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
 }
 
 func RunJavaScript(rule *JavaScriptRule, client *http.Client) (*Feed, error) {
-	vm := goja.New()
-	vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
+	rt := quickjs.NewRuntime()
+	defer rt.Close()
+	ctx := rt.NewContext()
+	defer ctx.Close()
 
-	module := vm.NewObject()
-	vm.Set("module", module)
-
-	_, err := vm.RunString(rule.Script)
-	if err != nil {
-		return nil, err
+	module := ctx.NewObject()
+	ctx.Globals().Set("module", module)
+	ret := ctx.Eval(rule.Script)
+	defer ret.Free()
+	if ret.IsException() {
+		return nil, ctx.Exception()
 	}
-	exports := []byte("{}")
-	if v := module.Get("exports"); v != nil {
-		exports, err = json.Marshal(v.Export())
-		if err != nil {
+
+	var feed Feed
+	exports := module.Get("exports")
+	defer exports.Free()
+	if !exports.IsUndefined() {
+		if err := ctx.Unmarshal(exports, &feed); err != nil {
 			return nil, err
 		}
-	}
-	var feed Feed
-	err = json.Unmarshal(exports, &feed)
-	if err != nil {
-		return nil, err
 	}
 	return &feed, nil
 }
