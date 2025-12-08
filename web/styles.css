@@ -379,33 +379,10 @@ a.bp6-button {
 		}
 	}
 }
-
-/* toast */
-.bp6-toast.bp6-intent-danger {
-	border-radius: var(--border-radius);
-	align-items: center;
-	box-shadow:
-		0 1px 4px rgb(from var(--black) r g b / 20%),
-		0 2px 16px rgb(from var(--black) r g b / 20%);
-	.bp6-button:last-child {
-		min-height: auto;
-		min-width: 0;
-		padding: 0;
-		margin: 5px;
-		.bp6-icon-cross {
-			margin: 0;
-			color: rgb(from currentColor r g b / 87%) !important;
-		}
-		&:is(:hover, :active) {
-			.bp6-icon-cross {
-				color: rgb(from currentColor r g b / 96%) !important;
-			}
-			background-color: inherit !important;
-		}
-	}
-	.bp6-toast-message {
-		padding: 9px 11px;
-	}
+.bp6-dialog.error {
+	width: fit-content;
+	max-width: 90vw;
+	white-space: nowrap;
 }
 
 /* content */

@@ -1,5 +1,5 @@
-import { Card, Divider, Intent, OverlayToaster, Position } from '@blueprintjs/core'
-import { useEffect, useRef } from 'react'
+import { Card, Dialog, DialogBody, Divider } from '@blueprintjs/core'
+import { useEffect, useRef, useState } from 'react'
 import { useMyContext } from './Context.tsx'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
@@ -8,17 +8,13 @@ import { cn } from './utils.ts'
 
 export default function App() {
   const caughtErrors = useRef(new Set<any>())
-  const toaster = useRef<OverlayToaster>(null)
+  const [errors, setErrors] = useState<string[]>([])
   useEffect(() => {
     window.addEventListener('unhandledrejection', evt => {
       if (!caughtErrors.current.has(evt.reason)) {
         caughtErrors.current.add(evt.reason)
         const message = evt.reason instanceof Error ? evt.reason.message : String(evt.reason)
-        toaster.current?.show({
-          intent: Intent.DANGER,
-          message: message.split('\n', 2)[0],
-          timeout: 0,
-        })
+        setErrors(errors => [...errors, message])
       }
     })
   }, [])
@@ -42,7 +38,18 @@ export default function App() {
       <ItemList />
       <Divider id="item-divider" compact />
       <ItemShow />
-      <OverlayToaster canEscapeKeyClear={false} position={Position.BOTTOM_RIGHT} ref={toaster} />
+      {errors.map((error, i) => (
+        <Dialog
+          title="Error"
+          className="error"
+          key={error}
+          onClose={() => setErrors(errors => errors.toSpliced(i, 1))}
+          canEscapeKeyClose={false}
+          isOpen
+        >
+          <DialogBody>{error}</DialogBody>
+        </Dialog>
+      ))}
     </Card>
   )
 }

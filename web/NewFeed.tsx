@@ -264,8 +264,7 @@ export function NewFeedDialog({
       title="New Feed"
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
-      canEscapeKeyClose
-      canOutsideClickClose
+      canEscapeKeyClose={false}
       onOpened={node => node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()}
     >
       <DialogBody>
