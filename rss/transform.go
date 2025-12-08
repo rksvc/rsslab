@@ -1,6 +1,7 @@
 package rss
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -226,8 +227,9 @@ func RunJavaScript(rule *JavaScriptRule, client *http.Client) (*Feed, error) {
 	var feed Feed
 	exports := module.Get("exports")
 	defer exports.Free()
-	if !exports.IsUndefined() {
-		if err := ctx.Unmarshal(exports, &feed); err != nil {
+	if !exports.IsNull() && !exports.IsUndefined() {
+		err := json.Unmarshal(utils.StringToBytes(exports.JSONStringify()), &feed)
+		if err != nil {
 			return nil, err
 		}
 	}
