@@ -1,4 +1,4 @@
-RSS reader with built-in feed builder which can transform websites containing HTML/JSON content into RSS feeds using CSS selectors/[JSON paths](https://github.com/tidwall/gjson).
+RSS reader with built-in feed builder which can transform websites with HTML/JSON content into RSS feeds using CSS selectors/[JSON paths](https://github.com/tidwall/gjson).
 
 ## Usage
 
