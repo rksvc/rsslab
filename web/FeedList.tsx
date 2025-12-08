@@ -414,7 +414,7 @@ function RefreshRateEditor({
           <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
         </>
       }
-      onOpening={node => node.querySelector<HTMLInputElement>('.bp6-input')?.focus()}
+      onOpening={node => node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()}
     >
       <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
     </Popover>

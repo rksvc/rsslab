@@ -2,6 +2,7 @@ import {
   AnchorButton,
   Button,
   ButtonVariant,
+  Classes,
   Code,
   Dialog,
   DialogBody,
@@ -265,7 +266,7 @@ export function NewFeedDialog({
       onClose={() => setIsOpen(false)}
       canEscapeKeyClose
       canOutsideClickClose
-      onOpened={node => node.querySelector<HTMLInputElement>('.bp6-input')?.focus()}
+      onOpened={node => node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()}
     >
       <DialogBody>
         <FormGroup label="URL" fill>

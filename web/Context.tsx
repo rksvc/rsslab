@@ -1,3 +1,4 @@
+import { Classes } from '@blueprintjs/core'
 import {
   createContext,
   type Dispatch,
@@ -148,8 +149,8 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
     })()
   }, [])
   useEffect(() => {
-    if (settings.dark_theme) document.body.classList.add('bp6-dark')
-    else document.body.classList.remove('bp6-dark')
+    if (settings.dark_theme) document.body.classList.add(Classes.DARK)
+    else document.body.classList.remove(Classes.DARK)
   }, [settings])
 
   const [feedsById, foldersById, feedsWithoutFolders, foldersWithFeeds] = useMemo(() => {

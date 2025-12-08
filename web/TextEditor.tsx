@@ -59,7 +59,7 @@ export default function TextEditor({
         </>
       }
       onOpening={node => {
-        const elem = node.querySelector<HTMLInputElement>('.bp6-input')
+        const elem = node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)
         if (elem) {
           elem.focus()
           elem.setSelectionRange(elem.value.length, elem.value.length)
