@@ -210,8 +210,8 @@ export default function ItemList() {
                         icon={<Rss />}
                         target="_blank"
                         href={(() => {
-                          const [scheme, link] = parseFeedLink(feed.feed_link)
-                          return scheme ? `api/transform/${scheme}/${encodeURIComponent(link)}` : link
+                          const [scheme, url] = parseFeedLink(feed.feed_link)
+                          return scheme ? `api/transform/${scheme}${url.search}` : feed.feed_link
                         })()}
                         rel="noopener noreferrer"
                         referrerPolicy="no-referrer"

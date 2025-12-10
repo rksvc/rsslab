@@ -27,14 +27,13 @@ import {
 import { ExternalLink } from 'react-feather'
 import { useMyContext } from './Context.tsx'
 import type { Feed, Transformer } from './types.ts'
-import { compareTitle, parseFeedLink, xfetch } from './utils.ts'
+import { compareTitle, param, parseFeedLink, xfetch } from './utils.ts'
 
 type Param = {
   value: string
   setValue: Dispatch<SetStateAction<string>>
   key: string
   desc?: string | JSX.Element
-  parse?: (input: string) => any
   placeholder?: string
   multiline?: boolean
 }
@@ -174,13 +173,6 @@ export function NewFeedDialog({
       setValue: setTransJsonHeaders,
       key: 'headers',
       desc: 'HTTP request headers in JSON format',
-      parse: (input: string) => {
-        try {
-          return JSON.parse(input)
-        } catch {
-          return null
-        }
-      },
     },
     {
       value: transJsonItems,
@@ -278,19 +270,16 @@ export function NewFeedDialog({
             onChange={evt => {
               const feedLink = evt.target.value
               setFeedLink(feedLink)
-              const [scheme, link] = parseFeedLink(feedLink)
+              const [scheme, url] = parseFeedLink(feedLink)
               if (scheme)
                 try {
-                  const params: Record<string, any> = JSON.parse(link)
                   for (const { key, setValue } of {
                     html: transHtmlParams,
                     json: transJsonParams,
                     js: jsParams,
-                  }[scheme]) {
-                    const value = params[key] || ''
-                    setValue(typeof value === 'string' ? value : JSON.stringify(value))
-                  }
-                  setTransUrl(params.url ?? '')
+                  }[scheme])
+                    setValue(url.searchParams.get(key) ?? '')
+                  setTransUrl(url.searchParams.get('url') ?? '')
                   setTransType(scheme)
                 } catch {}
             }}
@@ -402,7 +391,7 @@ function TransformerSection({
   setFeedLink: Dispatch<SetStateAction<string>>
 }) {
   const updateFeedLink = (i: number, value: string) =>
-    setFeedLink(`${curType}:${stringify(params.with(i, { ...params[i], value }))}`)
+    setFeedLink(`rsslab://${curType}${stringify(params.with(i, { ...params[i], value }))}`)
 
   return (
     <Section
@@ -464,7 +453,7 @@ function TransformerSection({
         ))}
         <AnchorButton
           text="Preview"
-          href={`api/transform/${type}/${encodeURIComponent(stringify(params))}`}
+          href={`api/transform/${type}${stringify(params)}`}
           target="_blank"
           intent={Intent.PRIMARY}
           endIcon={<ExternalLink />}
@@ -481,11 +470,5 @@ function Span(props: HTMLAttributes<HTMLSpanElement>) {
 }
 
 function stringify(params: Param[]) {
-  return JSON.stringify(
-    Object.fromEntries(
-      params
-        .map(({ key, value, parse }) => [key, parse ? parse(value) : value])
-        .filter(([_, value]) => value),
-    ),
-  )
+  return param(Object.fromEntries(params.filter(({ value }) => value).map(({ key, value }) => [key, value])))
 }

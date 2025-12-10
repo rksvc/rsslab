@@ -1,12 +1,9 @@
 package server
 
 import (
-	"encoding"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
-	"reflect"
 	"rsslab/utils"
 	"strconv"
 )
@@ -33,57 +30,8 @@ func (c *context) ParseBody(v any) error {
 }
 
 func (c *context) ParseQuery(v any) error {
-	q := c.r.URL.Query()
-	val := reflect.ValueOf(v).Elem()
-	typ := val.Type()
-	for i := range val.NumField() {
-		if f := val.Field(i); f.CanSet() {
-			if k := f.Kind(); k == reflect.Struct {
-				if err := c.ParseQuery(f.Addr().Interface()); err != nil {
-					return err
-				}
-			} else if key, ok := typ.Field(i).Tag.Lookup("query"); ok {
-				if v := q.Get(key); v != "" {
-					if k == reflect.Pointer && f.IsZero() {
-						f.Set(reflect.New(f.Type().Elem()))
-					}
-					if f.CanConvert(reflect.TypeFor[encoding.TextUnmarshaler]()) {
-						err := f.
-							Interface().(encoding.TextUnmarshaler).
-							UnmarshalText(utils.StringToBytes(v))
-						if err != nil {
-							return &errBadRequest{err}
-						}
-					} else {
-						if k == reflect.Pointer {
-							f = f.Elem()
-							k = f.Kind()
-						}
-						switch k {
-						case reflect.Bool:
-							switch v {
-							case "true":
-								f.SetBool(true)
-							case "false":
-								f.SetBool(false)
-							default:
-								return &errBadRequest{errors.New("invalid bool value")}
-							}
-						case reflect.Int:
-							n, err := strconv.Atoi(v)
-							if err != nil {
-								return &errBadRequest{err}
-							}
-							f.SetInt(int64(n))
-						case reflect.String:
-							f.SetString(v)
-						default:
-							panic("unsupported type " + k.String())
-						}
-					}
-				}
-			}
-		}
+	if err := utils.ParseQuery(c.r.URL, v); err != nil {
+		return &errBadRequest{err}
 	}
 	return nil
 }

@@ -63,17 +63,19 @@ export function compareTitle(a: { title: string }, b: { title: string }) {
   return lhs === rhs ? 0 : lhs < rhs ? -1 : +1
 }
 
-export function parseFeedLink(link: string): [Transformer | undefined, string] {
-  const i = link.indexOf(':')
-  if (i !== -1) {
-    const scheme = link.slice(0, i)
-    switch (scheme) {
-      case 'html':
-      case 'json':
-      case 'js':
-        return [scheme, link.slice(i + 1)]
+export function parseFeedLink(link: string): [Transformer, URL] | [undefined, string] {
+  try {
+    const url = new URL(link)
+    if (url.protocol === 'rsslab:') {
+      const host = url.host
+      switch (host) {
+        case 'html':
+        case 'json':
+        case 'js':
+          return [host, url]
+      }
     }
-  }
+  } catch {}
   return [undefined, link]
 }
 

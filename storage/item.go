@@ -136,12 +136,12 @@ func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time,
 }
 
 type ItemFilter struct {
-	FolderId    *int        `query:"folder_id"`
-	FeedId      *int        `query:"feed_id"`
-	Status      *ItemStatus `query:"status"`
-	Search      *string     `query:"search"`
-	After       *int        `query:"after"`
-	OldestFirst bool        `query:"oldest_first"`
+	FolderId    *int        `json:"folder_id"`
+	FeedId      *int        `json:"feed_id"`
+	Status      *ItemStatus `json:"status"`
+	Search      *string     `json:"search"`
+	After       *int        `json:"after"`
+	OldestFirst bool        `json:"oldest_first"`
 }
 
 func listQueryPredicate(filter ItemFilter, includeBoundary bool) (string, []any) {

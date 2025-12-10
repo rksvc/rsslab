@@ -2,7 +2,6 @@ package server
 
 import (
 	"cmp"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -99,7 +98,7 @@ func (s *Server) Start(addr string) error {
 	mux.HandleFunc("PUT    /api/settings", wrap(s.handleSettingsUpdate))
 	mux.HandleFunc("POST   /api/opml/import", wrap(s.handleOPMLImport))
 	mux.HandleFunc("GET    /api/opml/export", wrap(s.handleOPMLExport))
-	mux.HandleFunc("GET    /api/transform/{type}/{params}", wrap(s.handleTransform))
+	mux.HandleFunc("GET    /api/transform/{type}", wrap(s.handleTransform))
 	mux.HandleFunc("GET    /", s.handleIndex)
 
 	host, port := addr, ""
@@ -202,82 +201,82 @@ func (s *Server) RefreshFeeds(feeds ...storage.Feed) {
 	}
 }
 
-func (s *Server) do(url string, state *storage.HTTPState) (*rss.Feed, error) {
-	i := strings.IndexByte(url, ':')
-	if i == -1 {
-		return nil, errors.New("invalid URL")
+func (s *Server) do(rawUrl string, state *storage.HTTPState) (*rss.Feed, error) {
+	url, err := url.Parse(rawUrl)
+	if err != nil {
+		return nil, err
+	}
+	if url.Scheme == "rsslab" {
+		switch url.Host {
+		case "html":
+			rule := new(rss.HTMLRule)
+			if err := utils.ParseQuery(url, rule); err != nil {
+				return nil, err
+			}
+			return rss.TransformHTML(rule, &s.client)
+
+		case "json":
+			rule := new(rss.JSONRule)
+			if err := utils.ParseQuery(url, rule); err != nil {
+				return nil, err
+			}
+			return rss.TransformJSON(rule, &s.client)
+
+		case "js":
+			rule := new(rss.JavaScriptRule)
+			if err := utils.ParseQuery(url, rule); err != nil {
+				return nil, err
+			}
+			return rss.RunJavaScript(rule, &s.client)
+
+		default:
+			return nil, errors.New("invalid URL")
+		}
 	}
 
-	switch url[:i] {
-	case "html":
-		rule := new(rss.HTMLRule)
-		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
-		if err != nil {
-			return nil, err
-		}
-		return rss.TransformHTML(rule, &s.client)
-
-	case "json":
-		rule := new(rss.JSONRule)
-		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
-		if err != nil {
-			return nil, err
-		}
-		return rss.TransformJSON(rule, &s.client)
-
-	case "js":
-		rule := new(rss.JavaScriptRule)
-		err := json.Unmarshal(utils.StringToBytes(url[i+1:]), rule)
-		if err != nil {
-			return nil, err
-		}
-		return rss.RunJavaScript(rule, &s.client)
-
-	default:
-		req, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			return nil, err
-		}
-		if state != nil {
-			if state.LastModified != nil {
-				req.Header.Set("If-Modified-Since", *state.LastModified)
-			}
-			if state.Etag != nil {
-				req.Header.Set("If-None-Match", *state.Etag)
-			}
-		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Miniflux/dev; +https://miniflux.app)")
-
-		resp, err := s.client.Do(req)
-		if err == nil && utils.IsErrorResponse(resp.StatusCode) {
-			resp.Body.Close()
-			err = utils.ResponseError(resp)
-		}
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode == http.StatusNotModified {
-			return nil, nil
-		}
-
-		lmod := resp.Header.Get("Last-Modified")
-		etag := resp.Header.Get("Etag")
-		if lmod != "" || etag != "" {
-			state.LastModified = &lmod
-			state.Etag = &etag
-		}
-
-		var b io.Reader = resp.Body
-		if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type")); err == nil {
-			if cs, ok := params["charset"]; ok {
-				if e, _ := charset.Lookup(cs); e != nil {
-					b = e.NewDecoder().Reader(b)
-				}
-			}
-		}
-		return rss.Parse(b, url)
+	req, err := http.NewRequest(http.MethodGet, rawUrl, nil)
+	if err != nil {
+		return nil, err
 	}
+	if state != nil {
+		if state.LastModified != nil {
+			req.Header.Set("If-Modified-Since", *state.LastModified)
+		}
+		if state.Etag != nil {
+			req.Header.Set("If-None-Match", *state.Etag)
+		}
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Miniflux/dev; +https://miniflux.app)")
+
+	resp, err := s.client.Do(req)
+	if err == nil && utils.IsErrorResponse(resp.StatusCode) {
+		resp.Body.Close()
+		err = utils.ResponseError(resp)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotModified {
+		return nil, nil
+	}
+
+	lmod := resp.Header.Get("Last-Modified")
+	etag := resp.Header.Get("Etag")
+	if lmod != "" || etag != "" {
+		state.LastModified = &lmod
+		state.Etag = &etag
+	}
+
+	var b io.Reader = resp.Body
+	if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type")); err == nil {
+		if cs, ok := params["charset"]; ok {
+			if e, _ := charset.Lookup(cs); e != nil {
+				b = e.NewDecoder().Reader(b)
+			}
+		}
+	}
+	return rss.Parse(b, rawUrl)
 }
 
 func (s *Server) worker() {

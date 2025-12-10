@@ -483,9 +483,8 @@ func (s *Server) handleOPMLExport(c context) error {
 
 func (s *Server) handleTransform(c context) error {
 	typ := c.r.PathValue("type")
-	params := c.r.PathValue("params")
 	var state storage.HTTPState
-	feed, err := s.do(typ+":"+params, &state)
+	feed, err := s.do("rsslab://"+typ+"?"+c.r.URL.RawQuery, &state)
 	if err != nil {
 		return err
 	}
