@@ -46,7 +46,7 @@ export default function TextEditor({
             spellCheck="false"
             disabled={loading}
             autoResize
-            style={textAreaStyle}
+            style={{ ...textAreaStyle, maxHeight: '90vh' }}
             onKeyDown={async evt => {
               if (evt.key === 'Enter') {
                 evt.preventDefault()
