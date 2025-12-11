@@ -150,7 +150,8 @@ export function NewFeedDialog({
       style={{ color: 'inherit', textDecoration: 'underline' }}
       href="https://github.com/tidwall/gjson"
       target="_blank"
-      rel="noopener"
+      rel="noopener noreferrer"
+      referrerPolicy="no-referrer"
     >
       JSON path
     </a>
