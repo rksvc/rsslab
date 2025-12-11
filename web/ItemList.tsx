@@ -112,10 +112,13 @@ export default function ItemList() {
   }
 
   const refresh = useCallback(async () => {
-    updateItems(await xfetch<Items>(`api/items${param(query())}`))
     setSelectedItemIndex(undefined)
     setSelectedItemContent(undefined)
     setItemsOutdated(false)
+    updateItems(undefined)
+    setLoading(true)
+    updateItems(await xfetch<Items>(`api/items${param(query())}`))
+    setLoading(false)
     itemListRef.current?.scrollTo(0, 0)
   }, [query, updateItems, setSelectedItemIndex, setSelectedItemContent, setItemsOutdated])
   useEffect(() => {
