@@ -202,9 +202,9 @@ a.bp6-button {
 }
 
 /* context menu */
-*:has(.bp6-popover-content),
+:has(.bp6-popover-content),
 .bp6-popover-content,
-.bp6-popover-content *:not(.bp6-menu-header) {
+.bp6-popover-content :not(.bp6-menu-header) {
 	border-radius: var(--border-radius) !important;
 }
 .bp6-popover {
@@ -442,6 +442,7 @@ a.bp6-button {
 	}
 }
 
+/* responsive layout */
 #feed-list,
 #item-list,
 #item {
@@ -450,8 +451,8 @@ a.bp6-button {
 }
 #feed-list,
 #item-list {
-	min-width: 300px;
-	max-width: 300px;
+	flex: 0 0 300px;
+	overflow: auto;
 }
 #item {
 	flex-grow: 1;
@@ -521,8 +522,7 @@ a.bp6-button {
 @media (max-width: 991.98px) {
 	#feed-list,
 	#item-list {
-		min-width: unset;
-		max-width: unset;
+		flex: unset;
 	}
 	.topbar {
 		min-height: 3rem;

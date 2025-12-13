@@ -394,7 +394,7 @@ function CardItem({ item, index, isSelected }: { item: Item; index: number; isSe
         if (!isSelected) await selectItem(index)
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
           <span
             style={{
