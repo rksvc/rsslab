@@ -8,6 +8,14 @@ import (
 	"strconv"
 )
 
+type errBadRequest struct {
+	Err error
+}
+
+func (err *errBadRequest) Error() string {
+	return err.Err.Error()
+}
+
 type context struct {
 	w http.ResponseWriter
 	r *http.Request
@@ -30,7 +38,8 @@ func (c *context) ParseBody(v any) error {
 }
 
 func (c *context) ParseQuery(v any) error {
-	if err := utils.ParseQuery(c.r.URL, v); err != nil {
+	err := utils.ParseQuery(c.r.URL, v)
+	if err != nil {
 		return &errBadRequest{err}
 	}
 	return nil

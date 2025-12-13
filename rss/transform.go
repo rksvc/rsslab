@@ -44,7 +44,7 @@ type JavaScriptRule struct {
 	Script string `json:"script"`
 }
 
-func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
+func (rule *HTMLRule) Apply(client *http.Client) (*Feed, error) {
 	resp, err := tryGet(rule.URL, nil, client)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 			if err := html.Render(&b, content); err != nil {
 				return nil, err
 			}
-			i.Content = strings.TrimSpace(utils.Sanitize(rule.URL, b.String()))
+			i.Content = b.String()
 		}
 
 		date := item
@@ -140,13 +140,13 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 			if date != nil {
 				for _, attr := range date.Attr {
 					if attr.Key == rule.ItemDateAttr {
-						i.Date = utils.ParseDate(attr.Val)
+						i.Date = parseDate(attr.Val)
 						break
 					}
 				}
 			}
 		} else {
-			i.Date = utils.ParseDate(extractText(date))
+			i.Date = parseDate(extractText(date))
 		}
 
 		feed.Items = append(feed.Items, i)
@@ -156,7 +156,7 @@ func TransformHTML(rule *HTMLRule, client *http.Client) (*Feed, error) {
 	return &feed, nil
 }
 
-func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
+func (rule *JSONRule) Apply(client *http.Client) (*Feed, error) {
 	resp, err := tryGet(rule.URL, rule.Headers, client)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
 		}
 
 		if rule.ItemDate != "" {
-			i.Date = utils.ParseDate(item.Get(rule.ItemDate).String())
+			i.Date = parseDate(item.Get(rule.ItemDate).String())
 		}
 
 		feed.Items = append(feed.Items, i)
@@ -210,7 +210,7 @@ func TransformJSON(rule *JSONRule, client *http.Client) (*Feed, error) {
 	return &feed, nil
 }
 
-func RunJavaScript(rule *JavaScriptRule, client *http.Client) (*Feed, error) {
+func (rule *JavaScriptRule) Apply(client *http.Client) (*Feed, error) {
 	rt := quickjs.NewRuntime()
 	defer rt.Close()
 	ctx := rt.NewContext()

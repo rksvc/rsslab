@@ -75,7 +75,7 @@ type Item struct {
 func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time, state *HTTPState) error {
 	tx, err := s.db.Begin()
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 
 	slices.SortStableFunc(items, func(a, b Item) int {
@@ -100,7 +100,7 @@ func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time,
 			if err := tx.Rollback(); err != nil {
 				log.Print(err)
 			}
-			return utils.NewError(err)
+			return newError(err)
 		}
 	}
 
@@ -125,12 +125,12 @@ func (s *Storage) CreateItems(items []Item, feedId int, lastRefreshed time.Time,
 		if err := tx.Rollback(); err != nil {
 			log.Print(err)
 		}
-		return utils.NewError(err)
+		return newError(err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }
@@ -201,7 +201,7 @@ func (s *Storage) ListItems(filter ItemFilter, limit int) ([]Item, error) {
 		limit %d
 	`, predicate, order, limit), args...)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	result := make([]Item, 0)
 	for rows.Next() {
@@ -212,7 +212,7 @@ func (s *Storage) ListItems(filter ItemFilter, limit int) ([]Item, error) {
 			&i.Status, &i.ImageURL, &i.AudioURL,
 		)
 		if err != nil {
-			return nil, utils.NewError(err)
+			return nil, newError(err)
 		}
 		result = append(result, i)
 	}
@@ -235,7 +235,7 @@ func (s *Storage) GetItem(id int) (*Item, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return &i, nil
 }
@@ -243,7 +243,7 @@ func (s *Storage) GetItem(id int) (*Item, error) {
 func (s *Storage) UpdateItemStatus(itemId int, status ItemStatus) error {
 	_, err := s.db.Exec(`update items set status = ? where id = ?`, status, itemId)
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }
@@ -255,7 +255,7 @@ func (s *Storage) MarkItemsRead(filter ItemFilter) error {
 		where %s and status != %d
 	`, READ, predicate, STARRED), args...)
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }

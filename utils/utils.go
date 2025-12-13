@@ -32,10 +32,6 @@ func StringToBytes(s string) []byte {
 	))
 }
 
-func IsAPossibleLink(s string) bool {
-	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
-}
-
 func AbsoluteUrl(href, base string) string {
 	hrefUrl, err := url.Parse(href)
 	if err != nil {
@@ -49,13 +45,6 @@ func AbsoluteUrl(href, base string) string {
 		return ""
 	}
 	return baseUrl.ResolveReference(hrefUrl).String()
-}
-
-func UrlDomain(href string) string {
-	if url, err := url.Parse(href); err == nil {
-		return url.Host
-	}
-	return ""
 }
 
 var whitespaces = regexp.MustCompile(`\s+`)

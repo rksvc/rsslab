@@ -1,6 +1,6 @@
 // https://github.com/dop251/goja/pull/611
 
-package utils
+package rss
 
 import (
 	"strings"
@@ -89,7 +89,8 @@ func getTimeZoneOffset(s string, strict bool) (int, string, bool) {
 		return 0, s, false
 	}
 	sign := s[0]
-	if sign == '+' || sign == '-' {
+	switch sign {
+	case '+', '-':
 		var hh, mm, v int
 		var ok bool
 		t := s[1:]
@@ -121,7 +122,7 @@ func getTimeZoneOffset(s string, strict bool) (int, string, bool) {
 			v = -v
 		}
 		return v, t, true
-	} else if sign == 'Z' {
+	case 'Z':
 		return 0, s[1:], true
 	}
 	return 0, s, false
@@ -350,9 +351,10 @@ func parseDateOtherString(s string) (date, bool) {
 			level := 1
 			s = s[1:]
 			for len(s) > 0 && level != 0 {
-				if s[0] == '(' {
+				switch s[0] {
+				case '(':
 					level++
-				} else if s[0] == ')' {
+				case ')':
 					level--
 				}
 				s = s[1:]
@@ -428,7 +430,7 @@ func parseDateOtherString(s string) (date, bool) {
 	return d, d.month > 0 && d.day > 0
 }
 
-func ParseDate(date string) *time.Time {
+func parseDate(date string) *time.Time {
 	d, ok := parseDateISOString(date)
 	if !ok {
 		d, ok = parseDateOtherString(date)

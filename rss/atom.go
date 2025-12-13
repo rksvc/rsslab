@@ -79,14 +79,14 @@ func ParseAtom(r io.Reader) (*Feed, error) {
 
 	for _, item := range atom.Entries {
 		var linkFromID, guidFromID string
-		if utils.IsAPossibleLink(item.ID) {
+		if strings.HasPrefix(item.ID, "http://") || strings.HasPrefix(item.ID, "https://") {
 			linkFromID = item.ID
 			guidFromID = item.ID + "::" + item.Updated
 		}
 		link := cmp.Or(item.OrigLink, item.Links.First("alternate"), item.Links.First(""), linkFromID)
 		feed.Items = append(feed.Items, Item{
 			GUID:    cmp.Or(guidFromID, item.ID),
-			Date:    utils.ParseDate(cmp.Or(item.Published, item.Updated)),
+			Date:    parseDate(cmp.Or(item.Published, item.Updated)),
 			URL:     link,
 			Title:   item.Title.Text(),
 			Content: cmp.Or(item.Content.String(), item.Summary.String()),

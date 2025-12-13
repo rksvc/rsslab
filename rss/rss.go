@@ -79,7 +79,7 @@ func ParseRSS(r io.Reader) (*Feed, error) {
 
 		feed.Items = append(feed.Items, Item{
 			GUID:     strings.TrimSpace(item.GUID.GUID),
-			Date:     utils.ParseDate(cmp.Or(item.DublinCoreDate, item.PubDate, item.Torrent.PubDate)),
+			Date:     parseDate(cmp.Or(item.DublinCoreDate, item.PubDate, item.Torrent.PubDate)),
 			URL:      cmp.Or(item.OrigLink, item.Link, permalink),
 			Title:    strings.TrimSpace(item.Title),
 			Content:  cmp.Or(item.ContentEncoded, item.Description),

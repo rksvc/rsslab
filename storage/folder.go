@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"rsslab/utils"
 	"strings"
 )
 
@@ -29,7 +28,7 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 		title,
 	).Scan(&id)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return &Folder{Id: id, Title: title, IsExpanded: expanded}, nil
 }
@@ -37,7 +36,7 @@ func (s *Storage) CreateFolder(title string) (*Folder, error) {
 func (s *Storage) DeleteFolder(folderId int) error {
 	_, err := s.db.Exec(`delete from folders where id = ?`, folderId)
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }
@@ -59,7 +58,7 @@ func (s *Storage) EditFolder(folderId int, editor FolderEditor) error {
 	args = append(args, folderId)
 	_, err := s.db.Exec(fmt.Sprintf(`update folders set %s where id = ?`, strings.Join(acts, ", ")), args...)
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }
@@ -71,19 +70,19 @@ func (s *Storage) ListFolders() ([]Folder, error) {
 		order by title collate nocase
 	`)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	result := make([]Folder, 0)
 	for rows.Next() {
 		var f Folder
 		err = rows.Scan(&f.Id, &f.Title, &f.IsExpanded)
 		if err != nil {
-			return nil, utils.NewError(err)
+			return nil, newError(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return result, nil
 }

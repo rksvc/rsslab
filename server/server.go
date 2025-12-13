@@ -213,21 +213,21 @@ func (s *Server) do(rawUrl string, state *storage.HTTPState) (*rss.Feed, error) 
 			if err := utils.ParseQuery(url, rule); err != nil {
 				return nil, err
 			}
-			return rss.TransformHTML(rule, &s.client)
+			return rule.Apply(&s.client)
 
 		case "json":
 			rule := new(rss.JSONRule)
 			if err := utils.ParseQuery(url, rule); err != nil {
 				return nil, err
 			}
-			return rss.TransformJSON(rule, &s.client)
+			return rule.Apply(&s.client)
 
 		case "js":
 			rule := new(rss.JavaScriptRule)
 			if err := utils.ParseQuery(url, rule); err != nil {
 				return nil, err
 			}
-			return rss.RunJavaScript(rule, &s.client)
+			return rule.Apply(&s.client)
 
 		default:
 			return nil, errors.New("invalid URL")

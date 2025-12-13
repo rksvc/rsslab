@@ -1,6 +1,6 @@
 // https://chromium.googlesource.com/v8/v8/+/refs/heads/main/test/mjsunit/date-parse.js
 
-package utils
+package rss
 
 import (
 	"testing"
@@ -249,7 +249,7 @@ func TestDateParse(t *testing.T) {
 		testCasesPDT,
 	} {
 		for _, testCase := range testCases {
-			date := ParseDate(testCase)
+			date := parseDate(testCase)
 			if date == nil {
 				t.Fatalf("fail to parse %#v", testCase)
 			}
@@ -264,7 +264,7 @@ func TestDateParse(t *testing.T) {
 
 func TestDateParseLocalTime(t *testing.T) {
 	for _, testCase := range testCasesLocalTime {
-		date := ParseDate(testCase)
+		date := parseDate(testCase)
 		if date == nil || date.UnixMilli() == 0 {
 			t.Fatalf("fail to parse %#v", testCase)
 		}
@@ -274,7 +274,7 @@ func TestDateParseLocalTime(t *testing.T) {
 func TestDateParseMisc(t *testing.T) {
 	for _, testCases := range [][]testCaseMisc{testCasesMisc, testCasesES5Misc, testCasesES2016TZ} {
 		for _, testCase := range testCases {
-			date := ParseDate(testCase.date)
+			date := parseDate(testCase.date)
 			if date == nil {
 				t.Fatalf("fail to parse %#v", testCase.date)
 			}
@@ -291,7 +291,7 @@ func TestDateParseRFC3339(t *testing.T) {
 	for i := int64(0); i < 24*365*100; i += 150 {
 		testCase := time.Unix(i*3600, 0)
 		dateString := testCase.Format(time.RFC3339)
-		date := ParseDate(dateString)
+		date := parseDate(dateString)
 		if date == nil {
 			t.Fatalf("fail to parse %#v", dateString)
 		}
@@ -306,7 +306,7 @@ func TestDateParseRFC3339(t *testing.T) {
 func TestDateParseNegative(t *testing.T) {
 	for _, testCases := range [][]string{testCasesES5MiscNegative, testCasesNegative} {
 		for _, testCase := range testCases {
-			if ParseDate(testCase) != nil {
+			if parseDate(testCase) != nil {
 				t.Fatalf("successfully parsed %#v", testCase)
 			}
 		}

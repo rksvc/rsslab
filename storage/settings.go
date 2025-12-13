@@ -2,7 +2,6 @@ package storage
 
 import (
 	"database/sql"
-	"rsslab/utils"
 )
 
 const (
@@ -13,7 +12,7 @@ const (
 func (s *Storage) GetSettings() (map[string]any, error) {
 	rows, err := s.db.Query(`select key, val from settings`)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	result := make(map[string]any)
 	for rows.Next() {
@@ -24,12 +23,12 @@ func (s *Storage) GetSettings() (map[string]any, error) {
 			&val,
 		)
 		if err != nil {
-			return nil, utils.NewError(err)
+			return nil, newError(err)
 		}
 		result[key] = val
 	}
 	if err = rows.Err(); err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return result, nil
 }
@@ -39,7 +38,7 @@ func (s *Storage) GetSettingInt(key string) (val *int, err error) {
 	if err == sql.ErrNoRows {
 		err = nil
 	} else if err != nil {
-		err = utils.NewError(err)
+		err = newError(err)
 	}
 	return
 }
@@ -49,7 +48,7 @@ func (s *Storage) UpdateSetting(key string, val any) error {
 		insert or replace into settings (key, val) values (?, ?)
 	`, key, val)
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }

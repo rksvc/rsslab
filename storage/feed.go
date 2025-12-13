@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"rsslab/utils"
 	"strings"
 	"time"
 )
@@ -32,7 +31,7 @@ func (s *Storage) CreateFeed(title, link, feedLink string, folderId *int) (*Feed
 		title, link, feedLink, folderId, folderId,
 	).Scan(&id)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return &Feed{
 		Id:       id,
@@ -46,7 +45,7 @@ func (s *Storage) CreateFeed(title, link, feedLink string, folderId *int) (*Feed
 func (s *Storage) DeleteFeed(feedId int) error {
 	_, err := s.db.Exec(`delete from feeds where id = ?`, feedId)
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }
@@ -78,7 +77,7 @@ func (s *Storage) EditFeed(feedId int, editor FeedEditor) error {
 	args = append(args, feedId)
 	_, err := s.db.Exec(fmt.Sprintf(`update feeds set %s where id = ?`, strings.Join(acts, ", ")), args...)
 	if err != nil {
-		return utils.NewError(err)
+		return newError(err)
 	}
 	return nil
 }
@@ -99,7 +98,7 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 		order by title collate nocase
 	`)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	result := make([]Feed, 0)
 	for rows.Next() {
@@ -113,12 +112,12 @@ func (s *Storage) ListFeeds() ([]Feed, error) {
 			&f.HasIcon,
 		)
 		if err != nil {
-			return nil, utils.NewError(err)
+			return nil, newError(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return result, nil
 }
@@ -162,7 +161,7 @@ func (s *Storage) GetFeed(id int) (*Feed, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return &f, nil
 }
@@ -174,7 +173,7 @@ func (s *Storage) GetFeedIcon(id int) ([]byte, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return icon, nil
 }
@@ -187,19 +186,19 @@ func (s *Storage) GetFeeds(folderId int) ([]Feed, error) {
 		order by title collate nocase
 	`, folderId)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	result := make([]Feed, 0)
 	for rows.Next() {
 		var f Feed
 		err = rows.Scan(&f.Id, &f.FeedLink)
 		if err != nil {
-			return nil, utils.NewError(err)
+			return nil, newError(err)
 		}
 		result = append(result, f)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 	return result, nil
 }
@@ -232,7 +231,7 @@ func (s *Storage) GetHTTPState(feedId int) (state HTTPState, err error) {
 		&state.Etag,
 	)
 	if err != nil {
-		err = utils.NewError(err)
+		err = newError(err)
 	}
 	return
 }
@@ -254,7 +253,7 @@ func (s *Storage) FeedState() (map[int]FeedState, error) {
 		group by feed_id
 	`, UNREAD, STARRED))
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 
 	result := make(map[int]FeedState)
@@ -263,17 +262,17 @@ func (s *Storage) FeedState() (map[int]FeedState, error) {
 		var s FeedState
 		err = rows.Scan(&id, &s.Unread, &s.Starred)
 		if err != nil {
-			return nil, utils.NewError(err)
+			return nil, newError(err)
 		}
 		result[id] = s
 	}
 	if err = rows.Err(); err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 
 	rows, err = s.db.Query(`select id, last_refreshed, error from feeds`)
 	if err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 
 	for rows.Next() {
@@ -281,7 +280,7 @@ func (s *Storage) FeedState() (map[int]FeedState, error) {
 		var lastRefreshed *time.Time
 		var error *string
 		if err = rows.Scan(&id, &lastRefreshed, &error); err != nil {
-			return nil, utils.NewError(err)
+			return nil, newError(err)
 		}
 		if state, ok := result[id]; ok {
 			state.LastRefreshed = lastRefreshed
@@ -290,7 +289,7 @@ func (s *Storage) FeedState() (map[int]FeedState, error) {
 		}
 	}
 	if err = rows.Err(); err != nil {
-		return nil, utils.NewError(err)
+		return nil, newError(err)
 	}
 
 	return result, nil

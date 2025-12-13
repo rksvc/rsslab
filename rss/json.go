@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"encoding/json"
 	"io"
-	"rsslab/utils"
 )
 
 type jsonFeed struct {
@@ -38,7 +37,7 @@ func ParseJSON(r io.Reader) (*Feed, error) {
 	for _, item := range jsonFeed.Items {
 		feed.Items = append(feed.Items, Item{
 			GUID:    item.ID,
-			Date:    utils.ParseDate(cmp.Or(item.DatePublished, item.DateModified)),
+			Date:    parseDate(cmp.Or(item.DatePublished, item.DateModified)),
 			URL:     item.URL,
 			Title:   item.Title,
 			Content: cmp.Or(item.HTML, item.Text, item.Summary),
