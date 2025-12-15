@@ -48,19 +48,12 @@ export function NewFeedDialog({
   const { setFeeds, updateStatus, setSelected, foldersWithFeeds, selected, feedsById } = useMyContext()
   const [loading, setLoading] = useState(false)
   const [feedLink, setFeedLink] = useState('')
+  const [transOpen, setTransOpen] = useState(false)
+  const [transType, setTransType] = useState<Transformer>('html')
   const selectedFolderRef = useRef<HTMLSelectElement>(null)
   const defaultFolderId = selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)
 
-  const [transOpen, setTransOpen] = useState(false)
-  const [transType, setTransType] = useState<Transformer>('html')
-  const [transUrl, setTransUrl] = useState('')
-  const transUrlParam: Param = {
-    value: transUrl,
-    setValue: setTransUrl,
-    key: 'url',
-    placeholder: 'https://example.com',
-  }
-
+  const [transHtmlUrl, setTransHtmlUrl] = useState('')
   const [transHtmlTitle, setTransHtmlTitle] = useState('')
   const [transHtmlItems, setTransHtmlItems] = useState('')
   const [transHtmlItemTitle, setTransHtmlItemTitle] = useState('')
@@ -70,6 +63,12 @@ export function NewFeedDialog({
   const [transHtmlItemDate, setTransHtmlItemDate] = useState('')
   const [transHtmlItemDateAttr, setTransHtmlItemDateAttr] = useState('')
   const transHtmlParams: Param[] = [
+    {
+      value: transHtmlUrl,
+      setValue: setTransHtmlUrl,
+      key: 'url',
+      placeholder: 'https://example.com',
+    },
     {
       value: transHtmlTitle,
       setValue: setTransHtmlTitle,
@@ -136,6 +135,7 @@ export function NewFeedDialog({
     },
   ]
 
+  const [transJsonUrl, setTransJsonUrl] = useState('')
   const [transJsonHomePageUrl, setTransJsonHomePageUrl] = useState('')
   const [transJsonTitle, setTransJsonTitle] = useState('')
   const [transJsonHeaders, setTransJsonHeaders] = useState('')
@@ -157,6 +157,12 @@ export function NewFeedDialog({
     </a>
   )
   const transJsonParams: Param[] = [
+    {
+      value: transJsonUrl,
+      setValue: setTransJsonUrl,
+      key: 'url',
+      placeholder: 'https://example.com',
+    },
     {
       value: transJsonHomePageUrl,
       setValue: setTransJsonHomePageUrl,
@@ -272,17 +278,15 @@ export function NewFeedDialog({
               const feedLink = evt.target.value
               setFeedLink(feedLink)
               const [scheme, url] = parseFeedLink(feedLink)
-              if (scheme)
-                try {
-                  for (const { key, setValue } of {
-                    html: transHtmlParams,
-                    json: transJsonParams,
-                    js: jsParams,
-                  }[scheme])
-                    setValue(url.searchParams.get(key) ?? '')
-                  setTransUrl(url.searchParams.get('url') ?? '')
-                  setTransType(scheme)
-                } catch {}
+              if (scheme) {
+                for (const { key, setValue } of {
+                  html: transHtmlParams,
+                  json: transJsonParams,
+                  js: jsParams,
+                }[scheme])
+                  setValue(url.searchParams.get(key) ?? '')
+                setTransType(scheme)
+              }
             }}
             onKeyDown={async evt => {
               if (evt.key === 'Enter') {
@@ -322,7 +326,7 @@ export function NewFeedDialog({
               }}
               type="html"
               title="HTML Transformer"
-              params={[transUrlParam, ...transHtmlParams]}
+              params={transHtmlParams}
               isOpen={transOpen}
               setIsOpen={setTransOpen}
               curType={transType}
@@ -337,7 +341,7 @@ export function NewFeedDialog({
               }}
               type="json"
               title="JSON Transformer"
-              params={[transUrlParam, ...transJsonParams]}
+              params={transJsonParams}
               isOpen={transOpen}
               setIsOpen={setTransOpen}
               curType={transType}
