@@ -71,14 +71,14 @@ export default function ItemShow() {
           icon={<ChevronLeft />}
           title={'Previous Article'}
           variant={ButtonVariant.MINIMAL}
-          disabled={selectedItemId === items.list.at(0)?.id}
+          disabled={!items.list.length || selectedItemId === items.list.at(0)?.id}
           onClick={() => shift(-1)}
         />
         <Button
           icon={<ChevronRight />}
           title={'Next Article'}
           variant={ButtonVariant.MINIMAL}
-          disabled={selectedItemId === items.list.at(-1)?.id}
+          disabled={!items.list.length || selectedItemId === items.list.at(-1)?.id}
           onClick={() => shift(+1)}
         />
         <Button
