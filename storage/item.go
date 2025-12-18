@@ -160,7 +160,7 @@ func listQueryPredicate(filter ItemFilter, includeBoundary bool) (string, []any)
 		args = append(args, *filter.Status)
 	}
 	if filter.Search != nil {
-		for _, word := range strings.Fields(*filter.Search) {
+		for word := range strings.FieldsSeq(*filter.Search) {
 			word = "%" + word + "%"
 			cond = append(cond, "(title like ? or content_text like ?)")
 			args = append(args, word, word)
