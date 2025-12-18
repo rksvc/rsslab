@@ -42,9 +42,9 @@ export default function ItemList() {
     updateItems,
     status,
     updateStatus,
-    selectedItemIndex,
-    setSelectedItemIndex,
-    setSelectedItemContent,
+    selectedItemId,
+    setSelectedItemId,
+    setSelectedItem,
 
     filter,
     selected,
@@ -112,15 +112,15 @@ export default function ItemList() {
   }
 
   const refresh = useCallback(async () => {
-    setSelectedItemIndex(undefined)
-    setSelectedItemContent(undefined)
+    setSelectedItemId(undefined)
+    setSelectedItem(undefined)
     setItemsOutdated(false)
     updateItems(undefined)
     setLoading(true)
     updateItems(await xfetch<Items>(`api/items${param(query())}`))
     setLoading(false)
     itemListRef.current?.scrollTo(0, 0)
-  }, [query, updateItems, setSelectedItemIndex, setSelectedItemContent, setItemsOutdated])
+  }, [query, updateItems, setSelectedItemId, setSelectedItem, setItemsOutdated])
   useEffect(() => {
     refresh()
   }, [refresh])
@@ -341,13 +341,8 @@ export default function ItemList() {
       </div>
       <Divider compact />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
-        {items?.list.map((item, i) => (
-          <CardItem
-            key={item.id}
-            item={item}
-            index={i}
-            isSelected={selectedItemIndex != null && item.id === items.list[selectedItemIndex].id}
-          />
+        {items?.list.map(item => (
+          <CardItem key={item.id} item={item} isSelected={item.id === selectedItemId} />
         ))}
         {(loading || items?.has_more) && (
           <div
@@ -383,7 +378,7 @@ export default function ItemList() {
   )
 }
 
-function CardItem({ item, index, isSelected }: { item: Item; index: number; isSelected: boolean }) {
+function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
   const { feedsById, selectItem } = useMyContext()
   const prevStatus = usePrevious(item.status)
   return (
@@ -391,7 +386,7 @@ function CardItem({ item, index, isSelected }: { item: Item; index: number; isSe
       selected={isSelected}
       interactive
       onClick={async () => {
-        if (!isSelected) await selectItem(index)
+        if (!isSelected) await selectItem(item)
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>

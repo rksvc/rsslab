@@ -6,19 +6,18 @@ import { cn, length, xfetch } from './utils.ts'
 
 export default function ItemShow() {
   const {
-    selectedItemIndex,
-    setSelectedItemIndex,
-    setSelectedItemContent,
+    selectedItemId,
+    setSelectedItemId,
+    setSelectedItem,
     items,
     contentRef,
     feedsById,
     updateStatus,
     updateItems,
     selectItem,
-    selectedItemContent,
+    selectedItem: item,
   } = useMyContext()
-  if (!items || selectedItemIndex == null || selectedItemContent == null) return undefined
-  const item = items.list[selectedItemIndex]
+  if (!items || selectedItemId == null || !item) return undefined
 
   const toggleStatus = (target: Item['status']) => async () => {
     const status = target === item.status ? 'read' : target
@@ -37,6 +36,13 @@ export default function ItemShow() {
     updateItems(items => {
       for (const i of items?.list ?? []) if (i.id === item.id) i.status = status
     })
+    setSelectedItem(item => item && { ...item, status })
+  }
+  const shift = (shift: number) => {
+    const index = items.list.findIndex(item => item.id === selectedItemId)
+    if (index === -1) {
+      if (items.list.length) selectItem(items.list[0])
+    } else selectItem(items.list[index + shift])
   }
 
   return (
@@ -65,23 +71,23 @@ export default function ItemShow() {
           icon={<ChevronLeft />}
           title={'Previous Article'}
           variant={ButtonVariant.MINIMAL}
-          disabled={selectedItemIndex === 0}
-          onClick={() => selectItem(selectedItemIndex - 1)}
+          disabled={selectedItemId === items.list.at(0)?.id}
+          onClick={() => shift(-1)}
         />
         <Button
           icon={<ChevronRight />}
           title={'Next Article'}
           variant={ButtonVariant.MINIMAL}
-          disabled={selectedItemIndex + 1 >= items.list.length}
-          onClick={() => selectItem(selectedItemIndex + 1)}
+          disabled={selectedItemId === items.list.at(-1)?.id}
+          onClick={() => shift(+1)}
         />
         <Button
           icon={<X />}
           title={'Close Article'}
           variant={ButtonVariant.MINIMAL}
           onClick={() => {
-            setSelectedItemIndex(undefined)
-            setSelectedItemContent(undefined)
+            setSelectedItemId(undefined)
+            setSelectedItem(undefined)
           }}
         />
       </ButtonGroup>
@@ -94,7 +100,7 @@ export default function ItemShow() {
         <div
           style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
           className={cn(Classes.RUNNING_TEXT, 'content')}
-          dangerouslySetInnerHTML={{ __html: selectedItemContent }}
+          dangerouslySetInnerHTML={{ __html: item.content }}
         />
       </div>
     </div>

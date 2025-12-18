@@ -19,10 +19,10 @@ export default function App() {
     })
   }, [])
 
-  const { selected, selectedItemIndex } = useMyContext()
+  const { selected, selectedItemId } = useMyContext()
   return (
     <Card
-      className={cn(selected !== undefined && 'feed-selected', selectedItemIndex != null && 'item-selected')}
+      className={cn(selected !== undefined && 'feed-selected', selectedItemId != null && 'item-selected')}
       style={{
         padding: 0,
         height: '100vh',

@@ -36,11 +36,14 @@ export type Item = {
   feed_id: number
   title: string
   link: string
-  content?: string
   date: string
   status: 'unread' | 'read' | 'starred'
   image?: string
   podcast_url?: string
+}
+
+export type ItemWithContent = Item & {
+  content: string
 }
 
 export type Items = {

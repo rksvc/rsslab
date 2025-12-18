@@ -21,6 +21,7 @@ import type {
   FolderWithFeeds,
   Item,
   Items,
+  ItemWithContent,
   Selected,
   Settings,
   Status,
@@ -37,10 +38,10 @@ const Context = createContext<
       setSettings: Dispatch<SetStateAction<Settings>>
       items: Items | undefined
       updateItems: Updater<Items | undefined>
-      selectedItemIndex: number | undefined
-      setSelectedItemIndex: Dispatch<SetStateAction<number | undefined>>
-      selectedItemContent: string | undefined
-      setSelectedItemContent: Dispatch<SetStateAction<string | undefined>>
+      selectedItemId: number | undefined
+      setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
+      selectedItem: ItemWithContent | undefined
+      setSelectedItem: Dispatch<SetStateAction<ItemWithContent | undefined>>
 
       filter: Filter
       setFilter: Dispatch<SetStateAction<Filter>>
@@ -54,7 +55,7 @@ const Context = createContext<
 
       refreshFeeds: () => Promise<void>
       refreshStats: () => Promise<void>
-      selectItem: (index: number) => Promise<void>
+      selectItem: (item: Item) => Promise<void>
       feedsById: Map<number, Feed> | undefined
       foldersById: Map<number, FolderWithFeeds> | undefined
       feedsWithoutFolders: Feed[] | undefined
@@ -77,8 +78,8 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
   const [status, updateStatus] = useImmer<Status | undefined>(undefined)
   const [settings, setSettings] = useState<Settings>({ dark_theme: darkTheme })
   const [items, updateItems] = useImmer<Items | undefined>(undefined)
-  const [selectedItemIndex, setSelectedItemIndex] = useState<number>()
-  const [selectedItemContent, setSelectedItemContent] = useState<string>()
+  const [selectedItemId, setSelectedItemId] = useState<number>()
+  const [selectedItem, setSelectedItem] = useState<ItemWithContent>()
 
   const [filter, setFilter] = useState<Filter>('Unread')
   const [selected, setSelected] = useState<Selected>(null)
@@ -113,11 +114,9 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
   }, [updateStatus])
 
   const selectItem = useCallback(
-    async (index: number) => {
-      const item = items?.list[index]
-      if (!item) return
-      setSelectedItemIndex(index)
-      setSelectedItemContent((await xfetch<Item>(`api/items/${item.id}`)).content)
+    async (item: Item) => {
+      setSelectedItemId(item.id)
+      setSelectedItem(await xfetch<ItemWithContent>(`api/items/${item.id}`))
       contentRef.current?.scrollTo(0, 0)
       if (item.status === 'unread') {
         await xfetch(`api/items/${item.id}`, {
@@ -135,9 +134,10 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
               break
             }
         })
+        setSelectedItem(item => item && { ...item, status: 'read' })
       }
     },
-    [items?.list, updateStatus, updateItems],
+    [updateStatus, updateItems],
   )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshFeeds): run only at startup
@@ -178,10 +178,10 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
         setSettings,
         items,
         updateItems,
-        selectedItemIndex,
-        setSelectedItemIndex,
-        selectedItemContent,
-        setSelectedItemContent,
+        selectedItemId,
+        setSelectedItemId,
+        selectedItem,
+        setSelectedItem,
 
         filter,
         setFilter,
