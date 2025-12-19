@@ -44,7 +44,6 @@ export default function App() {
           className="error"
           key={error}
           onClose={() => setErrors(errors => errors.toSpliced(i, 1))}
-          canEscapeKeyClose={false}
           isOpen
         >
           <DialogBody>{error}</DialogBody>
