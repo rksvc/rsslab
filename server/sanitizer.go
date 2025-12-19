@@ -29,6 +29,14 @@ func sanitize(baseURL string, input string) string {
 
 		token := tokenizer.Token()
 		switch token.Type {
+		case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
+			if token.DataAtom == atom.Tt {
+				token.DataAtom = atom.Code
+				token.Data = token.DataAtom.String()
+			}
+		}
+
+		switch token.Type {
 		case html.TextToken:
 			if blacklistedTagDepth > 0 {
 				continue
