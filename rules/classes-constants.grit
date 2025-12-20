@@ -1,0 +1,5 @@
+// https://github.com/palantir/blueprint/blob/develop/packages/eslint-plugin/src/rules/classes-constants.ts
+jsx_attribute(name="className", value=$value) where {
+  $value <: r"(?:.*\W)?(?:pt|bp3|bp4|bp5|bp6)[\w-]+.*",
+  register_diagnostic(span=$value, message="Use Blueprint `Classes` constant instead of string literal.")
+}

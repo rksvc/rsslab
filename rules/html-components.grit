@@ -1,0 +1,11 @@
+// https://github.com/palantir/blueprint/blob/develop/packages/eslint-plugin/src/rules/html-components.ts
+or {
+  jsx_opening_element(name=$name),
+  jsx_self_closing_element(name=$name)
+} where {
+  $name <: r"h[1-6]|code|pre|blockquote|table",
+  if ($name <: "table") { $new_tag_name = "HTMLTable" } else { $new_tag_name = capitalize($name) },
+  register_diagnostic(span=$name, message=join(list=[
+    "Use Blueprint ", $new_tag_name, " component instead of JSX intrinsic element."
+  ], separator=""))
+}

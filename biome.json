@@ -44,5 +44,6 @@
     "formatter": {
       "indentStyle": "tab"
     }
-  }
+  },
+  "plugins": ["rules/classes-constants.grit", "rules/html-components.grit"]
 }
