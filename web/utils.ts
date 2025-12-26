@@ -11,50 +11,22 @@ export function length(n: number) {
   return `${n * 0.25}rem`
 }
 
-export function fromNow(date: Date) {
+export function fromNow(date: Date, suffix = ' ago') {
   let minutes = (Date.now() - date.getTime()) / 1000 / 60
   const sign = minutes < 0 ? '-' : ''
 
   minutes = Math.abs(minutes)
   return minutes < 60
-    ? `${sign}${Math.round(minutes)}m`
+    ? `${sign}${Math.round(minutes)}m${suffix}`
     : minutes < 24 * 60
-      ? `${sign}${Math.round(minutes / 60)}h`
+      ? `${sign}${Math.round(minutes / 60)}h${suffix}`
       : minutes < 7 * 24 * 60
-        ? `${sign}${Math.round(minutes / (24 * 60))}d`
+        ? `${sign}${Math.round(minutes / (24 * 60))}d${suffix}`
         : date.toLocaleDateString(undefined, {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
           })
-}
-
-export function fromNowVerbose(date: Date) {
-  let minutes = (Date.now() - date.getTime()) / 1000 / 60
-  const neg = minutes < 0
-
-  minutes = Math.abs(minutes)
-  const parts = []
-  if (minutes > 24 * 60) {
-    const days = Math.floor(minutes / (24 * 60))
-    if (days > 7)
-      return date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    parts.push(`${days}d`)
-    minutes %= 24 * 60
-  }
-  if (minutes > 60) {
-    parts.push(`${Math.floor(minutes / 60)}h`)
-    minutes %= 60
-  }
-  minutes = Math.round(minutes)
-  if (minutes > 0 || !parts.length) parts.push(`${minutes}m`)
-
-  const repr = `${parts.join('')} ago`
-  return neg ? `-${repr}` : repr
 }
 
 export function compareTitle(a: { title: string }, b: { title: string }) {

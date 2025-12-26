@@ -37,7 +37,7 @@ import { useMyContext } from './Context.tsx'
 import { NewFeedDialog } from './NewFeed.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Folder, Selected } from './types.ts'
-import { compareTitle, fromNowVerbose, length, menuModifiers, xfetch } from './utils.ts'
+import { compareTitle, fromNow, length, menuModifiers, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -77,7 +77,7 @@ export default function FeedList() {
     ) : state?.error ? (
       <span
         style={{ display: 'flex' }}
-        title={state.last_refreshed && `Last Refreshed: ${fromNowVerbose(new Date(state.last_refreshed))}`}
+        title={state.last_refreshed && `Last Refreshed: ${fromNow(new Date(state.last_refreshed))}`}
       >
         <AlertCircle />
       </span>
@@ -238,7 +238,7 @@ export default function FeedList() {
               <Tooltip
                 content={
                   status?.last_refreshed ? (
-                    <small>Last Refreshed: {fromNowVerbose(new Date(status.last_refreshed))}</small>
+                    <small>Last Refreshed: {fromNow(new Date(status.last_refreshed))}</small>
                   ) : undefined
                 }
                 intent={Intent.PRIMARY}
