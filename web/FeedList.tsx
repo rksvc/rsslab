@@ -35,6 +35,7 @@ import {
 } from 'react-feather'
 import { useMyContext } from './Context.tsx'
 import { NewFeedDialog } from './NewFeed.tsx'
+import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Folder, Selected } from './types.ts'
 import { compareTitle, fromNow, length, menuModifiers, xfetch } from './utils.ts'
@@ -75,12 +76,7 @@ export default function FeedList() {
     ) : filter === 'Starred' ? (
       state?.starred.toString()
     ) : state?.error ? (
-      <span
-        style={{ display: 'flex' }}
-        title={state.last_refreshed && `Last Refreshed: ${fromNow(new Date(state.last_refreshed))}`}
-      >
-        <AlertCircle />
-      </span>
+      <AlertCircle style={{ display: 'flex' }} />
     ) : undefined
   const feed = (feed: Feed) =>
     ({
@@ -238,7 +234,10 @@ export default function FeedList() {
               <Tooltip
                 content={
                   status?.last_refreshed ? (
-                    <small>Last Refreshed: {fromNow(new Date(status.last_refreshed))}</small>
+                    <small>
+                      Last Refreshed:{' '}
+                      <RelativeTime date={status.last_refreshed} format={date => fromNow(new Date(date))} />
+                    </small>
                   ) : undefined
                 }
                 intent={Intent.PRIMARY}

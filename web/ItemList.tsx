@@ -30,6 +30,7 @@ import {
   Trash,
 } from 'react-feather'
 import { useMyContext } from './Context.tsx'
+import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, Item, Items } from './types.ts'
 import { fromNow, length, menuModifiers, param, parseFeedLink, xfetch } from './utils.ts'
@@ -125,7 +126,7 @@ export default function ItemList() {
     refresh()
   }, [refresh])
 
-  const feedError = selected?.feed_id != null && status?.state.get(selected.feed_id)?.error
+  const state = selected?.feed_id == null ? undefined : status?.state.get(selected.feed_id)
   return (
     <div id="item-list">
       <div className="topbar" style={{ gap: length(1.5) }}>
@@ -360,7 +361,7 @@ export default function ItemList() {
           </div>
         )}
       </CardList>
-      {feedError && (
+      {state?.error && (
         <>
           <Divider compact />
           <div
@@ -370,7 +371,17 @@ export default function ItemList() {
               color: 'var(--danger)',
             }}
           >
-            {feedError}
+            {state.last_refreshed && (
+              <>
+                <RelativeTime
+                  key={state.last_refreshed}
+                  date={state.last_refreshed}
+                  format={date => fromNow(new Date(date))}
+                />
+                :{' '}
+              </>
+            )}
+            {state.error}
           </div>
         </>
       )}
@@ -417,7 +428,7 @@ function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
           </small>
           <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
             <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
-              {fromNow(new Date(item.date), '')}
+              <RelativeTime date={item.date} format={date => fromNow(new Date(date), '')} />
             </time>
           </small>
         </div>
