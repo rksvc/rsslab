@@ -345,7 +345,7 @@ export default function FeedList() {
           <Divider compact />
           <div style={statusBarStyle}>
             <AlertCircle style={{ marginLeft: length(3), marginRight: length(2) }} />
-            {errorCount} feeds have errors
+            {errorCount} feed{errorCount === 1 ? ' has an error' : 's have errors'}
           </div>
         </>
       ) : undefined}
