@@ -239,6 +239,12 @@ a.bp6-button {
 			.bp6-heading {
 				font-weight: inherit;
 			}
+			&.last-refreshed {
+				margin-bottom: 0;
+				.bp6-heading {
+					padding-top: 6px;
+				}
+			}
 		}
 
 		.bp6-menu-item {

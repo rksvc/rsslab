@@ -230,31 +230,26 @@ export default function FeedList() {
                   setSelected({ folder_id: folder.id })
                 }}
               />
-              <MenuDivider />
-              <Tooltip
-                content={
+              <MenuDivider
+                className="last-refreshed"
+                title={
                   status?.last_refreshed ? (
                     <small>
-                      Last Refreshed:{' '}
+                      Last refreshed:{' '}
                       <RelativeTime date={status.last_refreshed} format={date => fromNow(new Date(date))} />
                     </small>
                   ) : undefined
                 }
-                intent={Intent.PRIMARY}
-                placement="right"
-                modifiers={{ offset: { options: { offset: [0, 6] } } }}
-                compact
-              >
-                <MenuItem
-                  text="Refresh Feeds"
-                  icon={<RotateCw />}
-                  disabled={!!status?.running}
-                  onClick={async () => {
-                    await xfetch('api/feeds/refresh', { method: 'POST' })
-                    await refreshStats()
-                  }}
-                />
-              </Tooltip>
+              />
+              <MenuItem
+                text="Refresh Feeds"
+                icon={<RotateCw />}
+                disabled={!!status?.running}
+                onClick={async () => {
+                  await xfetch('api/feeds/refresh', { method: 'POST' })
+                  await refreshStats()
+                }}
+              />
               <RefreshRateEditor
                 defaultValue={settings?.refresh_rate}
                 inputRef={refreshRateRef}
