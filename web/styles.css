@@ -210,10 +210,6 @@ a.bp6-button {
 .bp6-popover {
 	transform: none;
 
-	.bp6-popover-arrow {
-		display: inherit !important;
-	}
-
 	.bp6-button {
 		border-top-left-radius: 0 !important;
 		border-top-right-radius: 0 !important;
