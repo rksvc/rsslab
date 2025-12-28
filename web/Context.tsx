@@ -58,7 +58,7 @@ const Context = createContext<
       selectItem: (item: Item) => Promise<void>
       feedsById: Map<number, Feed> | undefined
       foldersById: Map<number, FolderWithFeeds> | undefined
-      feedsWithoutFolders: Feed[] | undefined
+      feedsOutsideFolders: Feed[] | undefined
       foldersWithFeeds: FolderWithFeeds[] | undefined
     }
   | undefined
@@ -153,18 +153,18 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
     else document.body.classList.remove(Classes.DARK)
   }, [settings])
 
-  const [feedsById, foldersById, feedsWithoutFolders, foldersWithFeeds] = useMemo(() => {
+  const [feedsById, foldersById, feedsOutsideFolders, foldersWithFeeds] = useMemo(() => {
     if (!feeds || !folders) return []
     const foldersById = new Map<number, FolderWithFeeds>()
     for (const folder of folders) foldersById.set(folder.id, { ...folder, feeds: [] })
     const feedsById = new Map<number, Feed>()
-    const feedsWithoutFolders: Feed[] = []
+    const feedsOutsideFolders: Feed[] = []
     for (const feed of feeds) {
-      if (feed.folder_id === null) feedsWithoutFolders.push(feed)
+      if (feed.folder_id === null) feedsOutsideFolders.push(feed)
       else foldersById.get(feed.folder_id)?.feeds.push(feed)
       feedsById.set(feed.id, feed)
     }
-    return [feedsById, foldersById, feedsWithoutFolders, [...foldersById.values()]]
+    return [feedsById, foldersById, feedsOutsideFolders, [...foldersById.values()]]
   }, [feeds, folders])
 
   return (
@@ -198,7 +198,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
         selectItem,
         feedsById,
         foldersById,
-        feedsWithoutFolders,
+        feedsOutsideFolders,
         foldersWithFeeds,
       }}
     >

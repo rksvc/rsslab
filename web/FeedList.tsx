@@ -62,7 +62,7 @@ export default function FeedList() {
 
     refreshFeeds,
     refreshStats,
-    feedsWithoutFolders,
+    feedsOutsideFolders,
     foldersWithFeeds,
   } = useMyContext()
   const [newFeedDialogOpen, setNewFeedDialogOpen] = useState(false)
@@ -139,12 +139,12 @@ export default function FeedList() {
     ],
     [status],
   )
-  // biome-ignore lint/correctness/useExhaustiveDependencies(feedsWithoutFolders): controlled by `refreshed`
+  // biome-ignore lint/correctness/useExhaustiveDependencies(feedsOutsideFolders): controlled by `refreshed`
   // biome-ignore lint/correctness/useExhaustiveDependencies(foldersWithFeeds): controlled by `refreshed`
   // biome-ignore lint/correctness/useExhaustiveDependencies(status?.state.get): controlled by `refreshed`
   // biome-ignore lint/correctness/useExhaustiveDependencies(refreshed): controller
   const [hiddenFolders, hiddenFeeds] = useMemo(() => {
-    if (filter === 'Feeds' || !feedsWithoutFolders || !foldersWithFeeds) return []
+    if (filter === 'Feeds' || !feedsOutsideFolders || !foldersWithFeeds) return []
 
     const folders = new Set<number>()
     const feeds = new Set<number>()
@@ -158,7 +158,7 @@ export default function FeedList() {
         else hideFolder = false
       if (hideFolder && selected?.folder_id !== folder.id) folders.add(folder.id)
     }
-    for (const feed of feedsWithoutFolders) if (hideFeed(feed.id)) feeds.add(feed.id)
+    for (const feed of feedsOutsideFolders) if (hideFeed(feed.id)) feeds.add(feed.id)
 
     return [folders, feeds]
   }, [filter, selected, refreshed])
@@ -306,7 +306,7 @@ export default function FeedList() {
               filter === 'Unread' ? totalUnread : filter === 'Starred' ? totalStarred : undefined,
             nodeData: null,
           },
-          ...(feedsWithoutFolders ?? []).filter(({ id }) => !hiddenFeeds?.has(id)).map(f => feed(f)),
+          ...(feedsOutsideFolders ?? []).filter(({ id }) => !hiddenFeeds?.has(id)).map(f => feed(f)),
           ...(foldersWithFeeds ?? [])
             .filter(({ id }) => !hiddenFolders?.has(id))
             .map(
