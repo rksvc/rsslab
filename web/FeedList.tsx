@@ -86,6 +86,7 @@ export default function FeedList() {
       nodeData: { feed_id: feed.id },
       icon: feed.has_icon ? (
         <img
+          alt="feed icon"
           style={{ width: length(4), aspectRatio: '1/1', marginRight: '7px' }}
           src={`api/feeds/${feed.id}/icon`}
         />

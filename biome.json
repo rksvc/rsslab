@@ -15,9 +15,6 @@
       "react": "recommended"
     },
     "rules": {
-      "a11y": {
-        "recommended": false
-      },
       "complexity": {
         "noImportantStyles": "off"
       },
