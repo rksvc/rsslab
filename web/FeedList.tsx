@@ -38,7 +38,7 @@ import { NewFeedDialog } from './NewFeed.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Folder, Selected } from './types.ts'
-import { compareTitle, fromNow, length, menuModifiers, xfetch } from './utils.ts'
+import { fromNow, length, menuModifiers, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -227,7 +227,7 @@ export default function FeedList() {
                     method: 'POST',
                     body: JSON.stringify({ title }),
                   })
-                  setFolders(folders => folders && [...folders, folder].toSorted(compareTitle))
+                  await refreshFeeds()
                   setSelected({ folder_id: folder.id })
                 }}
               />

@@ -27,7 +27,7 @@ import {
 import { ExternalLink } from 'react-feather'
 import { useMyContext } from './Context.tsx'
 import type { Feed, Transformer } from './types.ts'
-import { compareTitle, param, parseFeedLink, xfetch } from './utils.ts'
+import { param, parseFeedLink, xfetch } from './utils.ts'
 
 type Param = {
   value: string
@@ -45,7 +45,7 @@ export function NewFeedDialog({
   isOpen: boolean
   setIsOpen: Dispatch<SetStateAction<boolean>>
 }) {
-  const { setFeeds, updateStatus, setSelected, foldersWithFeeds, selected, feedsById } = useMyContext()
+  const { setSelected, foldersWithFeeds, selected, refreshFeeds, refreshStats, feedsById } = useMyContext()
   const [loading, setLoading] = useState(false)
   const [feedLink, setFeedLink] = useState('')
   const [transOpen, setTransOpen] = useState(false)
@@ -236,20 +236,14 @@ export function NewFeedDialog({
     if (!feedLink) throw new Error('Feed link is required')
     setLoading(true)
     try {
-      const { feed, item_count } = await xfetch<{
-        feed: Feed
-        item_count: number
-      }>('api/feeds', {
+      const feed = await xfetch<Feed>('api/feeds', {
         method: 'POST',
         body: JSON.stringify({
           url: feedLink,
           folder_id: selectedFolderRef.current.value ? +selectedFolderRef.current.value : null,
         }),
       })
-      setFeeds(feeds => feeds && [...feeds, feed].toSorted(compareTitle))
-      updateStatus(status => {
-        status?.state.set(feed.id, { unread: item_count, starred: 0 })
-      })
+      await Promise.all([refreshFeeds(), refreshStats()])
       setSelected({ feed_id: feed.id })
       setFeedLink('')
       setIsOpen(false)

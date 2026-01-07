@@ -29,12 +29,6 @@ export function fromNow(date: Date, suffix = ' ago') {
           })
 }
 
-export function compareTitle(a: { title: string }, b: { title: string }) {
-  const lhs = a.title.toLowerCase()
-  const rhs = b.title.toLowerCase()
-  return lhs === rhs ? 0 : lhs < rhs ? -1 : +1
-}
-
 export function parseFeedLink(link: string): [Transformer, URL] | [undefined, string] {
   try {
     const url = new URL(link)
