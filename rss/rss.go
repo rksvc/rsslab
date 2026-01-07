@@ -82,7 +82,7 @@ func ParseRSS(r io.Reader) (*Feed, error) {
 			Date:     parseDate(cmp.Or(item.DublinCoreDate, item.PubDate, item.Torrent.PubDate)),
 			URL:      cmp.Or(item.OrigLink, item.Link, permalink),
 			Title:    strings.TrimSpace(item.Title),
-			Content:  cmp.Or(item.ContentEncoded, item.Description),
+			Content:  cmp.Or(strings.TrimSpace(item.ContentEncoded), strings.TrimSpace(item.Description)),
 			AudioURL: podcastURL,
 		})
 	}
