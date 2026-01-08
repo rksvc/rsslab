@@ -32,15 +32,15 @@ const Context = createContext<
   | {
       setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
       setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
-      status: Status | undefined
+      status?: Status
       updateStatus: Updater<Status | undefined>
       settings: Settings
       setSettings: Dispatch<SetStateAction<Settings>>
-      items: Items | undefined
+      items?: Items
       updateItems: Updater<Items | undefined>
-      selectedItemId: number | undefined
+      selectedItemId?: number
       setSelectedItemId: Dispatch<SetStateAction<number | undefined>>
-      selectedItem: ItemWithContent | undefined
+      selectedItem?: ItemWithContent
       setSelectedItem: Dispatch<SetStateAction<ItemWithContent | undefined>>
 
       filter: Filter
@@ -56,10 +56,10 @@ const Context = createContext<
       refreshFeeds: () => Promise<void>
       refreshStats: () => Promise<void>
       selectItem: (item: Item) => Promise<void>
-      feedsById: Map<number, Feed> | undefined
-      foldersById: Map<number, FolderWithFeeds> | undefined
-      feedsOutsideFolders: Feed[] | undefined
-      foldersWithFeeds: FolderWithFeeds[] | undefined
+      feedsById?: Map<number, Feed>
+      foldersById?: Map<number, FolderWithFeeds>
+      feedsOutsideFolders?: Feed[]
+      foldersWithFeeds?: FolderWithFeeds[]
     }
   | undefined
 >(undefined)
