@@ -28,12 +28,12 @@ import {
   MoreHorizontal,
   Plus,
   RotateCw,
-  Rss,
   Star,
   Sun,
   Upload,
 } from 'react-feather'
 import { useMyContext } from './Context.tsx'
+import FeedIcon from './FeedIcon.tsx'
 import { NewFeedDialog } from './NewFeed.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
@@ -84,17 +84,7 @@ export default function FeedList() {
       isSelected: selected?.feed_id === feed.id,
       secondaryLabel: secondaryLabel(status?.state.get(feed.id)),
       nodeData: { feed_id: feed.id },
-      icon: feed.has_icon ? (
-        <img
-          alt="feed icon"
-          style={{ width: length(4), aspectRatio: '1/1', marginRight: '7px' }}
-          src={`api/feeds/${feed.id}/icon`}
-        />
-      ) : (
-        <span style={{ display: 'flex' }}>
-          <Rss style={{ marginRight: '6px' }} />
-        </span>
-      ),
+      icon: <FeedIcon feed={feed}  />,
       label: (
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={feed.title}>
           {feed.title || 'untitled'}

@@ -94,7 +94,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
       xfetch<Settings>('api/settings'),
     ])
     setFolders(folders)
-    setFeeds(feeds)
+    setFeeds(feeds.map(f => ({ ...f, has_icon: f.has_icon || null })))
     setRefreshed({})
     setSettings(settings)
   }, [])

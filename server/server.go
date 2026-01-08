@@ -32,6 +32,8 @@ type Server struct {
 	ticker        *time.Ticker
 	cancel        chan struct{}
 	mu            sync.Mutex
+	iconFinder    map[int]chan struct{}
+	iconMu        sync.RWMutex
 }
 
 func New(db *storage.Storage) *Server {
@@ -45,8 +47,9 @@ func New(db *storage.Storage) *Server {
 			Timeout: 30 * time.Second,
 			Jar:     jar,
 		},
-		refresh: make(chan storage.Feed),
-		cancel:  make(chan struct{}),
+		refresh:    make(chan storage.Feed),
+		cancel:     make(chan struct{}),
+		iconFinder: make(map[int]chan struct{}),
 	}
 
 	go func() {
@@ -86,6 +89,7 @@ func (s *Server) Start(addr string) error {
 	mux.HandleFunc("GET    /api/feeds", wrap(s.handleFeedList))
 	mux.HandleFunc("POST   /api/feeds", wrap(s.handleFeedCreate))
 	mux.HandleFunc("POST   /api/feeds/refresh", wrap(s.handleFeedsRefresh))
+	mux.HandleFunc("GET    /api/feeds/{id}/has_icon", wrap(s.handleFeedHasIcon))
 	mux.HandleFunc("GET    /api/feeds/{id}/icon", wrap(s.handleFeedIcon))
 	mux.HandleFunc("POST   /api/feeds/{id}/refresh", wrap(s.handleFeedRefresh))
 	mux.HandleFunc("PUT    /api/feeds/{id}", wrap(s.handleFeedUpdate))
@@ -148,6 +152,12 @@ func (s *Server) FindFeedFavicon(feed storage.Feed) {
 		}
 		break
 	}
+	s.iconMu.Lock()
+	if ch, ok := s.iconFinder[feed.Id]; ok {
+		close(ch)
+		delete(s.iconFinder, feed.Id)
+	}
+	s.iconMu.Unlock()
 }
 
 func (s *Server) SetRefreshRate(minute int) {
@@ -303,6 +313,12 @@ func (s *Server) listItems(f storage.Feed) ([]storage.Item, *storage.HTTPState, 
 		return nil, nil, err
 	}
 	return convertItems(feed.Items, f), &state, nil
+}
+
+func (s *Server) setFindingIcon(feedId int) {
+	s.iconMu.Lock()
+	s.iconFinder[feedId] = make(chan struct{})
+	s.iconMu.Unlock()
 }
 
 func convertItems(items []rss.Item, feed storage.Feed) []storage.Item {

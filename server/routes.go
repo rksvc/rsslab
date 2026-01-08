@@ -152,6 +152,7 @@ func (s *Server) handleFeedCreate(c context) error {
 	if err != nil {
 		return err
 	}
+	s.setFindingIcon(feed.Id)
 	go s.FindFeedFavicon(*feed)
 
 	items := convertItems(rawFeed.Items, *feed)
@@ -167,6 +168,27 @@ func (s *Server) handleFeedCreate(c context) error {
 func (s *Server) handleFeedsRefresh(c context) error {
 	go s.RefreshAllFeeds()
 	return nil
+}
+
+func (s *Server) handleFeedHasIcon(c context) error {
+	id, err := c.VarInt("id")
+	if err != nil {
+		return err
+	}
+	s.iconMu.RLock()
+	ch, ok := s.iconFinder[id]
+	s.iconMu.RUnlock()
+	if ok {
+		<-ch
+	}
+
+	hasIcon, err := s.db.FeedHasIcon(id)
+	if err != nil {
+		return err
+	} else if hasIcon == nil {
+		return c.NotFound()
+	}
+	return c.JSON(*hasIcon)
 }
 
 func (s *Server) handleFeedIcon(c context) error {
@@ -348,18 +370,20 @@ func (s *Server) handleOPMLImport(c context) error {
 				continue
 			}
 			for _, o := range o.AllFeeds() {
-				_, err = s.db.CreateFeed(o.Title, o.SiteUrl, o.FeedUrl, &folder.Id)
+				f, err := s.db.CreateFeed(o.Title, o.SiteUrl, o.FeedUrl, &folder.Id)
 				if err != nil {
 					errs = append(errs, err)
 					continue
 				}
+				s.setFindingIcon(f.Id)
 			}
 		} else {
-			_, err := s.db.CreateFeed(o.Title, o.SiteUrl, o.FeedUrl, nil)
+			f, err := s.db.CreateFeed(o.Title, o.SiteUrl, o.FeedUrl, nil)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
+			s.setFindingIcon(f.Id)
 		}
 	}
 	if len(errs) > 0 {

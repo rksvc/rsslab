@@ -166,6 +166,18 @@ func (s *Storage) GetFeed(id int) (*Feed, error) {
 	return &f, nil
 }
 
+func (s *Storage) FeedHasIcon(id int) (*bool, error) {
+	var hasIcon bool
+	err := s.db.QueryRow(`select icon is not null from feeds where id = ?`, id).Scan(&hasIcon)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, newError(err)
+	}
+	return &hasIcon, nil
+}
+
 func (s *Storage) GetFeedIcon(id int) ([]byte, error) {
 	var icon []byte
 	err := s.db.QueryRow(`select icon from feeds where id = ?`, id).Scan(&icon)

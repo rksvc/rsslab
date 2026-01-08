@@ -23,7 +23,7 @@ export type Feed = {
   title: string
   link?: string
   feed_link: string
-  has_icon: boolean
+  has_icon: boolean | null
 }
 
 export type FolderWithFeeds = Folder & {
