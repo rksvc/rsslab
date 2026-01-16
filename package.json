@@ -11,7 +11,7 @@
     "build_windows": "CC='zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows' CGO_ENABLED=1 GOOS=windows go build -tags=sqlite_foreign_keys -ldflags='-s -w -H=windowsgui' -trimpath"
   },
   "dependencies": {
-    "@blueprintjs/core": "^6.4.1",
+    "@blueprintjs/core": "^6.6.0",
     "immer": "^10.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -1,5 +1,5 @@
 :root {
-	--border-radius: 0.25rem;
+	--border-radius: 4px;
 	--monospace: SFMono-Regular, Menlo, Consolas, monospace;
 
 	--primary: #0056b3;
@@ -100,7 +100,6 @@ a.bp6-button {
 	.bp6-button {
 		min-height: 0;
 		min-width: auto;
-		border-radius: var(--border-radius);
 		&:not(:disabled, a):is(:hover, .bp6-active) {
 			background-color: var(--light-bg-hover) !important;
 		}
@@ -202,11 +201,6 @@ a.bp6-button {
 }
 
 /* context menu */
-:has(.bp6-popover-content),
-.bp6-popover-content,
-.bp6-popover-content :not(.bp6-menu-header) {
-	border-radius: var(--border-radius) !important;
-}
 .bp6-popover {
 	transform: none;
 
@@ -354,12 +348,6 @@ a.bp6-button {
 		select {
 			background-color: light-dark(white, var(--dark-bg));
 		}
-		.bp6-input,
-		select,
-		.bp6-section,
-		.bp6-button {
-			border-radius: var(--border-radius);
-		}
 		.bp6-section-header {
 			user-select: none;
 			min-height: 0;
@@ -375,7 +363,6 @@ a.bp6-button {
 		.bp6-dialog-footer-actions {
 			flex-grow: 1;
 			.bp6-button {
-				border-radius: var(--border-radius);
 				margin-left: 0;
 			}
 		}
