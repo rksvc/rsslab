@@ -84,7 +84,7 @@ export default function FeedList() {
       isSelected: selected?.feed_id === feed.id,
       secondaryLabel: secondaryLabel(status?.state.get(feed.id)),
       nodeData: { feed_id: feed.id },
-      icon: <FeedIcon feed={feed}  />,
+      icon: <FeedIcon feed={feed} />,
       label: (
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={feed.title}>
           {feed.title || 'untitled'}
