@@ -145,7 +145,6 @@ export default function ItemList() {
           }
           type="search"
           value={search}
-          placeholder="Search..."
           onValueChange={value => {
             setSearch(value)
             clearTimeout(timerId.current)

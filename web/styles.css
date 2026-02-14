@@ -518,6 +518,14 @@ a.bp6-button {
 		.bp6-button {
 			min-height: 2rem;
 		}
+		.bp6-input-group {
+			svg {
+				margin: 12px;
+			}
+			input {
+				padding-left: 40px !important;
+			}
+		}
 		.bp6-input {
 			font-size: 1rem;
 			height: 2.7rem;
