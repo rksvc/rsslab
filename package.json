@@ -11,7 +11,7 @@
     "build_windows": "CC='zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows' CGO_ENABLED=1 GOOS=windows go build -tags=sqlite_foreign_keys -ldflags='-s -w -H=windowsgui' -trimpath"
   },
   "dependencies": {
-    "@blueprintjs/core": "^6.6.0",
+    "@blueprintjs/core": "^6.8.0",
     "immer": "^10.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -19,11 +19,11 @@
     "use-immer": "^0.11.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.10",
-    "@rsbuild/core": "^1.5.17",
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@types/node": "^24.9.1",
-    "@types/react": "^18.3.26",
+    "@biomejs/biome": "^2.3.15",
+    "@rsbuild/core": "^1.7.3",
+    "@rsbuild/plugin-react": "^1.4.5",
+    "@types/node": "^24.10.13",
+    "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "typescript": "^5.9.3"
   }

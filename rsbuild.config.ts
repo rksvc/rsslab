@@ -47,7 +47,7 @@ export default defineConfig({
       setup(api) {
         api.onAfterBuild(async ({ stats }) => {
           if (!stats) return
-          const { assets, outputPath } = stats.toJson(null)
+          const { assets, outputPath } = stats.toJson()
           if (!assets || !outputPath) return
           await Promise.all(
             assets.map(async ({ name }) => {
