@@ -363,23 +363,22 @@ export default function ItemList() {
       {state?.error && (
         <>
           <Divider compact />
+          {state.last_refreshed && (
+            <>
+              <div style={{ padding: `${length(1)} ${length(3)}` }}>
+                Last refreshed:{' '}
+                <RelativeTime date={state.last_refreshed} format={date => fromNow(new Date(date))} />
+              </div>
+              <Divider compact />
+            </>
+          )}
           <div
             style={{
-              padding: length(3),
+              padding: `${length(2)} ${length(3)}`,
               overflowWrap: 'break-word',
               color: 'var(--danger)',
             }}
           >
-            {state.last_refreshed && (
-              <>
-                <RelativeTime
-                  key={state.last_refreshed}
-                  date={state.last_refreshed}
-                  format={date => fromNow(new Date(date))}
-                />
-                :{' '}
-              </>
-            )}
             {state.error}
           </div>
         </>
