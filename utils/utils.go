@@ -83,10 +83,6 @@ func XMLDecoder(r io.Reader) *xml.Decoder {
 	return d
 }
 
-func AddrOf[T any](val T) *T {
-	return &val
-}
-
 func ParseQuery(url *url.URL, v any) error {
 	q := url.Query()
 	val := reflect.ValueOf(v).Elem()

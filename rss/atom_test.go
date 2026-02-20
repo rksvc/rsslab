@@ -2,7 +2,6 @@ package rss
 
 import (
 	"reflect"
-	"rsslab/utils"
 	"strings"
 	"testing"
 	"time"
@@ -45,7 +44,7 @@ func TestAtom(t *testing.T) {
 		Items: []Item{
 			{
 				GUID:    "urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a",
-				Date:    utils.AddrOf(time.Date(2003, 12, 13, 18, 30, 2, 0, time.UTC)),
+				Date:    new(time.Date(2003, 12, 13, 18, 30, 2, 0, time.UTC)),
 				URL:     "http://example.org/2003/12/13/atom03.html",
 				Title:   "Atom-Powered Robots Run Amok",
 				Content: `<div xmlns="http://www.w3.org/1999/xhtml"><p>This is the entry content.</p></div>`,
@@ -159,7 +158,7 @@ func TestAtomLinkInID(t *testing.T) {
 	want := []Item{
 		{
 			GUID:  "https://example.com/posts/1::2003-12-13T09:17:51Z",
-			Date:  utils.AddrOf(time.Date(2003, time.December, 13, 9, 17, 51, 0, time.UTC)),
+			Date:  new(time.Date(2003, time.December, 13, 9, 17, 51, 0, time.UTC)),
 			URL:   "https://example.com/posts/1",
 			Title: "one updated",
 		},

@@ -643,11 +643,11 @@ var allowedURISchemes = map[string]struct{}{
 
 // See https://www.iana.org/assignments/uri-schemes/uri-schemes.xhtml
 func hasValidURIScheme(src string) bool {
-	i := strings.IndexByte(src, ':')
-	if i == -1 {
+	before, _, ok := strings.Cut(src, ":")
+	if !ok {
 		return false
 	}
-	_, ok := allowedURISchemes[src[:i]]
+	_, ok = allowedURISchemes[before]
 	return ok
 }
 
@@ -710,7 +710,7 @@ func isBlockedTag(tagAtom atom.Atom) bool {
 //   - A pixel density descriptor (a positive floating point number directly followed by x).
 func sanitizeSrcsetAttr(baseURL, srcset string) string {
 	var sanitizedSrcs []string
-	for _, rawSrc := range strings.Split(srcset, ", ") {
+	for rawSrc := range strings.SplitSeq(srcset, ", ") {
 		parts := strings.SplitN(strings.TrimSpace(rawSrc), " ", 3)
 		if len(parts) > 0 {
 			sanitizedSrc := parts[0]
