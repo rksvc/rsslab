@@ -82,13 +82,17 @@ a.bp6-button {
 	box-shadow: none !important;
 }
 
-.bp6-tooltip.bp6-intent-primary {
-	.bp6-popover-content {
-		background-color: var(--primary-bg);
-	}
-	.bp6-popover-arrow-fill {
-		fill: var(--primary-bg);
-	}
+#min {
+	align-self: stretch;
+	align-content: center;
+	color: white;
+	background-color: var(--gray3);
+	border-top-right-radius: var(--border-radius);
+	padding: 0 0.5em;
+	user-select: none;
+}
+.bp6-dark #min {
+	background-color: var(--gray1);
 }
 
 /* top bar */

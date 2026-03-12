@@ -13,7 +13,6 @@ import {
   NumericInput,
   Popover,
   Spinner,
-  Tooltip,
   Tree,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
@@ -370,13 +369,7 @@ function RefreshRateEditor({
       shouldReturnFocusOnClose
       content={
         <>
-          <Tooltip
-            content={<small>minutes</small>}
-            intent={Intent.PRIMARY}
-            placement="top"
-            modifiers={{ offset: { options: { offset: [0, 5] } } }}
-            compact
-          >
+          <div style={{ display: 'flex', flexDirection: 'row' }}>
             <NumericInput
               defaultValue={defaultValue}
               inputRef={inputRef}
@@ -386,7 +379,7 @@ function RefreshRateEditor({
               minorStepSize={1}
               majorStepSize={60}
               disabled={loading}
-              style={{ width: '120px' }}
+              style={{ width: '80px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
               onKeyDown={async evt => {
                 if (evt.key === 'Enter') {
                   evt.preventDefault()
@@ -394,7 +387,8 @@ function RefreshRateEditor({
                 }
               }}
             />
-          </Tooltip>
+            <span id="min">min</span>
+          </div>
           <Button loading={loading} intent={Intent.PRIMARY} text="OK" onClick={confirm} fill />
           <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
         </>
