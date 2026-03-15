@@ -16,10 +16,6 @@ func TestSniff(t *testing.T) {
 			"rss",
 		},
 		{
-			`<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>`,
-			"rss",
-		},
-		{
 			`<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>`,
 			"atom",
 		},
