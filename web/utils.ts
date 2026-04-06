@@ -30,18 +30,15 @@ export function fromNow(date: Date, suffix = ' ago') {
 }
 
 export function parseFeedLink(link: string): [Transformer, URL] | [undefined, string] {
-  try {
-    const url = new URL(link)
-    if (url.protocol === 'rsslab:') {
-      const host = url.host
-      switch (host) {
-        case 'html':
-        case 'json':
-        case 'js':
-          return [host, url]
-      }
+  const url = URL.parse(link)
+  if (url?.protocol === 'rsslab:') {
+    switch (url.host) {
+      case 'html':
+      case 'json':
+      case 'js':
+        return [url.host, url]
     }
-  } catch {}
+  }
   return [undefined, link]
 }
 
