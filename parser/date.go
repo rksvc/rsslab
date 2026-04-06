@@ -1,6 +1,6 @@
 // https://github.com/dop251/goja/pull/611
 
-package rss
+package parser
 
 import (
 	"strings"

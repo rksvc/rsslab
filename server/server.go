@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"rsslab/rss"
+	"rsslab/parser"
 	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
@@ -240,7 +240,7 @@ func (s *Server) RefreshFeeds(feeds ...storage.Feed) {
 	}
 }
 
-func (s *Server) do(rawUrl string, state *storage.HTTPState) (*rss.Feed, error) {
+func (s *Server) do(rawUrl string, state *storage.HTTPState) (*parser.Feed, error) {
 	url, err := url.Parse(rawUrl)
 	if err != nil {
 		return nil, err
@@ -248,21 +248,21 @@ func (s *Server) do(rawUrl string, state *storage.HTTPState) (*rss.Feed, error) 
 	if url.Scheme == "rsslab" {
 		switch url.Host {
 		case "html":
-			rule := new(rss.HTMLRule)
+			rule := new(parser.HTMLRule)
 			if err := utils.ParseQuery(url, rule); err != nil {
 				return nil, err
 			}
 			return rule.Apply(&s.client)
 
 		case "json":
-			rule := new(rss.JSONRule)
+			rule := new(parser.JSONRule)
 			if err := utils.ParseQuery(url, rule); err != nil {
 				return nil, err
 			}
 			return rule.Apply(&s.client)
 
 		case "js":
-			rule := new(rss.JavaScriptRule)
+			rule := new(parser.JavaScriptRule)
 			if err := utils.ParseQuery(url, rule); err != nil {
 				return nil, err
 			}
@@ -315,7 +315,7 @@ func (s *Server) do(rawUrl string, state *storage.HTTPState) (*rss.Feed, error) 
 			}
 		}
 	}
-	return rss.Parse(b, rawUrl)
+	return parser.Parse(b, rawUrl)
 }
 
 func (s *Server) worker() {
@@ -350,7 +350,7 @@ func (s *Server) setFindingIcon(feedId int) {
 	s.iconMu.Unlock()
 }
 
-func convertItems(items []rss.Item, feed storage.Feed) []storage.Item {
+func convertItems(items []parser.Item, feed storage.Feed) []storage.Item {
 	result := make([]storage.Item, len(items))
 	now := time.Now()
 	for i, item := range items {

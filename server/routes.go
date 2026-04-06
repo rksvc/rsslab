@@ -12,7 +12,7 @@ import (
 	"mime"
 	"net/http"
 	"path"
-	"rsslab/rss"
+	"rsslab/parser"
 	"rsslab/storage"
 	"rsslab/utils"
 	"strings"
@@ -351,7 +351,7 @@ func (s *Server) handleOPMLImport(c context) error {
 	}
 	d := utils.XMLDecoder(file)
 	d.Entity = xml.HTMLEntity
-	var opml rss.OPML
+	var opml parser.OPML
 	err = d.Decode(&opml)
 	if err != nil {
 		return &errBadRequest{err}
@@ -396,7 +396,7 @@ func (s *Server) handleOPMLImport(c context) error {
 }
 
 func (s *Server) handleOPMLExport(c context) error {
-	opml := rss.OPML{
+	opml := parser.OPML{
 		Version: "1.1",
 		Title:   "subscriptions",
 	}
@@ -408,7 +408,7 @@ func (s *Server) handleOPMLExport(c context) error {
 	}
 	for _, feed := range feeds {
 		if feed.FolderId == nil {
-			opml.Outlines = append(opml.Outlines, rss.Outline{
+			opml.Outlines = append(opml.Outlines, parser.Outline{
 				Type:    "rss",
 				Title:   feed.Title,
 				FeedUrl: feed.FeedLink,
@@ -429,9 +429,9 @@ func (s *Server) handleOPMLExport(c context) error {
 		if len(feeds) == 0 {
 			continue
 		}
-		folder := rss.Outline{Title: folder.Title}
+		folder := parser.Outline{Title: folder.Title}
 		for _, feed := range feeds {
-			folder.Outlines = append(folder.Outlines, rss.Outline{
+			folder.Outlines = append(folder.Outlines, parser.Outline{
 				Type:    "rss",
 				Title:   feed.Title,
 				FeedUrl: feed.FeedLink,

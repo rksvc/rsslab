@@ -1,6 +1,6 @@
 // https://chromium.googlesource.com/v8/v8/+/refs/heads/main/test/mjsunit/date-parse.js
 
-package rss
+package parser
 
 import (
 	"testing"

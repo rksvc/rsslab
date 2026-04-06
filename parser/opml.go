@@ -1,4 +1,4 @@
-package rss
+package parser
 
 import "encoding/xml"
 
