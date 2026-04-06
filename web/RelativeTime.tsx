@@ -10,5 +10,9 @@ export default function RelativeTime({ date, format }: { date: string; format: (
     return () => clearInterval(interval)
   }, [date, format])
 
-  return formatted
+  return (
+    <time dateTime={date} title={new Date(date).toLocaleString()}>
+      {formatted}
+    </time>
+  )
 }

@@ -367,7 +367,11 @@ export default function ItemList() {
             <>
               <div style={{ padding: `${length(1)} ${length(3)}` }}>
                 Last refreshed:{' '}
-                <RelativeTime date={state.last_refreshed} format={date => fromNow(new Date(date))} />
+                <RelativeTime
+                  key={state.last_refreshed}
+                  date={state.last_refreshed}
+                  format={date => fromNow(new Date(date))}
+                />
               </div>
               <Divider compact />
             </>
@@ -425,9 +429,7 @@ function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
             {feedsById?.get(item.feed_id)?.title}
           </small>
           <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
-            <time dateTime={item.date} title={new Date(item.date).toLocaleString()}>
-              <RelativeTime date={item.date} format={date => fromNow(new Date(date), '')} />
-            </time>
+            <RelativeTime date={item.date} format={date => fromNow(new Date(date), '')} />
           </small>
         </div>
         <span
