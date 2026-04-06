@@ -158,7 +158,7 @@ func (s *Server) FindFavicons() {
 func (s *Server) FindFeedFavicon(feed storage.Feed) {
 	for _, rawUrl := range []string{feed.Link, feed.FeedLink} {
 		url, err := url.Parse(rawUrl)
-		if err != nil || url.Host == "" {
+		if err != nil || url.Scheme == "rsslab" || url.Host == "" {
 			continue
 		}
 		resp, err := s.client.Get(fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", url.Host))
