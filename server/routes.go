@@ -459,3 +459,44 @@ func (s *Server) handleTransform(c context) error {
 	c.w.Header().Set("Content-Type", "application/feed+json; charset=UTF-8")
 	return json.NewEncoder(c.w).Encode(feed)
 }
+
+func (s *Server) proxy(c context) error {
+	var params struct {
+		Url     string            `json:"url"`
+		Headers map[string]string `json:"headers"`
+	}
+	if err := c.ParseQuery(&params); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, params.Url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", utils.USER_AGENT)
+	for k, v := range params.Headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if mediaType := resp.Header.Get("Content-Type"); mediaType == "" {
+		c.w.Header().Set("Content-Type", "text/plain")
+	} else {
+		t, params, err := mime.ParseMediaType(mediaType)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(t, "json") {
+			c.w.Header().Set("Content-Type", mediaType)
+		} else {
+			c.w.Header().Set("Content-Type", mime.FormatMediaType("text/plain", params))
+		}
+	}
+
+	_, err = io.Copy(c.w, resp.Body)
+	return err
+}

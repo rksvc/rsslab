@@ -1,6 +1,7 @@
 :root {
 	--border-radius: 4px;
 	--monospace: SFMono-Regular, Menlo, Consolas, monospace;
+	--shadow: 0 0 0 1px rgb(from currentColor r g b / 20%);
 
 	--primary: #0056b3;
 	--primary-bg: #0080d4;
@@ -56,7 +57,7 @@ path.bp6-spinner-track {
 
 .bp6-button.bp6-intent-primary:not(.filter, a) {
 	background-color: var(--primary-bg) !important;
-	box-shadow: none !important;
+	box-shadow: none;
 	&:active {
 		background-color: color-mix(in srgb, var(--primary-bg), black 15%) !important;
 	}
@@ -79,7 +80,7 @@ a.bp6-button {
 
 .bp6-input,
 .bp6-input:focus {
-	box-shadow: none !important;
+	box-shadow: none;
 }
 
 #min {
@@ -335,15 +336,35 @@ a.bp6-button {
 	}
 
 	.bp6-dialog-body {
-		--shadow: 0 0 0 1px rgb(from currentColor r g b / 20%);
 		:is(.bp6-input, select) {
 			&,
 			&:hover {
 				transition: none;
-				box-shadow: var(--shadow) !important;
+				box-shadow: var(--shadow);
 			}
 			&:is(:active, :focus) {
 				box-shadow: 0 0 0 1px var(--primary-bg) !important;
+			}
+		}
+		.bp6-control-group {
+			gap: 0.3em;
+			margin-bottom: 0.4em;
+			.bp6-button {
+				color: rgb(from currentColor r g b / 80%);
+			}
+			.bp6-button.bp6-intent-danger {
+				color: rgb(from var(--danger) r g b / 80%);
+			}
+			.bp6-button {
+				&:disabled {
+					color: rgb(from currentColor r g b / 50%);
+				}
+				&:hover:not(:disabled) {
+					background-color: rgb(from currentColor r g b / 15%);
+				}
+				&:active:not(:disabled) {
+					background-color: rgb(from currentColor r g b / 20%);
+				}
 			}
 		}
 		.bp6-label {

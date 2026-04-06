@@ -73,3 +73,4 @@ export type Selected =
   | undefined // none
 
 export type Transformer = 'html' | 'json' | 'js'
+export type FeedType = 'feed' | Transformer

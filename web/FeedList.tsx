@@ -33,7 +33,7 @@ import {
 } from 'react-feather'
 import { useMyContext } from './Context.tsx'
 import FeedIcon from './FeedIcon.tsx'
-import { NewFeedDialog } from './NewFeed.tsx'
+import NewFeed from './NewFeed.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Folder, Selected } from './types.ts'
@@ -334,7 +334,7 @@ export default function FeedList() {
           </div>
         </>
       ) : undefined}
-      <NewFeedDialog isOpen={newFeedDialogOpen} setIsOpen={setNewFeedDialogOpen} />
+      <NewFeed isOpen={newFeedDialogOpen} setIsOpen={setNewFeedDialogOpen} />
     </div>
   )
 }

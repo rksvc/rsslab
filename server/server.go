@@ -131,6 +131,7 @@ func (s *Server) Start(addr string) error {
 	mux.HandleFunc("POST   /api/opml/import", wrap(s.handleOPMLImport))
 	mux.HandleFunc("GET    /api/opml/export", wrap(s.handleOPMLExport))
 	mux.HandleFunc("GET    /api/transform/{type}", wrap(s.handleTransform))
+	mux.HandleFunc("GET    /api/proxy", wrap(s.proxy))
 	mux.HandleFunc("GET    /", s.handleIndex)
 
 	host, port := addr, ""

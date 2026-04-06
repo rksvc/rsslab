@@ -26,8 +26,9 @@ import {
 } from 'react'
 import { ExternalLink } from 'react-feather'
 import { useMyContext } from './Context.tsx'
-import type { Feed, Transformer } from './types.ts'
-import { param, parseFeedLink, xfetch } from './utils.ts'
+import HttpRequestParams from './HttpRequestParams.tsx'
+import type { Feed, FeedType } from './types.ts'
+import { param, xfetch } from './utils.ts'
 
 type Param = {
   value: string
@@ -35,10 +36,12 @@ type Param = {
   key: string
   desc?: string | JSX.Element
   placeholder?: string
-  multiline?: boolean
+  script?: boolean
+  extra?: JSX.Element
+  hide?: true
 }
 
-export function NewFeedDialog({
+export default function NewFeed({
   isOpen,
   setIsOpen,
 }: {
@@ -47,11 +50,20 @@ export function NewFeedDialog({
 }) {
   const { setSelected, foldersWithFeeds, selected, refreshFeeds, refreshStats, feedsById } = useMyContext()
   const [loading, setLoading] = useState(false)
-  const [feedLink, setFeedLink] = useState('')
-  const [transOpen, setTransOpen] = useState(false)
-  const [transType, setTransType] = useState<Transformer>('html')
+  const [sectionOpen, setSectionOpen] = useState(true)
+  const [feedType, setFeedType] = useState<FeedType>('feed')
   const selectedFolderRef = useRef<HTMLSelectElement>(null)
   const defaultFolderId = selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)
+
+  const [feedUrl, setFeedUrl] = useState('')
+  const feedParams: Param[] = [
+    {
+      value: feedUrl,
+      setValue: setFeedUrl,
+      key: '',
+      placeholder: 'https://example.com/feed',
+    },
+  ]
 
   const [transHtmlUrl, setTransHtmlUrl] = useState('')
   const [transHtmlTitle, setTransHtmlTitle] = useState('')
@@ -68,6 +80,7 @@ export function NewFeedDialog({
       setValue: setTransHtmlUrl,
       key: 'url',
       placeholder: 'https://example.com',
+      extra: <HttpRequestParams url={transHtmlUrl} setUrl={setTransHtmlUrl} />,
     },
     {
       value: transHtmlTitle,
@@ -162,6 +175,14 @@ export function NewFeedDialog({
       setValue: setTransJsonUrl,
       key: 'url',
       placeholder: 'https://example.com',
+      extra: (
+        <HttpRequestParams
+          url={transJsonUrl}
+          setUrl={setTransJsonUrl}
+          headers={transJsonHeaders}
+          setHeaders={setTransJsonHeaders}
+        />
+      ),
     },
     {
       value: transJsonHomePageUrl,
@@ -179,7 +200,7 @@ export function NewFeedDialog({
       value: transJsonHeaders,
       setValue: setTransJsonHeaders,
       key: 'headers',
-      desc: 'HTTP request headers in JSON format',
+      hide: true,
     },
     {
       value: transJsonItems,
@@ -227,13 +248,25 @@ export function NewFeedDialog({
       setValue: setJs,
       key: 'script',
       desc: 'JavaScript',
-      multiline: true,
+      script: true,
     },
   ]
 
   const onConfirm = async () => {
     if (!selectedFolderRef.current) return
-    if (!feedLink) throw new Error('Feed link is required')
+    let feedLink = feedUrl
+    if (feedType === 'feed') {
+      if (!feedUrl) throw new Error('Feed link is required')
+    } else {
+      feedLink = `rsslab://${feedType}${stringify(
+        {
+          html: transHtmlParams,
+          json: transJsonParams,
+          js: jsParams,
+        }[feedType],
+      )}`
+    }
+
     setLoading(true)
     try {
       const feed = await xfetch<Feed>('api/feeds', {
@@ -245,7 +278,7 @@ export function NewFeedDialog({
       })
       await Promise.all([refreshFeeds(), refreshStats()])
       setSelected({ feed_id: feed.id })
-      setFeedLink('')
+      if (feedType === 'feed') setFeedUrl('')
       setIsOpen(false)
     } finally {
       setLoading(false)
@@ -260,36 +293,68 @@ export function NewFeedDialog({
       onOpened={node => node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()}
     >
       <DialogBody>
-        <FormGroup label="URL" fill>
-          <TextArea
-            placeholder="https://example.com/feed"
-            value={feedLink}
-            spellCheck="false"
-            autoResize
-            fill
-            onChange={evt => {
-              const feedLink = evt.target.value
-              setFeedLink(feedLink)
-              const [scheme, url] = parseFeedLink(feedLink)
-              if (scheme) {
-                for (const { key, setValue } of {
-                  html: transHtmlParams,
-                  json: transJsonParams,
-                  js: jsParams,
-                }[scheme])
-                  setValue(url.searchParams.get(key) ?? '')
-                setTransType(scheme)
-              }
+        <FormGroup fill>
+          <div
+            style={{
+              borderRadius: 'var(--border-radius)',
+              boxShadow: 'var(--shadow)',
             }}
-            onKeyDown={async evt => {
-              if (evt.key === 'Enter') {
-                evt.preventDefault()
-                await onConfirm()
-              }
-            }}
-          />
+          >
+            <FeedSection
+              sectionStyle={{
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                boxShadow: 'none',
+              }}
+              formGroupStyle={{ marginBottom: 0 }}
+              type="feed"
+              title="Feed"
+              params={feedParams}
+              isOpen={sectionOpen}
+              setIsOpen={setSectionOpen}
+              curType={feedType}
+              setCurType={setFeedType}
+            />
+            <Divider compact />
+            <FeedSection
+              sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
+              type="html"
+              title="HTML Transformer"
+              params={transHtmlParams}
+              isOpen={sectionOpen}
+              setIsOpen={setSectionOpen}
+              curType={feedType}
+              setCurType={setFeedType}
+            />
+            <Divider compact />
+            <FeedSection
+              sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
+              type="json"
+              title="JSON Transformer"
+              params={transJsonParams}
+              isOpen={sectionOpen}
+              setIsOpen={setSectionOpen}
+              curType={feedType}
+              setCurType={setFeedType}
+            />
+            <Divider compact />
+            <FeedSection
+              sectionStyle={{
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
+                boxShadow: 'none',
+              }}
+              type="js"
+              title="JavaScript"
+              params={jsParams}
+              isOpen={sectionOpen}
+              setIsOpen={setSectionOpen}
+              curType={feedType}
+              setCurType={setFeedType}
+            />
+          </div>
         </FormGroup>
-        <FormGroup label="Folder" fill>
+        <FormGroup label="Folder" style={{ marginBottom: 0 }} fill>
           <HTMLSelect
             iconName="caret-down"
             options={[
@@ -304,71 +369,26 @@ export function NewFeedDialog({
             fill
           />
         </FormGroup>
-        <FormGroup label="Transformer" style={{ marginBottom: '5px' }} fill>
-          <div
-            style={{
-              borderRadius: 'var(--border-radius)',
-              boxShadow: '0 0 0 1px rgb(from currentColor r g b / 20%)',
-            }}
-          >
-            <TransformerSection
-              style={{
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-                boxShadow: 'none',
-              }}
-              type="html"
-              title="HTML Transformer"
-              params={transHtmlParams}
-              isOpen={transOpen}
-              setIsOpen={setTransOpen}
-              curType={transType}
-              setCurType={setTransType}
-              setFeedLink={setFeedLink}
-            />
-            <Divider compact />
-            <TransformerSection
-              style={{
-                borderRadius: 0,
-                boxShadow: 'none',
-              }}
-              type="json"
-              title="JSON Transformer"
-              params={transJsonParams}
-              isOpen={transOpen}
-              setIsOpen={setTransOpen}
-              curType={transType}
-              setCurType={setTransType}
-              setFeedLink={setFeedLink}
-            />
-            <Divider compact />
-            <TransformerSection
-              style={{
-                borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
-                boxShadow: 'none',
-              }}
-              type="js"
-              title="JavaScript"
-              params={jsParams}
-              isOpen={transOpen}
-              setIsOpen={setTransOpen}
-              curType={transType}
-              setCurType={setTransType}
-              setFeedLink={setFeedLink}
-            />
-          </div>
-        </FormGroup>
       </DialogBody>
       <DialogFooter
-        actions={<Button text="OK" loading={loading} intent={Intent.PRIMARY} onClick={onConfirm} fill />}
+        actions={
+          <Button
+            text="OK"
+            loading={loading}
+            intent={Intent.PRIMARY}
+            onClick={onConfirm}
+            disabled={!sectionOpen}
+            fill
+          />
+        }
       />
     </Dialog>
   )
 }
 
-function TransformerSection({
-  style,
+function FeedSection({
+  sectionStyle,
+  formGroupStyle,
   type,
   title,
   params,
@@ -376,24 +396,20 @@ function TransformerSection({
   setIsOpen,
   curType,
   setCurType,
-  setFeedLink,
 }: {
-  style: CSSProperties
-  type: Transformer
+  sectionStyle: CSSProperties
+  formGroupStyle?: CSSProperties
+  type: FeedType
   title: string
   params: Param[]
   isOpen: boolean
   setIsOpen: Dispatch<SetStateAction<boolean>>
-  curType: Transformer
-  setCurType: Dispatch<SetStateAction<Transformer>>
-  setFeedLink: Dispatch<SetStateAction<string>>
+  curType: FeedType
+  setCurType: Dispatch<SetStateAction<FeedType>>
 }) {
-  const updateFeedLink = (i: number, value: string) =>
-    setFeedLink(`rsslab://${curType}${stringify(params.with(i, { ...params[i], value }))}`)
-
   return (
     <Section
-      style={style}
+      style={sectionStyle}
       title={title}
       titleRenderer={Span}
       collapseProps={{
@@ -412,14 +428,15 @@ function TransformerSection({
       compact
     >
       <SectionCard>
-        {params.map(({ value, setValue, key, desc, placeholder, multiline }, i) => (
+        {params.map(({ value, setValue, key, desc, placeholder, script, extra, hide }) => (
           <FormGroup
-            key={`${type}_${key}`}
-            label={<Code>{key}</Code>}
+            key={key}
+            label={key && <Code>{key}</Code>}
             labelInfo={<span style={{ fontSize: '0.9em' }}>{desc}</span>}
+            style={{ ...formGroupStyle, display: hide && 'none' }}
             fill
           >
-            {multiline ? (
+            {script ? (
               <TextArea
                 fill
                 autoResize
@@ -431,33 +448,38 @@ function TransformerSection({
                   minHeight: '10em',
                   fontFamily: 'var(--monospace)',
                 }}
-                onChange={evt => {
-                  setValue(evt.target.value)
-                  updateFeedLink(i, evt.target.value)
-                }}
+                onChange={evt => setValue(evt.target.value)}
               />
             ) : (
-              <InputGroup
-                value={value}
-                placeholder={placeholder}
-                spellCheck="false"
-                onValueChange={value => {
-                  setValue(value)
-                  updateFeedLink(i, value)
-                }}
-              />
+              <div style={{ borderRadius: 'var(--border-radius)', boxShadow: extra && 'var(--shadow)' }}>
+                <InputGroup
+                  value={value}
+                  placeholder={placeholder}
+                  spellCheck="false"
+                  style={{
+                    boxShadow: extra && 'none',
+                    borderBottomLeftRadius: extra && 0,
+                    borderBottomRightRadius: extra && 0,
+                  }}
+                  onValueChange={value => setValue(value)}
+                />
+                {extra && <Divider compact />}
+                {extra}
+              </div>
             )}
           </FormGroup>
         ))}
-        <AnchorButton
-          text="Preview"
-          href={`api/transform/${type}${stringify(params)}`}
-          target="_blank"
-          intent={Intent.PRIMARY}
-          endIcon={<ExternalLink />}
-          variant={ButtonVariant.OUTLINED}
-          fill
-        />
+        {type !== 'feed' && (
+          <AnchorButton
+            text="Preview"
+            href={`api/transform/${type}${stringify(params)}`}
+            target="_blank"
+            intent={Intent.PRIMARY}
+            endIcon={<ExternalLink />}
+            variant={ButtonVariant.OUTLINED}
+            fill
+          />
+        )}
       </SectionCard>
     </Section>
   )
