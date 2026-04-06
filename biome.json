@@ -12,7 +12,7 @@
   "linter": {
     "domains": {
       "project": "recommended",
-      "react": "recommended"
+      "types": "recommended"
     },
     "rules": {
       "complexity": {

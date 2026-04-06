@@ -1,5 +1,5 @@
 import { Colors, FocusStyleManager, OverlaysProvider } from '@blueprintjs/core'
-import { enableMapSet } from 'immer'
+import { enableArrayMethods, enableMapSet } from 'immer'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import ContextProvider from './Context.tsx'
@@ -13,6 +13,7 @@ style.setProperty('--gray4', Colors.GRAY4)
 style.setProperty('--dark-gray2', Colors.DARK_GRAY2)
 
 enableMapSet()
+enableArrayMethods()
 FocusStyleManager.onlyShowFocusOnTabs()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
