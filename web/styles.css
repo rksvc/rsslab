@@ -328,6 +328,8 @@ a.bp6-button {
 
 /* dialog */
 .bp6-dialog {
+	max-width: 95vw;
+
 	.bp6-dialog-header .bp6-button:is(:hover, :active) {
 		background-color: inherit;
 		.bp6-icon {
@@ -395,7 +397,6 @@ a.bp6-button {
 }
 .bp6-dialog.error {
 	width: fit-content;
-	max-width: 90vw;
 	white-space: nowrap;
 }
 
