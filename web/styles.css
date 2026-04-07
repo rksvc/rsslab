@@ -348,6 +348,9 @@ a.bp6-button {
 				box-shadow: 0 0 0 1px var(--primary-bg) !important;
 			}
 		}
+		.bp6-form-group:last-child {
+			margin-bottom: 0;
+		}
 		.bp6-control-group {
 			gap: 0.3em;
 			margin-bottom: 0.4em;
@@ -379,6 +382,9 @@ a.bp6-button {
 			user-select: none;
 			min-height: 0;
 			padding: 0 8px;
+		}
+		.bp6-collapse {
+			transition: none;
 		}
 	}
 

@@ -30,6 +30,7 @@ import {
   Trash,
 } from 'react-feather'
 import { useMyContext } from './Context.tsx'
+import FeedEditor from './FeedEditor.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, Item, Items } from './types.ts'
@@ -62,6 +63,7 @@ export default function ItemList() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [feedLink, setFeedLink] = useState<string>()
   const timerId = useRef<ReturnType<typeof setTimeout>>()
   const searchRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
@@ -229,15 +231,10 @@ export default function ItemList() {
                           await updateFeedAttr(feed.id, 'title', title)
                         }}
                       />
-                      <TextEditor
-                        menuText="Change Link"
-                        menuIcon={<Edit />}
-                        defaultValue={feed.feed_link}
-                        textAreaStyle={{ wordBreak: 'break-all' }}
-                        onConfirm={async feedLink => {
-                          if (!feedLink) throw new Error('Feed link is required')
-                          await updateFeedAttr(feed.id, 'feed_link', feedLink)
-                        }}
+                      <MenuItem
+                        text="Change Link"
+                        icon={<Edit />}
+                        onClick={() => setFeedLink(feed.feed_link)}
                       />
                       <MenuItem
                         text="Refresh"
@@ -387,6 +384,19 @@ export default function ItemList() {
           </div>
         </>
       )}
+      <FeedEditor
+        key={feedLink || ''}
+        title="Edit Feed"
+        defaultFeedLink={feedLink || ''}
+        isOpen={feedLink != null}
+        close={() => setFeedLink(undefined)}
+        callback={async feedLink => {
+          const feedId = selected?.feed_id
+          if (feedId == null) throw new Error('No feed is selected')
+          if (!feedLink) throw new Error('Feed link is required')
+          await updateFeedAttr(feedId, 'feed_link', feedLink)
+        }}
+      />
     </div>
   )
 }

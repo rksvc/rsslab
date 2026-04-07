@@ -20,15 +20,17 @@ import {
   type CSSProperties,
   type Dispatch,
   type HTMLAttributes,
+  type RefObject,
   type SetStateAction,
+  useEffect,
   useRef,
   useState,
 } from 'react'
 import { ExternalLink } from 'react-feather'
 import { useMyContext } from './Context.tsx'
 import HttpRequestParams from './HttpRequestParams.tsx'
-import type { Feed, FeedType } from './types.ts'
-import { param, xfetch } from './utils.ts'
+import type { FeedType } from './types.ts'
+import { param, parseFeedLink } from './utils.ts'
 
 type Param = {
   value: string
@@ -41,17 +43,26 @@ type Param = {
   hide?: true
 }
 
-export default function NewFeed({
+export default function FeedEditor({
+  title,
+  defaultFeedLink,
   isOpen,
-  setIsOpen,
+  close,
+  showFolderSelector,
+  callback,
 }: {
+  title: string
+  defaultFeedLink: string
   isOpen: boolean
-  setIsOpen: Dispatch<SetStateAction<boolean>>
+  close: () => void
+  showFolderSelector?: true
+  callback: (feedLink: string, folderId: number | null) => Promise<void>
 }) {
-  const { setSelected, foldersWithFeeds, selected, refreshFeeds, refreshStats, feedsById } = useMyContext()
+  const { foldersWithFeeds, selected, feedsById } = useMyContext()
   const [loading, setLoading] = useState(false)
   const [sectionOpen, setSectionOpen] = useState(true)
   const [feedType, setFeedType] = useState<FeedType>('feed')
+  const dialogBodyRef = useRef<HTMLDivElement>(null)
   const selectedFolderRef = useRef<HTMLSelectElement>(null)
   const defaultFolderId = selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)
 
@@ -252,8 +263,24 @@ export default function NewFeed({
     },
   ]
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(transHtmlParams): `key` and `setValue` are immutable
+  // biome-ignore lint/correctness/useExhaustiveDependencies(transJsonParams): `key` and `setValue` are immutable
+  // biome-ignore lint/correctness/useExhaustiveDependencies(jsParams): `key` and `setValue` are immutable
+  useEffect(() => {
+    const [scheme, url] = parseFeedLink(defaultFeedLink)
+    setFeedType(scheme || 'feed')
+    if (scheme)
+      for (const { key, setValue } of {
+        html: transHtmlParams,
+        json: transJsonParams,
+        js: jsParams,
+      }[scheme])
+        setValue(url.searchParams.get(key) ?? '')
+    else setFeedUrl(url)
+  }, [defaultFeedLink])
+
   const onConfirm = async () => {
-    if (!selectedFolderRef.current) return
+    if (showFolderSelector && !selectedFolderRef.current) return
     let feedLink = feedUrl
     if (feedType === 'feed') {
       if (!feedUrl) throw new Error('Feed link is required')
@@ -269,30 +296,17 @@ export default function NewFeed({
 
     setLoading(true)
     try {
-      const feed = await xfetch<Feed>('api/feeds', {
-        method: 'POST',
-        body: JSON.stringify({
-          url: feedLink,
-          folder_id: selectedFolderRef.current.value ? +selectedFolderRef.current.value : null,
-        }),
-      })
-      await Promise.all([refreshFeeds(), refreshStats()])
-      setSelected({ feed_id: feed.id })
+      await callback(feedLink, selectedFolderRef.current?.value ? +selectedFolderRef.current.value : null)
       if (feedType === 'feed') setFeedUrl('')
-      setIsOpen(false)
+      close()
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog
-      title="New Feed"
-      isOpen={isOpen}
-      onClose={() => setIsOpen(false)}
-      onOpened={node => node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()}
-    >
-      <DialogBody>
+    <Dialog title={title} isOpen={isOpen} onClose={close}>
+      <DialogBody ref={dialogBodyRef}>
         <FormGroup fill>
           <div
             style={{
@@ -314,6 +328,7 @@ export default function NewFeed({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
+              dialogBodyRef={dialogBodyRef}
             />
             <Divider compact />
             <FeedSection
@@ -325,6 +340,7 @@ export default function NewFeed({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
+              dialogBodyRef={dialogBodyRef}
             />
             <Divider compact />
             <FeedSection
@@ -336,6 +352,7 @@ export default function NewFeed({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
+              dialogBodyRef={dialogBodyRef}
             />
             <Divider compact />
             <FeedSection
@@ -351,24 +368,27 @@ export default function NewFeed({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
+              dialogBodyRef={dialogBodyRef}
             />
           </div>
         </FormGroup>
-        <FormGroup label="Folder" style={{ marginBottom: 0 }} fill>
-          <HTMLSelect
-            iconName="caret-down"
-            options={[
-              { value: '', label: '--' },
-              ...(foldersWithFeeds ?? []).map(({ id, title }) => ({
-                value: id,
-                label: title,
-              })),
-            ]}
-            defaultValue={defaultFolderId == null ? undefined : defaultFolderId}
-            ref={selectedFolderRef}
-            fill
-          />
-        </FormGroup>
+        {showFolderSelector && (
+          <FormGroup label="Folder" fill>
+            <HTMLSelect
+              iconName="caret-down"
+              options={[
+                { value: '', label: '--' },
+                ...(foldersWithFeeds ?? []).map(({ id, title }) => ({
+                  value: id,
+                  label: title,
+                })),
+              ]}
+              defaultValue={defaultFolderId == null ? undefined : defaultFolderId}
+              ref={selectedFolderRef}
+              fill
+            />
+          </FormGroup>
+        )}
       </DialogBody>
       <DialogFooter
         actions={
@@ -396,6 +416,7 @@ function FeedSection({
   setIsOpen,
   curType,
   setCurType,
+  dialogBodyRef,
 }: {
   sectionStyle: CSSProperties
   formGroupStyle?: CSSProperties
@@ -406,12 +427,22 @@ function FeedSection({
   setIsOpen: Dispatch<SetStateAction<boolean>>
   curType: FeedType
   setCurType: Dispatch<SetStateAction<FeedType>>
+  dialogBodyRef: RefObject<HTMLDivElement>
 }) {
+  const sectionRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (isOpen && curType === type) {
+      sectionRef.current?.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()
+      dialogBodyRef.current?.scrollTo(0, 0)
+    }
+  }, [isOpen, curType, type, dialogBodyRef])
+
   return (
     <Section
       style={sectionStyle}
       title={title}
       titleRenderer={Span}
+      ref={sectionRef}
       collapseProps={{
         isOpen: isOpen && curType === type,
         onToggle: () => {

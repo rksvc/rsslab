@@ -32,8 +32,8 @@ import {
   Upload,
 } from 'react-feather'
 import { useMyContext } from './Context.tsx'
+import FeedEditor from './FeedEditor.tsx'
 import FeedIcon from './FeedIcon.tsx'
-import NewFeed from './NewFeed.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Folder, Selected } from './types.ts'
@@ -334,7 +334,24 @@ export default function FeedList() {
           </div>
         </>
       ) : undefined}
-      <NewFeed isOpen={newFeedDialogOpen} setIsOpen={setNewFeedDialogOpen} />
+      <FeedEditor
+        title="New Feed"
+        defaultFeedLink=""
+        isOpen={newFeedDialogOpen}
+        close={() => setNewFeedDialogOpen(false)}
+        showFolderSelector
+        callback={async (feedLink, folderId) => {
+          const feed = await xfetch<Feed>('api/feeds', {
+            method: 'POST',
+            body: JSON.stringify({
+              url: feedLink,
+              folder_id: folderId,
+            }),
+          })
+          await Promise.all([refreshFeeds(), refreshStats()])
+          setSelected({ feed_id: feed.id })
+        }}
+      />
     </div>
   )
 }
