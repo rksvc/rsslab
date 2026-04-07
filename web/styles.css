@@ -82,6 +82,9 @@ a.bp6-button {
 .bp6-input:focus {
 	box-shadow: none;
 }
+.bp6-dark :is(.bp6-input, .bp6-input:focus) {
+	box-shadow: none;
+}
 
 #min {
 	align-self: stretch;
