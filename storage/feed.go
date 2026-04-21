@@ -256,7 +256,25 @@ type FeedState struct {
 }
 
 func (s *Storage) FeedState() (map[int]FeedState, error) {
-	rows, err := s.db.Query(fmt.Sprintf(`
+	rows, err := s.db.Query(`select id, last_refreshed, error from feeds`)
+	if err != nil {
+		return nil, newError(err)
+	}
+
+	result := make(map[int]FeedState)
+	for rows.Next() {
+		var id int
+		var s FeedState
+		if err = rows.Scan(&id, &s.LastRefreshed, &s.Error); err != nil {
+			return nil, newError(err)
+		}
+		result[id] = s
+	}
+	if err = rows.Err(); err != nil {
+		return nil, newError(err)
+	}
+
+	rows, err = s.db.Query(fmt.Sprintf(`
 		select
 			feed_id,
 			sum(iif(status = %d, 1, 0)),
@@ -268,36 +286,15 @@ func (s *Storage) FeedState() (map[int]FeedState, error) {
 		return nil, newError(err)
 	}
 
-	result := make(map[int]FeedState)
 	for rows.Next() {
-		var id int
-		var s FeedState
-		err = rows.Scan(&id, &s.Unread, &s.Starred)
-		if err != nil {
+		var id, unread, starred int
+		if err = rows.Scan(&id, &unread, &starred); err != nil {
 			return nil, newError(err)
 		}
-		result[id] = s
-	}
-	if err = rows.Err(); err != nil {
-		return nil, newError(err)
-	}
-
-	rows, err = s.db.Query(`select id, last_refreshed, error from feeds`)
-	if err != nil {
-		return nil, newError(err)
-	}
-
-	for rows.Next() {
-		var id int
-		var lastRefreshed *time.Time
-		var error *string
-		if err = rows.Scan(&id, &lastRefreshed, &error); err != nil {
-			return nil, newError(err)
-		}
-		if state, ok := result[id]; ok {
-			state.LastRefreshed = lastRefreshed
-			state.Error = error
-			result[id] = state
+		if s, ok := result[id]; ok {
+			s.Unread = unread
+			s.Starred = starred
+			result[id] = s
 		}
 	}
 	if err = rows.Err(); err != nil {
