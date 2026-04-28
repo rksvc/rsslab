@@ -453,7 +453,7 @@ function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
             WebkitLineClamp: 3,
           }}
         >
-          {item.title}
+          {item.title || 'untitled'}
         </span>
       </div>
     </Card>
