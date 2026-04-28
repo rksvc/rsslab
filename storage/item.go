@@ -216,6 +216,9 @@ func (s *Storage) ListItems(filter ItemFilter, limit int) ([]Item, error) {
 		}
 		result = append(result, i)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, newError(err)
+	}
 	return result, nil
 }
 
