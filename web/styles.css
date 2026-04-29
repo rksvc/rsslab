@@ -181,8 +181,7 @@ a.bp6-button {
 					transition: none;
 					&.bp6-tree-node-caret-closed {
 						svg {
-							padding-left: 1px;
-							padding-right: 1px;
+							padding-inline: 1px;
 						}
 					}
 					&.bp6-tree-node-caret-open {
@@ -227,8 +226,7 @@ a.bp6-button {
 			margin: -1.5px auto;
 		}
 		.bp6-menu-divider {
-			margin-top: 1px;
-			margin-bottom: 1px;
+			margin-block: 1px;
 		}
 		.bp6-menu-header {
 			margin-top: 1px;
@@ -298,8 +296,7 @@ a.bp6-button {
 	padding-bottom: 0.5rem !important;
 	& > .bp6-card {
 		margin-top: 0.25rem;
-		margin-left: 0.5rem;
-		margin-right: 0.5rem;
+		margin-inline: 0.5rem;
 		padding: 0.25rem 0.5rem !important;
 		border-bottom: 0 !important;
 		border-radius: var(--border-radius);

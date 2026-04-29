@@ -96,7 +96,7 @@ export default function ItemShow() {
         <H2 style={{ fontWeight: 700 }}>{item.title || 'untitled'}</H2>
         <div style={{ opacity: 0.95 }}>{feedsById?.get(item.feed_id)?.title}</div>
         <div style={{ opacity: 0.95 }}>{new Date(item.date).toLocaleString()}</div>
-        <Divider compact style={{ marginTop: length(3), marginBottom: length(3) }} />
+        <Divider compact style={{ marginBlock: length(3) }} />
         <div
           style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
           className={cn(Classes.RUNNING_TEXT, 'content')}
