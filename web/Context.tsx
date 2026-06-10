@@ -51,7 +51,7 @@ const Context = createContext<
       setRefreshed: Dispatch<SetStateAction<Record<never, never>>>
       itemsOutdated: boolean
       setItemsOutdated: Dispatch<SetStateAction<boolean>>
-      contentRef: RefObject<HTMLDivElement>
+      contentRef: RefObject<HTMLDivElement | null>
 
       refreshFeeds: () => Promise<void>
       refreshStats: () => Promise<void>

@@ -20,8 +20,10 @@ import {
   type CSSProperties,
   type Dispatch,
   type HTMLAttributes,
+  type JSX,
   type RefObject,
   type SetStateAction,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -304,8 +306,22 @@ export default function FeedEditor({
     }
   }
 
+  const feedRef = useRef<HTMLDivElement>(null)
+  const htmlRef = useRef<HTMLDivElement>(null)
+  const jsonRef = useRef<HTMLDivElement>(null)
+  const jsRef = useRef<HTMLDivElement>(null)
+  const onSectionChange = useCallback(() => {
+    if (isOpen) {
+      ;({ feed: feedRef, html: htmlRef, json: jsonRef, js: jsRef })[feedType].current
+        ?.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)
+        ?.focus()
+      dialogBodyRef.current?.scrollTo(0, 0)
+    }
+  }, [feedType, isOpen])
+  useEffect(onSectionChange, [onSectionChange])
+
   return (
-    <Dialog title={title} isOpen={isOpen} onClose={close}>
+    <Dialog title={title} isOpen={isOpen} onClose={close} onOpened={onSectionChange}>
       <DialogBody ref={dialogBodyRef}>
         <FormGroup fill>
           <div
@@ -315,6 +331,7 @@ export default function FeedEditor({
             }}
           >
             <FeedSection
+              ref={feedRef}
               sectionStyle={{
                 borderBottomLeftRadius: 0,
                 borderBottomRightRadius: 0,
@@ -328,10 +345,10 @@ export default function FeedEditor({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
-              dialogBodyRef={dialogBodyRef}
             />
             <Divider compact />
             <FeedSection
+              ref={htmlRef}
               sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
               type="html"
               title="HTML Transformer"
@@ -340,10 +357,10 @@ export default function FeedEditor({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
-              dialogBodyRef={dialogBodyRef}
             />
             <Divider compact />
             <FeedSection
+              ref={jsonRef}
               sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
               type="json"
               title="JSON Transformer"
@@ -352,10 +369,10 @@ export default function FeedEditor({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
-              dialogBodyRef={dialogBodyRef}
             />
             <Divider compact />
             <FeedSection
+              ref={jsRef}
               sectionStyle={{
                 borderTopLeftRadius: 0,
                 borderTopRightRadius: 0,
@@ -368,7 +385,6 @@ export default function FeedEditor({
               setIsOpen={setSectionOpen}
               curType={feedType}
               setCurType={setFeedType}
-              dialogBodyRef={dialogBodyRef}
             />
           </div>
         </FormGroup>
@@ -407,6 +423,7 @@ export default function FeedEditor({
 }
 
 function FeedSection({
+  ref,
   sectionStyle,
   formGroupStyle,
   type,
@@ -416,8 +433,8 @@ function FeedSection({
   setIsOpen,
   curType,
   setCurType,
-  dialogBodyRef,
 }: {
+  ref: RefObject<HTMLDivElement | null>
   sectionStyle: CSSProperties
   formGroupStyle?: CSSProperties
   type: FeedType
@@ -427,22 +444,13 @@ function FeedSection({
   setIsOpen: Dispatch<SetStateAction<boolean>>
   curType: FeedType
   setCurType: Dispatch<SetStateAction<FeedType>>
-  dialogBodyRef: RefObject<HTMLDivElement>
 }) {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (isOpen && curType === type) {
-      sectionRef.current?.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()
-      dialogBodyRef.current?.scrollTo(0, 0)
-    }
-  }, [isOpen, curType, type, dialogBodyRef])
-
   return (
     <Section
       style={sectionStyle}
       title={title}
       titleRenderer={Span}
-      ref={sectionRef}
+      ref={ref}
       collapseProps={{
         isOpen: isOpen && curType === type,
         onToggle: () => {

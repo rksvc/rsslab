@@ -10,7 +10,7 @@ import {
   Menu,
   MenuDivider,
   MenuItem,
-  Popover,
+  PopoverNext,
   Spinner,
 } from '@blueprintjs/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -34,7 +34,7 @@ import FeedEditor from './FeedEditor.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, Item, Items } from './types.ts'
-import { fromNow, length, menuModifiers, param, parseFeedLink, xfetch } from './utils.ts'
+import { fromNow, length, menuMiddleware, param, parseFeedLink, xfetch } from './utils.ts'
 
 export default function ItemList() {
   const {
@@ -64,7 +64,7 @@ export default function ItemList() {
   const [loading, setLoading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [feedLink, setFeedLink] = useState<string>()
-  const timerId = useRef<ReturnType<typeof setTimeout>>()
+  const timerId = useRef<ReturnType<typeof setTimeout>>(undefined)
   const searchRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
@@ -89,10 +89,10 @@ export default function ItemList() {
     setFeeds(feeds => feeds?.map(feed => (feed.id === id ? { ...feed, [attrName]: value } : feed)))
   }
 
-  const sentryNodeRef = useRef<Element>()
+  const sentryNodeRef = useRef<Element>(undefined)
   const [isIntersecting, setIsIntersecting] = useState(false)
   // https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents
-  const observer = useRef<IntersectionObserver>()
+  const observer = useRef<IntersectionObserver>(undefined)
   if (!observer.current) {
     observer.current = new IntersectionObserver(entries => {
       for (const entry of entries)
@@ -184,9 +184,8 @@ export default function ItemList() {
             })
           }}
         />
-        <Popover
-          transitionDuration={0}
-          modifiers={menuModifiers}
+        <PopoverNext
+          middleware={menuMiddleware}
           onOpening={() => setMenuOpen(true)}
           onClosed={() => setMenuOpen(false)}
           content={
@@ -334,7 +333,7 @@ export default function ItemList() {
           }
         >
           <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} disabled={!selected} />
-        </Popover>
+        </PopoverNext>
       </div>
       <Divider compact />
       <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
@@ -494,7 +493,7 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
 }
 
 function usePrevious<T>(value: T) {
-  const ref = useRef<T>()
+  const ref = useRef<T>(undefined)
   useEffect(() => {
     ref.current = value
   })

@@ -29,11 +29,6 @@ export default defineConfig({
       request === './iconLoader' ? callback(undefined, '{}', 'var') : callback(),
     legalComments: 'none',
   },
-  performance: {
-    chunkSplit: {
-      strategy: 'all-in-one',
-    },
-  },
   server: {
     host: '127.0.0.1',
     proxy: {
@@ -47,7 +42,11 @@ export default defineConfig({
       setup(api) {
         api.onAfterBuild(async ({ stats }) => {
           if (!stats) return
-          const { assets, outputPath } = stats.toJson()
+          const { assets, outputPath } = stats.toJson({
+            all: false,
+            outputPath: true,
+            assets: true,
+          })
           if (!assets || !outputPath) return
           await Promise.all(
             assets.map(async ({ name }) => {

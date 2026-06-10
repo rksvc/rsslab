@@ -1,7 +1,6 @@
-import type { PopperModifierOverrides } from '@blueprintjs/core'
 import type { Transformer } from './types.ts'
 
-export const menuModifiers = { offset: { options: { offset: [-70, 8] } } } satisfies PopperModifierOverrides
+export const menuMiddleware = { offset: { mainAxis: 8, crossAxis: -70 } } as const
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ')

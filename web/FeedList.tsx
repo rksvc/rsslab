@@ -11,7 +11,7 @@ import {
   MenuDivider,
   MenuItem,
   NumericInput,
-  Popover,
+  PopoverNext,
   Spinner,
   Tree,
   type TreeNodeInfo,
@@ -37,7 +37,7 @@ import FeedIcon from './FeedIcon.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Folder, Selected } from './types.ts'
-import { fromNow, length, menuModifiers, xfetch } from './utils.ts'
+import { fromNow, length, menuMiddleware, xfetch } from './utils.ts'
 
 const statusBarStyle = {
   display: 'flex',
@@ -200,9 +200,8 @@ export default function FeedList() {
             />
           ))}
         </ButtonGroup>
-        <Popover
-          transitionDuration={0}
-          modifiers={menuModifiers}
+        <PopoverNext
+          middleware={menuMiddleware}
           content={
             <Menu>
               <MenuItem text="New Feed" icon={<Plus />} onClick={() => setNewFeedDialogOpen(true)} />
@@ -278,7 +277,7 @@ export default function FeedList() {
           }
         >
           <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} />
-        </Popover>
+        </PopoverNext>
       </div>
       <Divider compact />
       <Tree<Selected>
@@ -362,7 +361,7 @@ function RefreshRateEditor({
   onConfirm,
 }: {
   defaultValue?: number
-  inputRef: RefObject<HTMLInputElement>
+  inputRef: RefObject<HTMLInputElement | null>
   onConfirm: () => Promise<void>
 }) {
   const [loading, setLoading] = useState(false)
@@ -378,12 +377,10 @@ function RefreshRateEditor({
   }
 
   return (
-    <Popover
+    <PopoverNext
       usePortal={false}
       placement="right"
-      transitionDuration={0}
-      modifiers={{ offset: { options: { offset: [0, 3] } } }}
-      shouldReturnFocusOnClose
+      middleware={{ offset: { mainAxis: 3 } }}
       content={
         <>
           <div style={{ display: 'flex', flexDirection: 'row' }}>
@@ -413,6 +410,6 @@ function RefreshRateEditor({
       onOpening={node => node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()}
     >
       <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
-    </Popover>
+    </PopoverNext>
   )
 }

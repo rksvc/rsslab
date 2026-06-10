@@ -1,5 +1,5 @@
-import { Button, Classes, Intent, MenuItem, Popover, TextArea } from '@blueprintjs/core'
-import { type CSSProperties, useRef, useState } from 'react'
+import { Button, Classes, Intent, MenuItem, PopoverNext, TextArea } from '@blueprintjs/core'
+import { type CSSProperties, type JSX, useRef, useState } from 'react'
 
 export default function TextEditor({
   menuText,
@@ -31,12 +31,10 @@ export default function TextEditor({
   }
 
   return (
-    <Popover
+    <PopoverNext
       usePortal={false}
       placement="right"
-      transitionDuration={0}
-      modifiers={{ offset: { options: { offset: [0, 4] } } }}
-      shouldReturnFocusOnClose
+      middleware={{ offset: { mainAxis: 4 } }}
       content={
         <>
           <TextArea
@@ -67,6 +65,6 @@ export default function TextEditor({
       }}
     >
       <MenuItem text={menuText} icon={menuIcon} shouldDismissPopover={false} />
-    </Popover>
+    </PopoverNext>
   )
 }
