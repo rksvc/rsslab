@@ -13,7 +13,7 @@ import {
   PopoverNext,
   Spinner,
 } from '@blueprintjs/core'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Check,
   ChevronLeft,
@@ -29,6 +29,7 @@ import {
   Star,
   Trash,
 } from 'react-feather'
+
 import { useMyContext } from './Context.tsx'
 import FeedEditor from './FeedEditor.tsx'
 import RelativeTime from './RelativeTime.tsx'
@@ -41,9 +42,9 @@ export default function ItemList() {
     setFolders,
     setFeeds,
     items,
-    updateItems,
+    setItems,
     status,
-    updateStatus,
+    setStatus,
     selectedItemId,
     setSelectedItemId,
     setSelectedItem,
@@ -53,7 +54,6 @@ export default function ItemList() {
     setSelected,
     itemsOutdated,
     setItemsOutdated,
-    setRefreshed,
 
     refreshStats,
     foldersById,
@@ -61,22 +61,21 @@ export default function ItemList() {
     foldersWithFeeds,
   } = useMyContext()
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [feedLink, setFeedLink] = useState<string>()
   const timerId = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const searchRef = useRef<HTMLInputElement>(null)
   const itemListRef = useRef<HTMLDivElement>(null)
 
-  const query = useCallback(() => {
+  const query = (searchOverride?: string) => {
     const query: Record<string, string | boolean> = {}
     if (selected) Object.assign(query, selected)
     if (filter !== 'Feeds') query.status = filter.toLowerCase()
     if (filter === 'Unread') query.oldest_first = true
-    const search = searchRef.current?.value
-    if (search) query.search = search
+    const searchValue = searchOverride == null ? search : searchOverride
+    if (searchValue) query.search = searchValue
     return query
-  }, [selected, filter])
+  }
   const updateFeedAttr = async <T extends 'title' | 'feed_link' | 'folder_id'>(
     id: number,
     attrName: T,
@@ -92,41 +91,38 @@ export default function ItemList() {
   const sentryNodeRef = useRef<Element>(undefined)
   const [isIntersecting, setIsIntersecting] = useState(false)
   // https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents
-  const observer = useRef<IntersectionObserver>(undefined)
-  if (!observer.current) {
+  const observer = useRef<IntersectionObserver>(null)
+  if (observer.current === null) {
     observer.current = new IntersectionObserver(entries => {
-      for (const entry of entries)
-        if (entry.target === sentryNodeRef.current && entry.isIntersecting) setIsIntersecting(true)
+      for (const entry of entries) if (entry.isIntersecting) setIsIntersecting(true)
     })
   }
   if (!loading && isIntersecting && items?.has_more) {
-    ;(async () => {
-      setLoading(true)
-      try {
-        const { list, has_more } = await xfetch<Items>(
-          `api/items${param({ ...query(), after: items.list.at(-1)?.id })}`,
-        )
-        updateItems({ list: [...items.list, ...list], has_more })
-      } finally {
+    setLoading(true)
+    // https://github.com/react/react/issues/34131
+    void xfetch<Items>(`api/items${param({ ...query(), after: items.list.at(-1)?.id })}`)
+      .then(({ list, has_more }) => setItems({ list: [...items.list, ...list], has_more }))
+      .finally(() => {
         setLoading(false)
         setIsIntersecting(false)
-      }
-    })()
+      })
   }
 
-  const refresh = useCallback(async () => {
+  const refresh = async () => {
     setSelectedItemId(undefined)
     setSelectedItem(undefined)
     setItemsOutdated(false)
-    updateItems(undefined)
-    setLoading(true)
-    updateItems(await xfetch<Items>(`api/items${param(query())}`))
+    setItems(undefined)
+    setItems(await xfetch<Items>(`api/items${param(query())}`))
     setLoading(false)
     itemListRef.current?.scrollTo(0, 0)
-  }, [query, updateItems, setSelectedItemId, setSelectedItem, setItemsOutdated])
+  }
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    // https://github.com/react/react/issues/34905
+    // oxlint-disable-next-line react/react-compiler
+    void refresh()
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, selected])
 
   const state = selected?.feed_id == null ? undefined : status?.state.get(selected.feed_id)
   return (
@@ -141,9 +137,11 @@ export default function ItemList() {
           onClick={() => setSelected(undefined)}
         />
         <InputGroup
-          inputRef={searchRef}
           leftIcon={
-            <Search style={{ pointerEvents: 'none', alignSelf: 'anchor-center' }} className={Classes.ICON} />
+            <Search
+              style={{ pointerEvents: 'none', alignSelf: 'anchor-center' }}
+              className={Classes.ICON}
+            />
           }
           type="search"
           value={search}
@@ -152,7 +150,7 @@ export default function ItemList() {
             clearTimeout(timerId.current)
             timerId.current = setTimeout(async () => {
               timerId.current = undefined
-              updateItems(await xfetch<Items>(`api/items${param(query())}`))
+              setItems(await xfetch<Items>(`api/items${param(query(value))}`))
               setItemsOutdated(false)
             }, 200)
           }}
@@ -168,20 +166,37 @@ export default function ItemList() {
             const after = items?.list.at(0)?.id
             if (after == null) return
             await xfetch(`api/items${param({ ...query(), after })}`, { method: 'PUT' })
-            updateItems(items => {
-              for (const item of items?.list ?? []) if (item.status !== 'starred') item.status = 'read'
-            })
+            setItems(
+              items =>
+                items && {
+                  list: items.list.map(item => ({
+                    ...item,
+                    status: item.status === 'starred' ? 'starred' : 'read',
+                  })),
+                  has_more: items.has_more,
+                },
+            )
             const isSelected = !selected
-              ? (_: number) => true
+              ? () => true
               : selected.feed_id != null
                 ? (id: number) => id === selected.feed_id
                 : (() => {
-                    const feeds = new Set(foldersById?.get(selected.folder_id)?.feeds.map(feed => feed.id))
+                    const feeds = new Set(
+                      foldersById?.get(selected.folder_id)?.feeds.map(feed => feed.id),
+                    )
                     return (id: number) => feeds.has(id)
                   })()
-            updateStatus(status => {
-              for (const [id, state] of status?.state ?? []) if (isSelected(id)) state.unread = 0
-            })
+            setStatus(
+              status =>
+                status && {
+                  ...status,
+                  state: new Map(
+                    status.state
+                      .entries()
+                      .map(([id, state]) => [id, isSelected(id) ? { ...state, unread: 0 } : state]),
+                  ),
+                },
+            )
           }}
         />
         <PopoverNext
@@ -249,7 +264,10 @@ export default function ItemList() {
                           <MenuDivider title="Move to..." />
                           {[
                             { key: null, text: '--' },
-                            ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ key: id, text: title })),
+                            ...(foldersWithFeeds ?? []).map(({ id, title }) => ({
+                              key: id,
+                              text: title,
+                            })),
                           ]
                             .filter(({ key }) => key !== feed.folder_id)
                             .map(({ key, text }) => (
@@ -257,10 +275,7 @@ export default function ItemList() {
                                 key={key}
                                 text={text}
                                 icon={<FolderIcon />}
-                                onClick={async () => {
-                                  await updateFeedAttr(feed.id, 'folder_id', key)
-                                  setRefreshed({})
-                                }}
+                                onClick={() => updateFeedAttr(feed.id, 'folder_id', key)}
                               />
                             ))}
                         </>
@@ -271,9 +286,15 @@ export default function ItemList() {
                         onConfirm={async () => {
                           await xfetch(`api/feeds/${feed.id}`, { method: 'DELETE' })
                           setFeeds(feeds => feeds?.filter(f => f.id !== feed.id))
-                          updateStatus(status => {
-                            status?.state.delete(feed.id)
-                          })
+                          setStatus(
+                            status =>
+                              status && {
+                                ...status,
+                                state: new Map(
+                                  status.state.entries().filter(([id]) => id !== feed.id),
+                                ),
+                              },
+                          )
                           setSelected(feed.folder_id == null ? null : { folder_id: feed.folder_id })
                         }}
                       />
@@ -306,9 +327,7 @@ export default function ItemList() {
                           icon={<RotateCw />}
                           disabled={!!status?.running}
                           onClick={async () => {
-                            await xfetch(`api/folders/${folder.id}/refresh`, {
-                              method: 'POST',
-                            })
+                            await xfetch(`api/folders/${folder.id}/refresh`, { method: 'POST' })
                             await refreshStats()
                           }}
                         />
@@ -319,10 +338,15 @@ export default function ItemList() {
                             const deletedFeeds = new Set(folder.feeds.map(feed => feed.id))
                             setFolders(folders => folders?.filter(f => f.id !== folder.id))
                             setFeeds(feeds => feeds?.filter(feed => !deletedFeeds.has(feed.id)))
-                            updateStatus(status => {
-                              for (const [id] of status?.state ?? [])
-                                if (deletedFeeds.has(id)) status?.state.delete(id)
-                            })
+                            setStatus(
+                              status =>
+                                status && {
+                                  ...status,
+                                  state: new Map(
+                                    status.state.entries().filter(([id]) => !deletedFeeds.has(id)),
+                                  ),
+                                },
+                            )
                             setSelected(null)
                           }}
                         />
@@ -473,15 +497,13 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
         icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash />}
         intent={Intent.DANGER}
         shouldDismissPopover={false}
-        onClick={async () => {
+        onClick={() => {
           if (state === false) {
             setState(true)
-            try {
-              await onConfirm()
-              closerRef.current?.click()
-            } finally {
-              setState(undefined)
-            }
+            // https://github.com/react/react/issues/34131
+            void onConfirm()
+              .then(() => closerRef.current?.click())
+              .finally(() => setState(undefined))
           } else if (state === undefined) {
             setState(false)
           }
@@ -497,5 +519,6 @@ function usePrevious<T>(value: T) {
   useEffect(() => {
     ref.current = value
   })
+  // oxlint-disable-next-line react/react-compiler
   return ref.current
 }

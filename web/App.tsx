@@ -1,5 +1,6 @@
 import { Card, Dialog, DialogBody, Divider } from '@blueprintjs/core'
 import { useEffect, useRef, useState } from 'react'
+
 import { useMyContext } from './Context.tsx'
 import FeedList from './FeedList.tsx'
 import ItemList from './ItemList.tsx'
@@ -22,7 +23,10 @@ export default function App() {
   const { selected, selectedItemId } = useMyContext()
   return (
     <Card
-      className={cn(selected !== undefined && 'feed-selected', selectedItemId != null && 'item-selected')}
+      className={cn(
+        selected !== undefined && 'feed-selected',
+        selectedItemId != null && 'item-selected',
+      )}
       style={{
         padding: 0,
         height: '100vh',

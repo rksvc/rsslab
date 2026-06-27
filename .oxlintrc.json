@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": { "typeAware": true, "typeCheck": true },
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "react",
+    "react-perf",
+    "oxc",
+    "import",
+    "jsx-a11y",
+    "promise"
+  ],
+  "jsPlugins": ["@blueprintjs/eslint-plugin"],
+  "rules": {
+    "react/react-compiler": "error",
+    "@blueprintjs/classes-constants": "error",
+    "@blueprintjs/html-components": "error"
+  }
+}

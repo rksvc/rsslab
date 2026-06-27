@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 
-export default function RelativeTime({ date, format }: { date: string; format: (date: string) => string }) {
+export default function RelativeTime({
+  date,
+  format,
+}: {
+  date: string
+  format: (date: string) => string
+}) {
   const [formatted, setFormatted] = useState(format(date))
 
   useEffect(() => {

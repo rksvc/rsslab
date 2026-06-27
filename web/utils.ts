@@ -21,11 +21,7 @@ export function fromNow(date: Date, suffix = ' ago') {
       ? `${sign}${Math.round(minutes / 60)}h${suffix}`
       : minutes < 7 * 24 * 60
         ? `${sign}${Math.round(minutes / (24 * 60))}d${suffix}`
-        : date.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
+        : date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 export function parseFeedLink(link: string): [Transformer, URL] | [undefined, string] {
@@ -45,7 +41,7 @@ export function param(query: Record<string, string | number | boolean | undefine
   const entries = Object.entries(query)
   if (!entries.length) return ''
   return `?${entries
-    .filter(([_, value]) => value !== undefined)
+    .filter(([, value]) => value !== undefined)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value!)}`)
     .join('&')}`
 }

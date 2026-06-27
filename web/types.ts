@@ -1,9 +1,4 @@
-export type FeedState = {
-  unread: number
-  starred: number
-  last_refreshed?: string
-  error?: string
-}
+export type FeedState = { unread: number; starred: number; last_refreshed?: string; error?: string }
 
 export type Status = {
   running: number
@@ -11,11 +6,7 @@ export type Status = {
   state: Map<number, FeedState>
 }
 
-export type Folder = {
-  id: number
-  title: string
-  is_expanded: boolean
-}
+export type Folder = { id: number; title: string; is_expanded: boolean }
 
 export type Feed = {
   id: number
@@ -26,9 +17,7 @@ export type Feed = {
   has_icon: boolean | null
 }
 
-export type FolderWithFeeds = Folder & {
-  feeds: Feed[]
-}
+export type FolderWithFeeds = Folder & { feeds: Feed[] }
 
 export type Item = {
   id: number
@@ -42,19 +31,11 @@ export type Item = {
   podcast_url?: string
 }
 
-export type ItemWithContent = Item & {
-  content: string
-}
+export type ItemWithContent = Item & { content: string }
 
-export type Items = {
-  list: Item[]
-  has_more: boolean
-}
+export type Items = { list: Item[]; has_more: boolean }
 
-export type Settings = {
-  refresh_rate?: number
-  dark_theme?: boolean
-}
+export type Settings = { refresh_rate?: number; dark_theme?: boolean }
 
 export type Filter = 'Unread' | 'Feeds' | 'Starred'
 
@@ -63,12 +44,7 @@ type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: undefined }
 type Xor<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U
 
 export type Selected =
-  | Xor<
-      {
-        feed_id: number
-      },
-      { folder_id: number }
-    >
+  | Xor<{ feed_id: number }, { folder_id: number }>
   | null // all
   | undefined // none
 

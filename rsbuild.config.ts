@@ -2,6 +2,7 @@ import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import zlib from 'node:zlib'
+
 import { defineConfig, type RsbuildPlugin } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
 
@@ -9,34 +10,19 @@ export default defineConfig({
   html: {
     title: 'RSSLab',
     favicon: './web/assets/icon.svg',
-    meta: {
-      'dark-theme': process.env.NODE_ENV === 'production' ? '%DARK_THEME%' : '',
-    },
+    meta: { 'dark-theme': process.env.NODE_ENV === 'production' ? '%DARK_THEME%' : '' },
   },
-  source: {
-    entry: {
-      index: './web/main.tsx',
-    },
-  },
+  source: { entry: { index: './web/main.tsx' } },
   output: {
-    distPath: {
-      root: 'server/dist',
-      js: './',
-      css: './',
-    },
+    distPath: { root: 'server/dist', js: './', css: './' },
     cleanDistPath: process.env.NODE_ENV === 'production',
     externals: ({ request }, callback) =>
       request === './iconLoader' ? callback(undefined, '{}', 'var') : callback(),
     legalComments: 'none',
   },
-  server: {
-    host: '127.0.0.1',
-    proxy: {
-      '/api': 'http://localhost:1234',
-    },
-  },
+  server: { host: '127.0.0.1', proxy: { '/api': 'http://localhost:1234' } },
   plugins: [
-    pluginReact(),
+    pluginReact({ reactCompiler: true }),
     {
       name: 'plugin-compression',
       setup(api) {

@@ -23,12 +23,12 @@ import {
   type JSX,
   type RefObject,
   type SetStateAction,
-  useCallback,
   useEffect,
   useRef,
   useState,
 } from 'react'
 import { ExternalLink } from 'react-feather'
+
 import { useMyContext } from './Context.tsx'
 import HttpRequestParams from './HttpRequestParams.tsx'
 import type { FeedType } from './types.ts'
@@ -63,19 +63,16 @@ export default function FeedEditor({
   const { foldersWithFeeds, selected, feedsById } = useMyContext()
   const [loading, setLoading] = useState(false)
   const [sectionOpen, setSectionOpen] = useState(true)
-  const [feedType, setFeedType] = useState<FeedType>('feed')
+  const [scheme, url] = parseFeedLink(defaultFeedLink)
+  const [feedType, setFeedType] = useState<FeedType>(scheme || 'feed')
   const dialogBodyRef = useRef<HTMLDivElement>(null)
   const selectedFolderRef = useRef<HTMLSelectElement>(null)
-  const defaultFolderId = selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)
+  const defaultFolderId =
+    selected && (selected.folder_id ?? feedsById?.get(selected.feed_id)?.folder_id)
 
-  const [feedUrl, setFeedUrl] = useState('')
+  const [feedUrl, setFeedUrl] = useState(scheme ? '' : url)
   const feedParams: Param[] = [
-    {
-      value: feedUrl,
-      setValue: setFeedUrl,
-      key: '',
-      placeholder: 'https://example.com/feed',
-    },
+    { value: feedUrl, setValue: setFeedUrl, key: '', placeholder: 'https://example.com/feed' },
   ]
 
   const [transHtmlUrl, setTransHtmlUrl] = useState('')
@@ -209,12 +206,7 @@ export default function FeedEditor({
       key: 'title',
       desc: <span>{jsonPath} to title of RSS</span>,
     },
-    {
-      value: transJsonHeaders,
-      setValue: setTransJsonHeaders,
-      key: 'headers',
-      hide: true,
-    },
+    { value: transJsonHeaders, setValue: setTransJsonHeaders, key: 'headers', hide: true },
     {
       value: transJsonItems,
       setValue: setTransJsonItems,
@@ -256,21 +248,10 @@ export default function FeedEditor({
 
   const [js, setJs] = useState('')
   const jsParams: Param[] = [
-    {
-      value: js,
-      setValue: setJs,
-      key: 'script',
-      desc: 'JavaScript',
-      script: true,
-    },
+    { value: js, setValue: setJs, key: 'script', desc: 'JavaScript', script: true },
   ]
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies(transHtmlParams): `key` and `setValue` are immutable
-  // biome-ignore lint/correctness/useExhaustiveDependencies(transJsonParams): `key` and `setValue` are immutable
-  // biome-ignore lint/correctness/useExhaustiveDependencies(jsParams): `key` and `setValue` are immutable
   useEffect(() => {
-    const [scheme, url] = parseFeedLink(defaultFeedLink)
-    setFeedType(scheme || 'feed')
     if (scheme)
       for (const { key, setValue } of {
         html: transHtmlParams,
@@ -278,58 +259,50 @@ export default function FeedEditor({
         js: jsParams,
       }[scheme])
         setValue(url.searchParams.get(key) ?? '')
-    else setFeedUrl(url)
-  }, [defaultFeedLink])
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheme, url]) // `key` and `setValue` are immutable
 
-  const onConfirm = async () => {
+  const onConfirm = () => {
     if (showFolderSelector && !selectedFolderRef.current) return
     let feedLink = feedUrl
     if (feedType === 'feed') {
       if (!feedUrl) throw new Error('Feed link is required')
     } else {
       feedLink = `rsslab://${feedType}${stringify(
-        {
-          html: transHtmlParams,
-          json: transJsonParams,
-          js: jsParams,
-        }[feedType],
+        { html: transHtmlParams, json: transJsonParams, js: jsParams }[feedType],
       )}`
     }
 
     setLoading(true)
-    try {
-      await callback(feedLink, selectedFolderRef.current?.value ? +selectedFolderRef.current.value : null)
-      if (feedType === 'feed') setFeedUrl('')
-      close()
-    } finally {
-      setLoading(false)
-    }
+    // https://github.com/react/react/issues/34131
+    void callback(
+      feedLink,
+      selectedFolderRef.current?.value ? +selectedFolderRef.current.value : null,
+    )
+      .then(() => {
+        if (feedType === 'feed') setFeedUrl('')
+        close()
+      })
+      .finally(() => setLoading(false))
   }
 
   const feedRef = useRef<HTMLDivElement>(null)
   const htmlRef = useRef<HTMLDivElement>(null)
   const jsonRef = useRef<HTMLDivElement>(null)
   const jsRef = useRef<HTMLDivElement>(null)
-  const onSectionChange = useCallback(() => {
-    if (isOpen) {
-      ;({ feed: feedRef, html: htmlRef, json: jsonRef, js: jsRef })[feedType].current
-        ?.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)
-        ?.focus()
-      dialogBodyRef.current?.scrollTo(0, 0)
-    }
-  }, [feedType, isOpen])
-  useEffect(onSectionChange, [onSectionChange])
+  const onSectionChange = () => {
+    ;({ feed: feedRef, html: htmlRef, json: jsonRef, js: jsRef })[feedType].current
+      ?.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)
+      ?.focus()
+    dialogBodyRef.current?.scrollTo(0, 0)
+  }
+  useEffect(onSectionChange, [feedType])
 
   return (
     <Dialog title={title} isOpen={isOpen} onClose={close} onOpened={onSectionChange}>
       <DialogBody ref={dialogBodyRef}>
         <FormGroup fill>
-          <div
-            style={{
-              borderRadius: 'var(--border-radius)',
-              boxShadow: 'var(--shadow)',
-            }}
-          >
+          <div style={{ borderRadius: 'var(--border-radius)', boxShadow: 'var(--shadow)' }}>
             <FeedSection
               ref={feedRef}
               sectionStyle={{
@@ -373,11 +346,7 @@ export default function FeedEditor({
             <Divider compact />
             <FeedSection
               ref={jsRef}
-              sectionStyle={{
-                borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
-                boxShadow: 'none',
-              }}
+              sectionStyle={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, boxShadow: 'none' }}
               type="js"
               title="JavaScript"
               params={jsParams}
@@ -394,10 +363,7 @@ export default function FeedEditor({
               iconName="caret-down"
               options={[
                 { value: '', label: '--' },
-                ...(foldersWithFeeds ?? []).map(({ id, title }) => ({
-                  value: id,
-                  label: title,
-                })),
+                ...(foldersWithFeeds ?? []).map(({ id, title }) => ({ value: id, label: title })),
               ]}
               defaultValue={defaultFolderId == null ? undefined : defaultFolderId}
               ref={selectedFolderRef}
@@ -483,14 +449,16 @@ function FeedSection({
                 size="small"
                 wrap="off"
                 value={value}
-                style={{
-                  minHeight: '10em',
-                  fontFamily: 'var(--monospace)',
-                }}
+                style={{ minHeight: '10em', fontFamily: 'var(--monospace)' }}
                 onChange={evt => setValue(evt.target.value)}
               />
             ) : (
-              <div style={{ borderRadius: 'var(--border-radius)', boxShadow: extra && 'var(--shadow)' }}>
+              <div
+                style={{
+                  borderRadius: 'var(--border-radius)',
+                  boxShadow: extra && 'var(--shadow)',
+                }}
+              >
                 <InputGroup
                   value={value}
                   placeholder={placeholder}
@@ -529,5 +497,7 @@ function Span(props: HTMLAttributes<HTMLSpanElement>) {
 }
 
 function stringify(params: Param[]) {
-  return param(Object.fromEntries(params.filter(({ value }) => value).map(({ key, value }) => [key, value])))
+  return param(
+    Object.fromEntries(params.filter(({ value }) => value).map(({ key, value }) => [key, value])),
+  )
 }

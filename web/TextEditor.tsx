@@ -19,15 +19,13 @@ export default function TextEditor({
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const closerRef = useRef<HTMLDivElement>(null)
-  const confirm = async () => {
+  const confirm = () => {
     if (!inputRef.current) return
     setLoading(true)
-    try {
-      await onConfirm(inputRef.current.value)
-      closerRef.current?.click()
-    } finally {
-      setLoading(false)
-    }
+    // https://github.com/react/react/issues/34131
+    void onConfirm(inputRef.current.value)
+      .then(() => closerRef.current?.click())
+      .finally(() => setLoading(false))
   }
 
   return (
@@ -45,10 +43,10 @@ export default function TextEditor({
             disabled={loading}
             autoResize
             style={{ ...textAreaStyle, maxHeight: '90vh' }}
-            onKeyDown={async evt => {
+            onKeyDown={evt => {
               if (evt.key === 'Enter') {
                 evt.preventDefault()
-                await confirm()
+                confirm()
               }
             }}
           />

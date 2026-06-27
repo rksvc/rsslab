@@ -9,6 +9,7 @@ import {
 } from '@blueprintjs/core'
 import { type Dispatch, type SetStateAction, useRef, useState } from 'react'
 import { ExternalLink, Plus, Trash2 } from 'react-feather'
+
 import { length, param } from './utils'
 
 export default function HttpRequestParams({
@@ -29,7 +30,8 @@ export default function HttpRequestParams({
 
   const url = URL.parse(rawUrl)
   const headers =
-    rawHeaders != null && (rawHeaders ? Object.entries(JSON.parse(rawHeaders) as Record<string, string>) : [])
+    rawHeaders != null &&
+    (rawHeaders ? Object.entries(JSON.parse(rawHeaders) as Record<string, string>) : [])
 
   return (
     <div style={{ padding: length(3), textAlign: 'center' }}>
@@ -39,22 +41,23 @@ export default function HttpRequestParams({
             <div>
               <Label style={{ marginBottom: length(2) }}>Parameters</Label>
               {[...url.searchParams].map(([param, value], i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: expected
                 <ControlGroup key={i} fill>
                   <InputGroup
                     value={param}
                     spellCheck="false"
                     onValueChange={newValue => {
-                      url.search = `?${new URLSearchParams([...url.searchParams].with(i, [newValue, value]))}`
-                      setUrl(url.href)
+                      const newUrl = new URL(url)
+                      newUrl.search = `?${new URLSearchParams([...url.searchParams].with(i, [newValue, value]))}`
+                      setUrl(newUrl.href)
                     }}
                   />
                   <InputGroup
                     value={value}
                     spellCheck="false"
                     onValueChange={newValue => {
-                      url.search = `?${new URLSearchParams([...url.searchParams].with(i, [param, newValue]))}`
-                      setUrl(url.href)
+                      const newUrl = new URL(url)
+                      newUrl.search = `?${new URLSearchParams([...url.searchParams].with(i, [param, newValue]))}`
+                      setUrl(newUrl.href)
                     }}
                   />
                   <Button
@@ -62,8 +65,9 @@ export default function HttpRequestParams({
                     intent={Intent.DANGER}
                     variant={ButtonVariant.MINIMAL}
                     onClick={() => {
-                      url.searchParams.delete(param, value)
-                      setUrl(url.href)
+                      const newUrl = new URL(url)
+                      newUrl.searchParams.delete(param, value)
+                      setUrl(newUrl.href)
                     }}
                   />
                 </ControlGroup>
@@ -81,8 +85,9 @@ export default function HttpRequestParams({
                   disabled={!newParamKey}
                   onClick={() => {
                     if (!newParamValue.current) return
-                    url.searchParams.append(newParamKey, newParamValue.current.value)
-                    setUrl(url.href)
+                    const newUrl = new URL(url)
+                    newUrl.searchParams.append(newParamKey, newParamValue.current.value)
+                    setUrl(newUrl.href)
                     setNewParamKey('')
                     newParamValue.current.value = ''
                   }}
@@ -94,20 +99,23 @@ export default function HttpRequestParams({
             <div>
               <Label style={{ marginBottom: length(2) }}>Headers</Label>
               {headers.map(([key, value], i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: expected
                 <ControlGroup key={i} fill>
                   <InputGroup
                     value={key}
                     spellCheck="false"
                     onValueChange={newValue => {
-                      setHeaders?.(JSON.stringify(Object.fromEntries(headers.with(i, [newValue, value]))))
+                      setHeaders?.(
+                        JSON.stringify(Object.fromEntries(headers.with(i, [newValue, value]))),
+                      )
                     }}
                   />
                   <InputGroup
                     value={value}
                     spellCheck="false"
                     onValueChange={newValue => {
-                      setHeaders?.(JSON.stringify(Object.fromEntries(headers.with(i, [key, newValue]))))
+                      setHeaders?.(
+                        JSON.stringify(Object.fromEntries(headers.with(i, [key, newValue]))),
+                      )
                     }}
                   />
                   <Button
@@ -116,7 +124,9 @@ export default function HttpRequestParams({
                     variant={ButtonVariant.MINIMAL}
                     onClick={() => {
                       headers.splice(i, 1)
-                      setHeaders?.(headers.length ? JSON.stringify(Object.fromEntries(headers)) : '')
+                      setHeaders?.(
+                        headers.length ? JSON.stringify(Object.fromEntries(headers)) : '',
+                      )
                     }}
                   />
                 </ControlGroup>
@@ -147,10 +157,7 @@ export default function HttpRequestParams({
             <AnchorButton
               text="Preview"
               style={{ marginTop: length(1) }}
-              href={`api/proxy${param({
-                url: rawUrl,
-                headers: rawHeaders || undefined,
-              })}`}
+              href={`api/proxy${param({ url: rawUrl, headers: rawHeaders || undefined })}`}
               target="_blank"
               intent={Intent.PRIMARY}
               endIcon={<ExternalLink />}

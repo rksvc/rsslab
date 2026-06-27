@@ -16,7 +16,7 @@ import {
   Tree,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
-import { type CSSProperties, type RefObject, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, type RefObject, useRef, useState } from 'react'
 import {
   AlertCircle,
   Circle,
@@ -31,6 +31,7 @@ import {
   Sun,
   Upload,
 } from 'react-feather'
+
 import { useMyContext } from './Context.tsx'
 import FeedEditor from './FeedEditor.tsx'
 import FeedIcon from './FeedIcon.tsx'
@@ -57,7 +58,6 @@ export default function FeedList() {
     setFilter,
     selected,
     setSelected,
-    refreshed,
 
     refreshFeeds,
     refreshStats,
@@ -102,56 +102,46 @@ export default function FeedList() {
     })
   }
 
-  const folderStats = useMemo(
-    () =>
-      new Map(
-        foldersWithFeeds?.map(folder => [
-          folder.id,
-          {
-            starred: folder.feeds.reduce((acc, feed) => acc + (status?.state.get(feed.id)?.starred ?? 0), 0),
-            unread: folder.feeds.reduce((acc, feed) => acc + (status?.state.get(feed.id)?.unread ?? 0), 0),
-          },
-        ]),
-      ),
-    [foldersWithFeeds, status],
+  const folderStats = new Map(
+    foldersWithFeeds?.map(folder => [
+      folder.id,
+      {
+        starred: folder.feeds.reduce(
+          (acc, feed) => acc + (status?.state.get(feed.id)?.starred ?? 0),
+          0,
+        ),
+        unread: folder.feeds.reduce(
+          (acc, feed) => acc + (status?.state.get(feed.id)?.unread ?? 0),
+          0,
+        ),
+      },
+    ]),
   )
-  const [totalUnread, totalStarred, errorCount] = useMemo(
-    () => [
-      status?.state
-        .values()
-        .reduce((acc, state) => acc + state.unread, 0)
-        .toString(),
-      status?.state
-        .values()
-        .reduce((acc, state) => acc + state.starred, 0)
-        .toString(),
-      status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0),
-    ],
-    [status],
-  )
-  // biome-ignore lint/correctness/useExhaustiveDependencies(feedsOutsideFolders): controlled by `refreshed`
-  // biome-ignore lint/correctness/useExhaustiveDependencies(foldersWithFeeds): controlled by `refreshed`
-  // biome-ignore lint/correctness/useExhaustiveDependencies(status?.state.get): controlled by `refreshed`
-  // biome-ignore lint/correctness/useExhaustiveDependencies(refreshed): controller
-  const [hiddenFolders, hiddenFeeds] = useMemo(() => {
-    if (filter === 'Feeds' || !feedsOutsideFolders || !foldersWithFeeds) return []
+  const totalUnread = status?.state
+    .values()
+    .reduce((acc, state) => acc + state.unread, 0)
+    .toString()
+  const totalStarred = status?.state
+    .values()
+    .reduce((acc, state) => acc + state.starred, 0)
+    .toString()
+  const errorCount = status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0)
 
-    const folders = new Set<number>()
-    const feeds = new Set<number>()
+  const hiddenFolders = new Set<number>()
+  const hiddenFeeds = new Set<number>()
+  if (filter !== 'Feeds' && feedsOutsideFolders && foldersWithFeeds) {
     const hideFeed = (id: number) =>
       selected?.feed_id !== id &&
       !(filter === 'Unread' ? status?.state.get(id)?.unread : status?.state.get(id)?.starred)
     for (const folder of foldersWithFeeds) {
       let hideFolder = true
       for (const feed of folder.feeds)
-        if (hideFeed(feed.id)) feeds.add(feed.id)
+        if (hideFeed(feed.id)) hiddenFeeds.add(feed.id)
         else hideFolder = false
-      if (hideFolder && selected?.folder_id !== folder.id) folders.add(folder.id)
+      if (hideFolder && selected?.folder_id !== folder.id) hiddenFolders.add(folder.id)
     }
-    for (const feed of feedsOutsideFolders) if (hideFeed(feed.id)) feeds.add(feed.id)
-
-    return [folders, feeds]
-  }, [filter, selected, refreshed])
+    for (const feed of feedsOutsideFolders) if (hideFeed(feed.id)) hiddenFeeds.add(feed.id)
+  }
 
   return (
     <div id="feed-list">
@@ -204,7 +194,11 @@ export default function FeedList() {
           middleware={menuMiddleware}
           content={
             <Menu>
-              <MenuItem text="New Feed" icon={<Plus />} onClick={() => setNewFeedDialogOpen(true)} />
+              <MenuItem
+                text="New Feed"
+                icon={<Plus />}
+                onClick={() => setNewFeedDialogOpen(true)}
+              />
               <TextEditor
                 menuText="New Folder"
                 menuIcon={<Plus />}
@@ -225,7 +219,10 @@ export default function FeedList() {
                   status?.last_refreshed ? (
                     <small>
                       Last refreshed:{' '}
-                      <RelativeTime date={status.last_refreshed} format={date => fromNow(new Date(date))} />
+                      <RelativeTime
+                        date={status.last_refreshed}
+                        format={date => fromNow(new Date(date))}
+                      />
                     </small>
                   ) : undefined
                 }
@@ -268,7 +265,11 @@ export default function FeedList() {
                   }}
                 />
                 <label htmlFor="opml-import">
-                  <MenuItem text="Import OPML File" icon={<Download />} shouldDismissPopover={false} />
+                  <MenuItem
+                    text="Import OPML File"
+                    icon={<Download />}
+                    shouldDismissPopover={false}
+                  />
                 </label>
                 <div className={Classes.POPOVER_DISMISS} ref={menuCloserRef} hidden />
               </form>
@@ -290,7 +291,9 @@ export default function FeedList() {
               filter === 'Unread' ? totalUnread : filter === 'Starred' ? totalStarred : undefined,
             nodeData: null,
           },
-          ...(feedsOutsideFolders ?? []).filter(({ id }) => !hiddenFeeds?.has(id)).map(f => feed(f)),
+          ...(feedsOutsideFolders ?? [])
+            .filter(({ id }) => !hiddenFeeds?.has(id))
+            .map(f => feed(f)),
           ...(foldersWithFeeds ?? [])
             .filter(({ id }) => !hiddenFolders?.has(id))
             .map(
@@ -298,13 +301,18 @@ export default function FeedList() {
                 ({
                   id: `folder:${folder.id}`,
                   label: (
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }} title={folder.title}>
+                    <span
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
+                      title={folder.title}
+                    >
                       {folder.title || 'untitled'}
                     </span>
                   ),
                   isExpanded: folder.is_expanded,
                   isSelected: selected?.folder_id === folder.id,
-                  childNodes: folder.feeds.filter(({ id }) => !hiddenFeeds?.has(id)).map(f => feed(f)),
+                  childNodes: folder.feeds
+                    .filter(({ id }) => !hiddenFeeds?.has(id))
+                    .map(f => feed(f)),
                   secondaryLabel: secondaryLabel(folderStats.get(folder.id)),
                   nodeData: { folder_id: folder.id },
                 }) satisfies TreeNodeInfo,
@@ -342,10 +350,7 @@ export default function FeedList() {
         callback={async (feedLink, folderId) => {
           const feed = await xfetch<Feed>('api/feeds', {
             method: 'POST',
-            body: JSON.stringify({
-              url: feedLink,
-              folder_id: folderId,
-            }),
+            body: JSON.stringify({ url: feedLink, folder_id: folderId }),
           })
           await Promise.all([refreshFeeds(), refreshStats()])
           setSelected({ feed_id: feed.id })
@@ -366,14 +371,12 @@ function RefreshRateEditor({
 }) {
   const [loading, setLoading] = useState(false)
   const closerRef = useRef<HTMLDivElement>(null)
-  const confirm = async () => {
+  const confirm = () => {
     setLoading(true)
-    try {
-      await onConfirm()
-      closerRef.current?.click()
-    } finally {
-      setLoading(false)
-    }
+    // https://github.com/react/react/issues/34131
+    void onConfirm()
+      .then(() => closerRef.current?.click())
+      .finally(() => setLoading(false))
   }
 
   return (
@@ -394,10 +397,10 @@ function RefreshRateEditor({
               majorStepSize={60}
               disabled={loading}
               style={{ width: '80px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-              onKeyDown={async evt => {
+              onKeyDown={evt => {
                 if (evt.key === 'Enter') {
                   evt.preventDefault()
-                  await confirm()
+                  confirm()
                 }
               }}
             />

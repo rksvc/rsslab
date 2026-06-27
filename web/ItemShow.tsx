@@ -1,5 +1,14 @@
-import { AnchorButton, Button, ButtonGroup, ButtonVariant, Classes, Divider, H2 } from '@blueprintjs/core'
+import {
+  AnchorButton,
+  Button,
+  ButtonGroup,
+  ButtonVariant,
+  Classes,
+  Divider,
+  H2,
+} from '@blueprintjs/core'
 import { ChevronLeft, ChevronRight, Circle, ExternalLink, Star, X } from 'react-feather'
+
 import { useMyContext } from './Context.tsx'
 import type { Item } from './types.ts'
 import { cn, length, xfetch } from './utils.ts'
@@ -12,8 +21,8 @@ export default function ItemShow() {
     items,
     contentRef,
     feedsById,
-    updateStatus,
-    updateItems,
+    setStatus,
+    setItems,
     selectItem,
     selectedItem: item,
   } = useMyContext()
@@ -21,28 +30,34 @@ export default function ItemShow() {
 
   const toggleStatus = (target: Item['status']) => async () => {
     const status = target === item.status ? 'read' : target
-    await xfetch(`api/items/${item.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    })
+    await xfetch(`api/items/${item.id}`, { method: 'PUT', body: JSON.stringify({ status }) })
     const diff = (s: Item['status']) => (status === s ? +1 : item.status === s ? -1 : 0)
-    updateStatus(status => {
-      const state = status?.state.get(item.feed_id)
-      if (state) {
-        state.starred += diff('starred')
-        state.unread += diff('unread')
-      }
+    setStatus(status => {
+      if (!status) return
+      const state = new Map(status.state)
+      const s = state.get(item.feed_id)
+      if (s)
+        state.set(item.feed_id, {
+          ...s,
+          starred: s.starred + diff('starred'),
+          unread: s.unread + diff('unread'),
+        })
+      return { ...status, state }
     })
-    updateItems(items => {
-      for (const i of items?.list ?? []) if (i.id === item.id) i.status = status
-    })
+    setItems(
+      items =>
+        items && {
+          list: items.list.map(i => (i.id === item.id ? { ...i, status } : i)),
+          has_more: items.has_more,
+        },
+    )
     setSelectedItem(item => item && { ...item, status })
   }
   const shift = (shift: number) => {
     const index = items.list.findIndex(item => item.id === selectedItemId)
     if (index === -1) {
-      if (items.list.length) selectItem(items.list[0])
-    } else selectItem(items.list[index + shift])
+      if (items.list.length) void selectItem(items.list[0])
+    } else void selectItem(items.list[index + shift])
   }
 
   return (
@@ -92,7 +107,10 @@ export default function ItemShow() {
         />
       </ButtonGroup>
       <Divider compact />
-      <div style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
+      <div
+        style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }}
+        ref={contentRef}
+      >
         <H2 style={{ fontWeight: 700 }}>{item.title || 'untitled'}</H2>
         <div style={{ opacity: 0.95 }}>{feedsById?.get(item.feed_id)?.title}</div>
         <div style={{ opacity: 0.95 }}>{new Date(item.date).toLocaleString()}</div>
