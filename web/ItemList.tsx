@@ -180,27 +180,8 @@ export default function ItemList() {
               setSelectedItem(
                 item => item && { ...item, status: item.status === 'starred' ? 'starred' : 'read' },
               )
-            const isSelected = !selected
-              ? () => true
-              : selected.feed_id != null
-                ? (id: number) => id === selected.feed_id
-                : (() => {
-                    const feeds = new Set(
-                      foldersById?.get(selected.folder_id)?.feeds.map(feed => feed.id),
-                    )
-                    return (id: number) => feeds.has(id)
-                  })()
-            setStatus(
-              status =>
-                status && {
-                  ...status,
-                  state: new Map(
-                    status.state
-                      .entries()
-                      .map(([id, state]) => [id, isSelected(id) ? { ...state, unread: 0 } : state]),
-                  ),
-                },
-            )
+            await refreshStats()
+            setItemsOutdated(false)
           }}
         />
         <PopoverNext
