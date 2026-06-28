@@ -176,6 +176,10 @@ export default function ItemList() {
                   has_more: items.has_more,
                 },
             )
+            if (selectedItemId != null && items?.list.some(item => item.id === selectedItemId))
+              setSelectedItem(
+                item => item && { ...item, status: item.status === 'starred' ? 'starred' : 'read' },
+              )
             const isSelected = !selected
               ? () => true
               : selected.feed_id != null
