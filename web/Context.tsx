@@ -161,7 +161,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
   })()
 
   return (
-    <Context.Provider
+    <Context
       value={{
         setFolders,
         setFeeds,
@@ -194,6 +194,6 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </Context.Provider>
+    </Context>
   )
 }
