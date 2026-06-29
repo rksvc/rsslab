@@ -262,7 +262,7 @@ export default function FeedEditor({
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [scheme, url]) // `key` and `setValue` are immutable
 
-  const onConfirm = () => {
+  const onConfirm = async () => {
     if (showFolderSelector && !selectedFolderRef.current) return
     let feedLink = feedUrl
     if (feedType === 'feed') {
