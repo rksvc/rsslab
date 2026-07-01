@@ -16,15 +16,16 @@ import (
 )
 
 type HTMLRule struct {
-	URL          string `json:"url"`
-	Title        string `json:"title"`
-	Items        string `json:"items"`
-	ItemTitle    string `json:"item_title"`
-	ItemUrl      string `json:"item_url"`
-	ItemUrlAttr  string `json:"item_url_attr"`
-	ItemContent  string `json:"item_content"`
-	ItemDate     string `json:"item_date_published"`
-	ItemDateAttr string `json:"item_date_published_attr"`
+	URL          string            `json:"url"`
+	Headers      map[string]string `json:"headers"`
+	Title        string            `json:"title"`
+	Items        string            `json:"items"`
+	ItemTitle    string            `json:"item_title"`
+	ItemUrl      string            `json:"item_url"`
+	ItemUrlAttr  string            `json:"item_url_attr"`
+	ItemContent  string            `json:"item_content"`
+	ItemDate     string            `json:"item_date_published"`
+	ItemDateAttr string            `json:"item_date_published_attr"`
 }
 
 type JSONRule struct {
@@ -45,7 +46,7 @@ type JavaScriptRule struct {
 }
 
 func (rule *HTMLRule) Apply(client *http.Client) (*Feed, error) {
-	resp, err := tryGet(rule.URL, nil, client)
+	resp, err := tryGet(rule.URL, rule.Headers, client)
 	if err != nil {
 		return nil, err
 	}

@@ -76,6 +76,7 @@ export default function FeedEditor({
   ]
 
   const [transHtmlUrl, setTransHtmlUrl] = useState('')
+  const [transHtmlHeaders, setTransHtmlHeaders] = useState('')
   const [transHtmlTitle, setTransHtmlTitle] = useState('')
   const [transHtmlItems, setTransHtmlItems] = useState('')
   const [transHtmlItemTitle, setTransHtmlItemTitle] = useState('')
@@ -90,7 +91,14 @@ export default function FeedEditor({
       setValue: setTransHtmlUrl,
       key: 'url',
       placeholder: 'https://example.com',
-      extra: <HttpRequestParams url={transHtmlUrl} setUrl={setTransHtmlUrl} />,
+      extra: (
+        <HttpRequestParams
+          url={transHtmlUrl}
+          setUrl={setTransHtmlUrl}
+          headers={transHtmlHeaders}
+          setHeaders={setTransHtmlHeaders}
+        />
+      ),
     },
     {
       value: transHtmlTitle,
