@@ -29,6 +29,7 @@ import { xfetch } from './utils.ts'
 const Context = createContext<
   | {
       setFolders: Dispatch<SetStateAction<Folder[] | undefined>>
+      feeds?: Feed[]
       setFeeds: Dispatch<SetStateAction<Feed[] | undefined>>
       status?: Status
       setStatus: Dispatch<SetStateAction<Status | undefined>>
@@ -45,12 +46,14 @@ const Context = createContext<
       setFilter: Dispatch<SetStateAction<Filter>>
       selected: Selected
       setSelected: Dispatch<SetStateAction<Selected>>
+      feedListRefreshed: Record<never, never>
+      setFeedListRefreshed: Dispatch<SetStateAction<Record<never, never>>>
       itemsOutdated: boolean
       setItemsOutdated: Dispatch<SetStateAction<boolean>>
       contentRef: RefObject<HTMLDivElement | null>
 
       refreshFeeds: () => Promise<void>
-      refreshStats: () => Promise<void>
+      refreshStats: (refreshFeedList?: boolean) => Promise<void>
       selectItem: (item: Item) => Promise<void>
       feedsById?: Map<number, Feed>
       foldersById?: Map<number, FolderWithFeeds>
@@ -80,6 +83,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
 
   const [filter, setFilter] = useState<Filter>('Unread')
   const [selected, setSelected] = useState<Selected>(null)
+  const [feedListRefreshed, setFeedListRefreshed] = useState<Record<never, never>>({})
   const [itemsOutdated, setItemsOutdated] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -91,10 +95,11 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
     ])
     setFolders(folders)
     setFeeds(feeds.map(f => ({ ...f, has_icon: f.has_icon || null })))
+    setFeedListRefreshed({})
     setSettings(settings)
   }
 
-  const refreshStats = async () => {
+  const refreshStats = async (refreshFeedList = true) => {
     const { running, last_refreshed, state } = await xfetch<
       Omit<Status, 'state'> & { state: Record<number, FeedState> }
     >('api/status')
@@ -103,6 +108,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
       last_refreshed,
       state: new Map(Object.entries(state).map(([id, state]) => [+id, state])),
     })
+    if (refreshFeedList) setFeedListRefreshed({})
     setItemsOutdated(true)
     if (running) setTimeout(() => refreshStats(), 500)
   }
@@ -164,6 +170,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
     <Context
       value={{
         setFolders,
+        feeds,
         setFeeds,
         status,
         setStatus,
@@ -180,6 +187,8 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
         setFilter,
         selected,
         setSelected,
+        feedListRefreshed,
+        setFeedListRefreshed,
         itemsOutdated,
         setItemsOutdated,
         contentRef,

@@ -14,6 +14,7 @@ import {
   PopoverNext,
   Spinner,
   Tree,
+  usePrevious,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
 import { type CSSProperties, type RefObject, useRef, useState } from 'react'
@@ -50,6 +51,7 @@ const statusBarStyle = {
 export default function FeedList() {
   const {
     setFolders,
+    feeds,
     status,
     settings,
     setSettings,
@@ -58,6 +60,7 @@ export default function FeedList() {
     setFilter,
     selected,
     setSelected,
+    feedListRefreshed,
 
     refreshFeeds,
     refreshStats,
@@ -127,21 +130,40 @@ export default function FeedList() {
     .toString()
   const errorCount = status?.state.values().reduce((acc, state) => acc + (state.error ? 1 : 0), 0)
 
-  const hiddenFolders = new Set<number>()
-  const hiddenFeeds = new Set<number>()
-  if (filter !== 'Feeds' && feedsOutsideFolders && foldersWithFeeds) {
-    const hideFeed = (id: number) =>
-      selected?.feed_id !== id &&
-      !(filter === 'Unread' ? status?.state.get(id)?.unread : status?.state.get(id)?.starred)
-    for (const folder of foldersWithFeeds) {
-      let hideFolder = true
-      for (const feed of folder.feeds)
-        if (hideFeed(feed.id)) hiddenFeeds.add(feed.id)
-        else hideFolder = false
-      if (hideFolder && selected?.folder_id !== folder.id) hiddenFolders.add(folder.id)
-    }
-    for (const feed of feedsOutsideFolders) if (hideFeed(feed.id)) hiddenFeeds.add(feed.id)
-  }
+  const computedHiddenFeeds =
+    filter === 'Feeds'
+      ? undefined
+      : new Set<number>(
+          feeds
+            ?.map(({ id }) => id)
+            .filter(
+              id =>
+                selected?.feed_id !== id &&
+                !(filter === 'Unread'
+                  ? status?.state.get(id)?.unread
+                  : status?.state.get(id)?.starred),
+            ),
+        )
+  const prevFilter = usePrevious(filter)
+  const prevSelected = usePrevious(selected)
+  const prevRefreshed = usePrevious(feedListRefreshed)
+  const [prevHiddenFeeds, setPrevHiddenFeeds] = useRefEscaped<Set<number> | undefined>()
+  const hiddenFeeds =
+    filter !== prevFilter || selected !== prevSelected || feedListRefreshed !== prevRefreshed
+      ? computedHiddenFeeds
+      : prevHiddenFeeds
+  setPrevHiddenFeeds(hiddenFeeds)
+  const hiddenFolders =
+    hiddenFeeds &&
+    new Set<number>(
+      foldersWithFeeds
+        ?.filter(
+          ({ id, feeds }) =>
+            id !== selected?.folder_id &&
+            !new Set(feeds.map(({ id }) => id)).difference(hiddenFeeds).size,
+        )
+        .map(({ id }) => id),
+    )
 
   return (
     <div id="feed-list">
@@ -415,4 +437,10 @@ function RefreshRateEditor({
       <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
     </PopoverNext>
   )
+}
+
+function useRefEscaped<T>() {
+  const ref = useRef<T>(undefined)
+  // oxlint-disable-next-line react/react-compiler
+  return [ref.current, (value: T) => (ref.current = value)] as const
 }

@@ -12,6 +12,7 @@ import {
   MenuItem,
   PopoverNext,
   Spinner,
+  usePrevious,
 } from '@blueprintjs/core'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -52,6 +53,7 @@ export default function ItemList() {
     filter,
     selected,
     setSelected,
+    setFeedListRefreshed,
     itemsOutdated,
     setItemsOutdated,
 
@@ -180,7 +182,7 @@ export default function ItemList() {
               setSelectedItem(
                 item => item && { ...item, status: item.status === 'starred' ? 'starred' : 'read' },
               )
-            await refreshStats()
+            await refreshStats(false)
             setItemsOutdated(false)
           }}
         />
@@ -260,7 +262,10 @@ export default function ItemList() {
                                 key={key}
                                 text={text}
                                 icon={<FolderIcon />}
-                                onClick={() => updateFeedAttr(feed.id, 'folder_id', key)}
+                                onClick={async () => {
+                                  await updateFeedAttr(feed.id, 'folder_id', key)
+                                  setFeedListRefreshed({})
+                                }}
                               />
                             ))}
                         </>
@@ -497,13 +502,4 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
       <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
     </>
   )
-}
-
-function usePrevious<T>(value: T) {
-  const ref = useRef<T>(undefined)
-  useEffect(() => {
-    ref.current = value
-  })
-  // oxlint-disable-next-line react/react-compiler
-  return ref.current
 }
