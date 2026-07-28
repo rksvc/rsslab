@@ -12,20 +12,20 @@
     "build_windows": "CC='zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows' CGO_ENABLED=1 GOOS=windows go build -tags=sqlite_foreign_keys -ldflags='-s -w -H=windowsgui' -trimpath"
   },
   "dependencies": {
-    "@blueprintjs/core": "^6.15.1",
+    "@blueprintjs/core": "^6.17.2",
     "lucide-react": "^1.27.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.1.0",
+    "@rsbuild/core": "^2.1.8",
     "@rsbuild/plugin-react": "^2.1.0",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "oxfmt": "^0.56.0",
-    "oxlint": "^1.71.0",
-    "oxlint-tsgolint": "^0.23.0",
-    "typescript": "^6.0.3"
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "typescript": "^7.0.2"
   }
 }
