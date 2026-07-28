@@ -7,7 +7,7 @@ import {
   Divider,
   H2,
 } from '@blueprintjs/core'
-import { ChevronLeft, ChevronRight, Circle, ExternalLink, Star, X } from 'react-feather'
+import { ChevronLeft, ChevronRight, Circle, ExternalLink, Star, X } from 'lucide-react'
 
 import { useMyContext } from './Context.tsx'
 import type { Item } from './types.ts'

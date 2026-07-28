@@ -1,5 +1,5 @@
+import { Rss } from 'lucide-react'
 import { useEffect } from 'react'
-import { Rss } from 'react-feather'
 
 import { useMyContext } from './Context.tsx'
 import type { Feed } from './types.ts'

@@ -17,7 +17,6 @@ import {
   usePrevious,
   type TreeNodeInfo,
 } from '@blueprintjs/core'
-import { type CSSProperties, type RefObject, useRef, useState } from 'react'
 import {
   AlertCircle,
   Circle,
@@ -31,7 +30,8 @@ import {
   Star,
   Sun,
   Upload,
-} from 'react-feather'
+} from 'lucide-react'
+import { type CSSProperties, type RefObject, useRef, useState } from 'react'
 
 import { useMyContext } from './Context.tsx'
 import FeedEditor from './FeedEditor.tsx'

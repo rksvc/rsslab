@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@blueprintjs/core": "^6.15.1",
+    "lucide-react": "^1.27.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-feather": "^2.0.10"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@blueprintjs/eslint-plugin": "^6.2.0",

@@ -7,8 +7,8 @@ import {
   Intent,
   Label,
 } from '@blueprintjs/core'
+import { ExternalLink, Plus, Trash2 } from 'lucide-react'
 import { type Dispatch, type SetStateAction, useRef, useState } from 'react'
-import { ExternalLink, Plus, Trash2 } from 'react-feather'
 
 import { length, param } from './utils'
 

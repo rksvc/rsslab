@@ -16,6 +16,7 @@ import {
   SectionCard,
   TextArea,
 } from '@blueprintjs/core'
+import { ExternalLink } from 'lucide-react'
 import {
   type CSSProperties,
   type Dispatch,
@@ -27,7 +28,6 @@ import {
   useRef,
   useState,
 } from 'react'
-import { ExternalLink } from 'react-feather'
 
 import { useMyContext } from './Context.tsx'
 import HttpRequestParams from './HttpRequestParams.tsx'

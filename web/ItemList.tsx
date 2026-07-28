@@ -14,7 +14,6 @@ import {
   Spinner,
   usePrevious,
 } from '@blueprintjs/core'
-import { useEffect, useRef, useState } from 'react'
 import {
   Check,
   ChevronLeft,
@@ -28,8 +27,9 @@ import {
   Rss,
   Search,
   Star,
-  Trash,
-} from 'react-feather'
+  Trash2,
+} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useMyContext } from './Context.tsx'
 import FeedEditor from './FeedEditor.tsx'
@@ -484,7 +484,7 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
         text={`Delete${state === false ? ' (confirm)' : ''}`}
         active={state != null}
         disabled={state}
-        icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash />}
+        icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash2 />}
         intent={Intent.DANGER}
         shouldDismissPopover={false}
         onClick={() => {
