@@ -18,7 +18,6 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@blueprintjs/eslint-plugin": "^6.2.0",
     "@rsbuild/core": "^2.1.0",
     "@rsbuild/plugin-react": "^2.1.0",
     "@types/node": "^25.9.2",
