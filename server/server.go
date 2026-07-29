@@ -24,17 +24,16 @@ import (
 )
 
 type Server struct {
-	URL           string
-	db            *storage.Storage
-	client        http.Client
-	pending       atomic.Int32
-	lastRefreshed atomic.Value
-	refresh       chan storage.Feed
-	ticker        *time.Ticker
-	cancel        chan struct{}
-	mu            sync.Mutex
-	iconFinder    map[int]chan struct{}
-	iconMu        sync.RWMutex
+	URL        string
+	db         *storage.Storage
+	client     http.Client
+	pending    atomic.Int32
+	refresh    chan storage.Feed
+	ticker     *time.Ticker
+	cancel     chan struct{}
+	mu         sync.Mutex
+	iconFinder map[int]chan struct{}
+	iconMu     sync.RWMutex
 }
 
 func New(db *storage.Storage) *Server {
@@ -72,7 +71,12 @@ func New(db *storage.Storage) *Server {
 	} else if refreshRate != nil {
 		go s.SetRefreshRate(*refreshRate)
 		if *refreshRate > 0 {
-			go s.RefreshAllFeeds()
+			lastRefreshed, err := s.db.GetSettingInt(storage.LAST_REFRESHED)
+			if err != nil {
+				log.Print(err)
+			} else if lastRefreshed == nil || time.Now().After(time.UnixMilli(*lastRefreshed).Add(time.Duration(*refreshRate)*time.Minute)) {
+				go s.RefreshAllFeeds()
+			}
 		}
 	}
 
@@ -189,7 +193,7 @@ func (s *Server) FindFeedFavicon(feed storage.Feed) {
 	s.iconMu.Unlock()
 }
 
-func (s *Server) SetRefreshRate(minute int) {
+func (s *Server) SetRefreshRate(minute int64) {
 	s.mu.Lock()
 	close(s.cancel)
 	s.cancel = make(chan struct{})
@@ -228,7 +232,10 @@ func (s *Server) RefreshAllFeeds() {
 		log.Print(err)
 		return
 	}
-	s.lastRefreshed.Store(time.Now().UTC())
+	err = s.db.UpdateSetting(storage.LAST_REFRESHED, time.Now().UnixMilli())
+	if err != nil {
+		log.Print(err)
+	}
 	s.RefreshFeeds(feeds...)
 }
 

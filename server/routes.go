@@ -34,7 +34,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		if theme, err := s.db.GetSettingInt(storage.THEME); err == nil {
 			var t []byte
 			if theme != nil {
-				t = []byte(strconv.Itoa(*theme))
+				t = []byte(strconv.Itoa(int(*theme)))
 			}
 			b, _ := assets.ReadFile(path.Join("dist", p))
 			w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
@@ -60,10 +60,16 @@ func (s *Server) handleStatus(c context) error {
 	if err != nil {
 		return err
 	}
+	var lastRefreshed int64
+	if value, err := s.db.GetSettingInt(storage.LAST_REFRESHED); err != nil {
+		return err
+	} else if value != nil {
+		lastRefreshed = *value
+	}
 	return c.JSON(dict{
 		"state":          state,
 		"running":        s.pending.Load(),
-		"last_refreshed": s.lastRefreshed.Load(),
+		"last_refreshed": lastRefreshed,
 	})
 }
 
@@ -335,7 +341,7 @@ func (s *Server) handleSettingsUpdate(c context) error {
 			return err
 		}
 		if key == storage.REFRESH_RATE {
-			go s.SetRefreshRate(int(val.(float64)))
+			go s.SetRefreshRate(int64(val.(float64)))
 		}
 	}
 	return nil

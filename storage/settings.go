@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	REFRESH_RATE = "refresh_rate"
-	THEME        = "theme"
+	REFRESH_RATE   = "refresh_rate"
+	LAST_REFRESHED = "last_refreshed"
+	THEME          = "theme"
 )
 
 func (s *Storage) GetSettings() (map[string]any, error) {
@@ -33,7 +34,7 @@ func (s *Storage) GetSettings() (map[string]any, error) {
 	return result, nil
 }
 
-func (s *Storage) GetSettingInt(key string) (val *int, err error) {
+func (s *Storage) GetSettingInt(key string) (val *int64, err error) {
 	err = s.db.QueryRow(`select val from settings where key = ?`, key).Scan(&val)
 	if err == sql.ErrNoRows {
 		err = nil
