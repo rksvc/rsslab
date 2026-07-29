@@ -441,7 +441,7 @@ function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
               transitionDuration: '150ms',
               ...(item.status === 'read'
                 ? { width: 0 }
-                : { width: 10, marginRight: '.3em', flexShrink: 0 }),
+                : { width: 10, marginRight: '.2em', flexShrink: 0 }),
             }}
           >
             {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? (

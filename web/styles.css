@@ -135,8 +135,13 @@ a.bp6-button {
 			&.bp6-tree-node-expanded .bp6-collapse {
 				height: auto !important;
 			}
-			&:not(.bp6-tree-node-selected) > .bp6-tree-node-content:is(:hover, :active) {
-				background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover));
+			&:not(.bp6-tree-node-selected) {
+				.bp6-tree-node-caret {
+					color: light-dark(#374049, #d1d1d1);
+				}
+				& > .bp6-tree-node-content:is(:hover, :active) {
+					background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover));
+				}
 			}
 			.bp6-collapse {
 				transition: none;
@@ -149,7 +154,7 @@ a.bp6-button {
 			}
 			.bp6-tree-node-content {
 				padding-left: 0;
-				height: 2.4em;
+				height: 2.2em;
 				border-radius: var(--border-radius);
 				user-select: none;
 				&:hover {
@@ -242,7 +247,7 @@ a.bp6-button {
 	padding: 0.3em 0.6em 0.6em !important;
 	& > .bp6-card {
 		margin-top: 0.3em;
-		padding: 0.3em 0.6em !important;
+		padding: 0.2em 0.5em !important;
 		border-bottom: 0 !important;
 		border-radius: var(--border-radius);
 		user-select: none;
