@@ -27,7 +27,14 @@ export default function App() {
         selected !== undefined && 'feed-selected',
         selectedItemId != null && 'item-selected',
       )}
-      style={{ padding: 0, height: '100vh', display: 'flex', boxShadow: 'none', borderRadius: 0 }}
+      style={{
+        fontSize: 15,
+        padding: 0,
+        height: '100vh',
+        display: 'flex',
+        boxShadow: 'none',
+        borderRadius: 0,
+      }}
     >
       <FeedList />
       <Divider id="list-divider" compact />
