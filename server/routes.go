@@ -341,7 +341,7 @@ func (s *Server) handleSettingsUpdate(c context) error {
 			return err
 		}
 		if key == storage.REFRESH_RATE {
-			go s.SetRefreshRate(int64(val.(float64)))
+			go s.SetRefreshRate(int64(val.(float64)), nil)
 		}
 	}
 	return nil

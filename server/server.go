@@ -69,15 +69,11 @@ func New(db *storage.Storage) *Server {
 	if err != nil {
 		log.Print(err)
 	} else if refreshRate != nil {
-		go s.SetRefreshRate(*refreshRate)
-		if *refreshRate > 0 {
-			lastRefreshed, err := s.db.GetSettingInt(storage.LAST_REFRESHED)
-			if err != nil {
-				log.Print(err)
-			} else if lastRefreshed == nil || time.Now().After(time.UnixMilli(*lastRefreshed).Add(time.Duration(*refreshRate)*time.Minute)) {
-				go s.RefreshAllFeeds()
-			}
+		lastRefreshed, err := s.db.GetSettingInt(storage.LAST_REFRESHED)
+		if err != nil {
+			log.Print(err)
 		}
+		go s.SetRefreshRate(*refreshRate, lastRefreshed)
 	}
 
 	return s
@@ -193,7 +189,7 @@ func (s *Server) FindFeedFavicon(feed storage.Feed) {
 	s.iconMu.Unlock()
 }
 
-func (s *Server) SetRefreshRate(minute int64) {
+func (s *Server) SetRefreshRate(minute int64, lastRefreshed *int64) {
 	s.mu.Lock()
 	close(s.cancel)
 	s.cancel = make(chan struct{})
@@ -205,10 +201,19 @@ func (s *Server) SetRefreshRate(minute int64) {
 		return
 	}
 	d := time.Duration(minute) * time.Minute
+	init := d
+	if lastRefreshed != nil {
+		d := time.Until(time.UnixMilli(*lastRefreshed).Add(d))
+		if d > 0 {
+			init = d
+		} else {
+			go s.RefreshAllFeeds()
+		}
+	}
 	if s.ticker != nil {
-		s.ticker.Reset(d)
+		s.ticker.Reset(init)
 	} else {
-		s.ticker = time.NewTicker(d)
+		s.ticker = time.NewTicker(init)
 	}
 	cancel := s.cancel
 	s.mu.Unlock()
@@ -219,6 +224,10 @@ func (s *Server) SetRefreshRate(minute int64) {
 		case <-s.ticker.C:
 			log.Printf("auto-refresh %dm: firing", minute)
 			go s.RefreshAllFeeds()
+			if init > 0 {
+				s.ticker.Reset(d)
+				init = 0
+			}
 		case <-cancel:
 			log.Printf("auto-refresh %dm: stopping", minute)
 			return
