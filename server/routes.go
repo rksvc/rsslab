@@ -15,6 +15,7 @@ import (
 	"rsslab/parser"
 	"rsslab/storage"
 	"rsslab/utils"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -30,14 +31,14 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		p = "index.html"
 	}
 	if p == "index.html" {
-		if dark, err := s.db.GetSettingInt(storage.DARK_THEME); err == nil {
-			var new []byte
-			if dark != nil && *dark != 0 {
-				new = []byte{'1'}
+		if theme, err := s.db.GetSettingInt(storage.THEME); err == nil {
+			var t []byte
+			if theme != nil {
+				t = []byte(strconv.Itoa(*theme))
 			}
 			b, _ := assets.ReadFile(path.Join("dist", p))
 			w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(p)))
-			w.Write(bytes.Replace(b, []byte("%DARK_THEME%"), new, 1))
+			w.Write(bytes.Replace(b, []byte("%THEME%"), t, 1))
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write(utils.StringToBytes(err.Error()))

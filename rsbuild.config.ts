@@ -10,7 +10,7 @@ export default defineConfig({
   html: {
     title: 'RSSLab',
     favicon: './web/assets/icon.svg',
-    meta: { 'dark-theme': process.env.NODE_ENV === 'production' ? '%DARK_THEME%' : '' },
+    meta: { theme: process.env.NODE_ENV === 'production' ? '%THEME%' : '' },
   },
   source: { entry: { index: './web/main.tsx' } },
   output: {

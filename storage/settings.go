@@ -6,7 +6,7 @@ import (
 
 const (
 	REFRESH_RATE = "refresh_rate"
-	DARK_THEME   = "dark_theme"
+	THEME        = "theme"
 )
 
 func (s *Storage) GetSettings() (map[string]any, error) {

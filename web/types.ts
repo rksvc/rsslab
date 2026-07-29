@@ -35,7 +35,13 @@ export type ItemWithContent = Item & { content: string }
 
 export type Items = { list: Item[]; has_more: boolean }
 
-export type Settings = { refresh_rate?: number; dark_theme?: boolean }
+export enum Theme {
+  Auto,
+  Light,
+  Dark,
+}
+
+export type Settings = { refresh_rate?: number; theme?: Theme }
 
 export type Filter = 'Unread' | 'Feeds' | 'Starred'
 

@@ -11,18 +11,19 @@ import {
   useState,
 } from 'react'
 
-import type {
-  Feed,
-  FeedState,
-  Filter,
-  Folder,
-  FolderWithFeeds,
-  Item,
-  Items,
-  ItemWithContent,
-  Selected,
-  Settings,
-  Status,
+import {
+  Theme,
+  type Feed,
+  type FeedState,
+  type Filter,
+  type Folder,
+  type FolderWithFeeds,
+  type Item,
+  type Items,
+  type ItemWithContent,
+  type Selected,
+  type Settings,
+  type Status,
 } from './types.ts'
 import { xfetch } from './utils.ts'
 
@@ -70,15 +71,15 @@ export function useMyContext() {
   return value
 }
 
-const mediaQueryList = window.matchMedia('(max-width: 991.98px)')
-const darkTheme =
-  (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
+const mobileQuery = window.matchMedia('(max-width: 991.98px)')
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+const theme = +(document.querySelector<HTMLMetaElement>('meta[name=theme]')?.content ?? '')
 
 export default function ContextProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>()
   const [feeds, setFeeds] = useState<Feed[]>()
   const [status, setStatus] = useState<Status | undefined>(undefined)
-  const [settings, setSettings] = useState<Settings>({ dark_theme: darkTheme })
+  const [settings, setSettings] = useState<Settings>({ theme })
   const [items, setItems] = useState<Items | undefined>(undefined)
   const [selectedItemId, setSelectedItemId] = useState<number>()
   const [selectedItem, setSelectedItem] = useState<ItemWithContent>()
@@ -87,7 +88,8 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
   const [selected, setSelected] = useState<Selected>(null)
   const [feedListRefreshed, setFeedListRefreshed] = useState<Record<never, never>>({})
   const [itemsOutdated, setItemsOutdated] = useState(false)
-  const [mobile, setMobile] = useState(mediaQueryList.matches)
+  const [mobile, setMobile] = useState(mobileQuery.matches)
+  const [preferDark, setPreferDark] = useState(darkQuery.matches)
   const contentRef = useRef<HTMLDivElement>(null)
 
   const refreshFeeds = async () => {
@@ -148,13 +150,15 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
       await Promise.all([refreshFeeds(), refreshStats()])
       setItemsOutdated(false)
     })()
-    mediaQueryList.addEventListener('change', evt => setMobile(evt.matches))
+    mobileQuery.addEventListener('change', evt => setMobile(evt.matches))
+    darkQuery.addEventListener('change', evt => setPreferDark(evt.matches))
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run only at startup
   useEffect(() => {
-    if (settings.dark_theme) document.body.classList.add(Classes.DARK)
+    if (settings.theme === Theme.Dark || (settings.theme === Theme.Auto && preferDark))
+      document.body.classList.add(Classes.DARK)
     else document.body.classList.remove(Classes.DARK)
-  }, [settings])
+  }, [settings, preferDark])
 
   const [feedsById, foldersById, feedsOutsideFolders, foldersWithFeeds] = (() => {
     if (!feeds || !folders) return []

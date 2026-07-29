@@ -29,6 +29,7 @@ import {
   RotateCw,
   Star,
   Sun,
+  SunMoon,
   Upload,
 } from 'lucide-react'
 import { type CSSProperties, type RefObject, useRef, useState } from 'react'
@@ -38,7 +39,7 @@ import FeedEditor from './FeedEditor.tsx'
 import FeedIcon from './FeedIcon.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
-import type { Feed, FeedState, Folder, Selected } from './types.ts'
+import { Theme, type Feed, type FeedState, type Folder, type Selected } from './types.ts'
 import { fromNow, iconSize, menuMiddleware, xfetch } from './utils.ts'
 
 const statusBarIconStyle = { marginLeft: 10, marginRight: 8 } as const satisfies CSSProperties
@@ -171,7 +172,13 @@ export default function FeedList() {
       <div className="topbar" style={{ justifyContent: 'space-between' }}>
         <Button
           icon={
-            settings.dark_theme ? (
+            settings.theme === Theme.Auto ? (
+              <SunMoon
+                stroke={Colors.ORANGE4}
+                filter={`drop-shadow(0 0 1px ${Colors.ORANGE5})`}
+                size={iconSize}
+              />
+            ) : settings.theme === Theme.Light ? (
               <Sun
                 fill={Colors.ORANGE5}
                 stroke={Colors.ORANGE4}
@@ -180,19 +187,21 @@ export default function FeedList() {
               />
             ) : (
               <Moon
-                stroke={Colors.DARK_GRAY3}
-                strokeWidth={1.5}
-                filter={`drop-shadow(0 0 0.5px ${Colors.DARK_GRAY3})`}
+                stroke={Colors.ORANGE4}
+                filter={`drop-shadow(0 0 0.5px ${Colors.ORANGE5})`}
                 size={iconSize}
               />
             )
           }
           onClick={async () => {
-            await xfetch('api/settings', {
-              method: 'PUT',
-              body: JSON.stringify({ dark_theme: !settings.dark_theme }),
-            })
-            setSettings(settings => ({ ...settings, dark_theme: !settings.dark_theme }))
+            const theme =
+              settings.theme === Theme.Auto
+                ? Theme.Light
+                : settings.theme === Theme.Light
+                  ? Theme.Dark
+                  : Theme.Auto
+            await xfetch('api/settings', { method: 'PUT', body: JSON.stringify({ theme }) })
+            setSettings(settings => ({ ...settings, theme }))
           }}
           variant={ButtonVariant.MINIMAL}
         />
