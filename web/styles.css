@@ -163,6 +163,9 @@ a.bp6-button {
 				.bp6-tree-node-caret {
 					transition: none;
 				}
+				.bp6-tree-node-caret-none {
+					min-width: 32px;
+				}
 			}
 			&.bp6-tree-node-selected > .bp6-tree-node-content {
 				&,
