@@ -12,14 +12,11 @@
 	--light-bg-hover: #f0f0f0;
 	--dark-bg: var(--dark-gray2);
 	--dark-bg-hover: rgb(from var(--gray1) r g b / 30%);
+
+	color-scheme: light;
 }
 
 /* global */
-
-html {
-	font-size: 15px;
-	color-scheme: light;
-}
 
 body {
 	margin: 0;
@@ -30,34 +27,25 @@ textarea {
 	resize: none !important;
 }
 
-path.bp6-spinner-track {
-	stroke: none !important;
+.bp6-button {
+	box-shadow: none !important;
 }
 
-:not(.bp6-popover-arrow, .loading-items > div) > svg {
-	width: 16px;
-	height: 16px;
+.bp6-spinner-track {
+	stroke: none !important;
 }
 .bp6-spinner-head {
 	stroke: currentColor !important;
 	stroke-width: 8px;
 }
-.loading-items svg {
-	opacity: 0.7;
-	width: 19px;
-	height: 19px;
-	.bp6-spinner-head {
-		stroke-width: 10px;
-	}
-}
 
-:is(pre, code) {
+pre,
+code {
 	font-family: var(--monospace) !important;
 }
 
 .bp6-button.bp6-intent-primary:not(.filter, a) {
 	background-color: var(--primary-bg) !important;
-	box-shadow: none;
 	&:active {
 		background-color: color-mix(in srgb, var(--primary-bg), black 15%) !important;
 	}
@@ -87,7 +75,6 @@ a.bp6-button {
 }
 
 #min {
-	align-self: stretch;
 	align-content: center;
 	color: white;
 	background-color: var(--gray3);
@@ -103,11 +90,7 @@ a.bp6-button {
 .topbar {
 	display: flex;
 	align-items: center;
-	min-height: 2.3rem;
-	margin: 0 0.5rem;
 	.bp6-button {
-		min-height: 0;
-		min-width: auto;
 		&:not(:disabled, a):is(:hover, .bp6-active) {
 			background-color: var(--light-bg-hover) !important;
 		}
@@ -116,7 +99,6 @@ a.bp6-button {
 			background-color: var(--primary-bg) !important;
 		}
 	}
-	/* item list search bar */
 	.bp6-input[type="search"] {
 		&::-webkit-search-cancel-button {
 			display: none;
@@ -137,7 +119,6 @@ a.bp6-button {
 			border-color: var(--brighter);
 		}
 	}
-	/* item list search bar */
 	.bp6-input[type="search"] {
 		background-color: var(--dark-bg);
 	}
@@ -148,30 +129,27 @@ a.bp6-button {
 	flex-grow: 1;
 	overflow: auto;
 	.bp6-tree-root {
-		padding: 0.5rem;
-		padding-top: 0.25rem;
+		padding: 0.3em 0.6em 0.6em;
 		.bp6-tree-node {
-			margin-top: 0.25rem;
+			margin-top: 0.3em;
 			&.bp6-tree-node-expanded .bp6-collapse {
 				height: auto !important;
 			}
-			&:not(.bp6-tree-node-expanded) .bp6-collapse {
-				height: 0 !important;
-			}
-			&:not(.bp6-tree-node-selected) {
-				.bp6-tree-node-caret {
-					color: light-dark(#374049, #d1d1d1);
-				}
-				& > .bp6-tree-node-content:is(:hover, :active) {
-					background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover));
-				}
+			&:not(.bp6-tree-node-selected) > .bp6-tree-node-content:is(:hover, :active) {
+				background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover));
 			}
 			.bp6-collapse {
 				transition: none;
+				.bp6-tree-node {
+					margin-left: 16px;
+					.bp6-tree-node-caret-none {
+						min-width: 10px;
+					}
+				}
 			}
 			.bp6-tree-node-content {
 				padding-left: 0;
-				height: 2.1rem;
+				height: 2.4em;
 				border-radius: var(--border-radius);
 				user-select: none;
 				&:hover {
@@ -179,22 +157,6 @@ a.bp6-button {
 				}
 				.bp6-tree-node-caret {
 					transition: none;
-					&.bp6-tree-node-caret-closed {
-						svg {
-							padding-inline: 1px;
-						}
-					}
-					&.bp6-tree-node-caret-open {
-						svg {
-							padding-left: 2px;
-						}
-					}
-				}
-				.bp6-tree-node-caret-none {
-					min-width: 32px;
-				}
-				.bp6-tree-node-label span {
-					display: inherit;
 				}
 			}
 			&.bp6-tree-node-selected > .bp6-tree-node-content {
@@ -209,13 +171,6 @@ a.bp6-button {
 
 /* context menu */
 .bp6-popover {
-	transform: none;
-
-	.bp6-button {
-		border-top-left-radius: 0 !important;
-		border-top-right-radius: 0 !important;
-	}
-
 	.bp6-menu {
 		max-height: 90vh;
 		overflow-y: auto;
@@ -234,24 +189,17 @@ a.bp6-button {
 			user-select: none;
 			.bp6-heading {
 				font-weight: inherit;
+				padding-top: 6px;
 			}
 			&.last-refreshed {
 				margin-bottom: 0;
-				.bp6-heading {
-					padding-top: 6px;
-				}
 			}
 		}
 
 		.bp6-menu-item {
 			align-items: center;
-			.bp6-menu-item-label {
-				display: flex;
-			}
 			svg {
 				stroke-width: 1.6px;
-				width: 15px;
-				height: 15px;
 			}
 
 			.bp6-menu-item-icon {
@@ -291,33 +239,20 @@ a.bp6-button {
 
 /* item list */
 .bp6-card-list {
-	padding: 0 !important;
-	padding-top: 0.25rem !important;
-	padding-bottom: 0.5rem !important;
+	padding: 0.3em 0.6em 0.6em !important;
 	& > .bp6-card {
-		margin-top: 0.25rem;
-		margin-inline: 0.5rem;
-		padding: 0.25rem 0.5rem !important;
+		margin-top: 0.3em;
+		padding: 0.3em 0.6em !important;
 		border-bottom: 0 !important;
 		border-radius: var(--border-radius);
 		user-select: none;
-		&:not(.bp6-selected) {
-			&:hover {
-				background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover)) !important;
-			}
-			svg {
-				color: light-dark(var(--primary), var(--dark-primary));
-			}
+		&:not(.bp6-selected):hover {
+			background-color: light-dark(var(--light-bg-hover), var(--dark-bg-hover)) !important;
 		}
 		&.bp6-selected,
 		&.bp6-selected:hover {
 			color: white;
 			background-color: var(--primary-bg) !important;
-		}
-		svg {
-			fill: currentColor;
-			display: flex;
-			width: 100%;
 		}
 	}
 }
@@ -332,9 +267,6 @@ a.bp6-button {
 
 	.bp6-dialog-header .bp6-button:is(:hover, :active) {
 		background-color: inherit;
-		.bp6-icon {
-			color: rgb(from currentColor r g b / 80%);
-		}
 	}
 
 	.bp6-dialog-body {
@@ -353,7 +285,6 @@ a.bp6-button {
 		}
 		.bp6-control-group {
 			gap: 0.3em;
-			margin-bottom: 0.4em;
 			.bp6-button {
 				color: rgb(from currentColor r g b / 80%);
 			}
@@ -364,16 +295,10 @@ a.bp6-button {
 				&:disabled {
 					color: rgb(from currentColor r g b / 50%);
 				}
-				&:hover:not(:disabled) {
-					background-color: rgb(from currentColor r g b / 15%);
-				}
-				&:active:not(:disabled) {
-					background-color: rgb(from currentColor r g b / 20%);
+				&:is(:hover, :active):not(:disabled) {
+					background-color: rgb(from currentColor r g b / 10%);
 				}
 			}
-		}
-		.bp6-label {
-			user-select: none;
 		}
 		select {
 			background-color: light-dark(white, var(--dark-bg));
@@ -540,27 +465,24 @@ a.bp6-button {
 	}
 }
 
+@media (min-width: 991.98px) {
+	.topbar {
+		min-height: 37px;
+		margin: 0 6px;
+		.bp6-button {
+			min-height: 0;
+			min-width: auto;
+		}
+	}
+}
+
 @media (max-width: 991.98px) {
 	#feed-list,
 	#item-list {
 		flex: unset;
 	}
 	.topbar {
-		min-height: 3rem;
-		.bp6-button {
-			min-height: 2rem;
-		}
-		.bp6-input-group {
-			svg {
-				margin: 12px;
-			}
-			input {
-				padding-left: 40px !important;
-			}
-		}
-		.bp6-input {
-			font-size: 1rem;
-			height: 2.7rem;
-		}
+		min-height: 49px;
+		margin: 0 10px;
 	}
 }

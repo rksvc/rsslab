@@ -5,12 +5,11 @@ import {
   ControlGroup,
   InputGroup,
   Intent,
-  Label,
 } from '@blueprintjs/core'
 import { ExternalLink, Plus, Trash2 } from 'lucide-react'
 import { type Dispatch, type SetStateAction, useRef, useState } from 'react'
 
-import { length, param } from './utils'
+import { iconSize, param } from './utils'
 
 export default function HttpRequestParams({
   url: rawUrl,
@@ -34,16 +33,16 @@ export default function HttpRequestParams({
   return (
     <div
       style={{
-        padding: length(3),
+        padding: 16,
         textAlign: 'center',
         display: 'flex',
         flexDirection: 'column',
-        gap: length(2),
+        gap: 10,
       }}
     >
       {url && (
-        <div>
-          <Label style={{ marginBottom: length(2) }}>Parameters</Label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ userSelect: 'none' }}>Parameters</div>
           {[...url.searchParams].map(([param, value], i) => (
             <ControlGroup key={i} fill>
               <InputGroup
@@ -65,7 +64,7 @@ export default function HttpRequestParams({
                 }}
               />
               <Button
-                icon={<Trash2 />}
+                icon={<Trash2 size={iconSize} />}
                 intent={Intent.DANGER}
                 variant={ButtonVariant.MINIMAL}
                 onClick={() => {
@@ -77,14 +76,10 @@ export default function HttpRequestParams({
             </ControlGroup>
           ))}
           <ControlGroup fill>
-            <InputGroup
-              value={newParamKey}
-              onValueChange={value => setNewParamKey(value)}
-              spellCheck="false"
-            />
+            <InputGroup value={newParamKey} onValueChange={setNewParamKey} spellCheck="false" />
             <InputGroup inputRef={newParamValue} spellCheck="false" />
             <Button
-              icon={<Plus />}
+              icon={<Plus size={iconSize} />}
               variant={ButtonVariant.MINIMAL}
               disabled={!newParamKey}
               onClick={() => {
@@ -99,8 +94,8 @@ export default function HttpRequestParams({
           </ControlGroup>
         </div>
       )}
-      <div>
-        <Label style={{ marginBottom: length(2) }}>Headers</Label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ userSelect: 'none' }}>Headers</div>
         {headers.map(([key, value], i) => (
           <ControlGroup key={i} fill>
             <InputGroup
@@ -118,7 +113,7 @@ export default function HttpRequestParams({
               }}
             />
             <Button
-              icon={<Trash2 />}
+              icon={<Trash2 size={iconSize} />}
               intent={Intent.DANGER}
               variant={ButtonVariant.MINIMAL}
               onClick={() => {
@@ -129,14 +124,10 @@ export default function HttpRequestParams({
           </ControlGroup>
         ))}
         <ControlGroup fill>
-          <InputGroup
-            value={newHeaderKey}
-            onValueChange={value => setNewHeaderKey(value)}
-            spellCheck="false"
-          />
+          <InputGroup value={newHeaderKey} onValueChange={setNewHeaderKey} spellCheck="false" />
           <InputGroup inputRef={newHeaderValue} spellCheck="false" />
           <Button
-            icon={<Plus />}
+            icon={<Plus size={iconSize} />}
             variant={ButtonVariant.MINIMAL}
             disabled={!newHeaderKey}
             onClick={() => {
@@ -155,11 +146,11 @@ export default function HttpRequestParams({
       {url && (
         <AnchorButton
           text="Preview"
-          style={{ marginTop: length(1) }}
+          style={{ marginTop: 8, userSelect: 'none' }}
           href={`api/proxy${param({ url: rawUrl, headers: rawHeaders || undefined })}`}
           target="_blank"
           intent={Intent.PRIMARY}
-          endIcon={<ExternalLink />}
+          endIcon={<ExternalLink size={iconSize} />}
           variant={ButtonVariant.OUTLINED}
         />
       )}

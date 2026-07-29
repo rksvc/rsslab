@@ -50,8 +50,15 @@ export default function TextEditor({
               }
             }}
           />
-          <Button loading={loading} intent={Intent.PRIMARY} text="OK" onClick={confirm} fill />
-          <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
+          <Button
+            loading={loading}
+            intent={Intent.PRIMARY}
+            text="OK"
+            onClick={confirm}
+            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+            fill
+          />
+          <div className={Classes.POPOVER_DISMISS} ref={closerRef} />
         </>
       }
       onOpening={node => {

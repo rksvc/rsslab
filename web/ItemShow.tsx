@@ -11,7 +11,7 @@ import { ChevronLeft, ChevronRight, Circle, ExternalLink, Star, X } from 'lucide
 
 import { useMyContext } from './Context.tsx'
 import type { Item } from './types.ts'
-import { cn, length, xfetch } from './utils.ts'
+import { cn, iconSize, xfetch } from './utils.ts'
 
 export default function ItemShow() {
   const {
@@ -62,19 +62,29 @@ export default function ItemShow() {
 
   return (
     <div id="item">
-      <ButtonGroup className="topbar" style={{ gap: length(1) }} variant={ButtonVariant.MINIMAL}>
+      <ButtonGroup className="topbar" style={{ gap: 4 }} variant={ButtonVariant.MINIMAL}>
         <Button
-          icon={<Star fill={item.status === 'starred' ? 'currentColor' : 'transparent'} />}
+          icon={
+            <Star
+              size={iconSize}
+              fill={item.status === 'starred' ? 'currentColor' : 'transparent'}
+            />
+          }
           onClick={toggleStatus('starred')}
           title="Mark Starred"
         />
         <Button
-          icon={<Circle fill={item.status === 'unread' ? 'currentColor' : 'transparent'} />}
+          icon={
+            <Circle
+              size={iconSize}
+              fill={item.status === 'unread' ? 'currentColor' : 'transparent'}
+            />
+          }
           onClick={toggleStatus('unread')}
           title="Mark Unread"
         />
         <AnchorButton
-          icon={<ExternalLink />}
+          icon={<ExternalLink size={iconSize} />}
           href={item.link}
           target="_blank"
           title="Open Link"
@@ -83,21 +93,21 @@ export default function ItemShow() {
         />
         <div style={{ flexGrow: 1 }} />
         <Button
-          icon={<ChevronLeft />}
+          icon={<ChevronLeft size={iconSize} />}
           title={'Previous Article'}
           variant={ButtonVariant.MINIMAL}
           disabled={!items.list.length || selectedItemId === items.list.at(0)?.id}
           onClick={() => shift(-1)}
         />
         <Button
-          icon={<ChevronRight />}
+          icon={<ChevronRight size={iconSize} />}
           title={'Next Article'}
           variant={ButtonVariant.MINIMAL}
           disabled={!items.list.length || selectedItemId === items.list.at(-1)?.id}
           onClick={() => shift(+1)}
         />
         <Button
-          icon={<X />}
+          icon={<X size={iconSize} />}
           title={'Close Article'}
           variant={ButtonVariant.MINIMAL}
           onClick={() => {
@@ -107,16 +117,13 @@ export default function ItemShow() {
         />
       </ButtonGroup>
       <Divider compact />
-      <div
-        style={{ padding: length(5), overflow: 'auto', overflowWrap: 'break-word' }}
-        ref={contentRef}
-      >
+      <div style={{ padding: 19, overflow: 'auto', overflowWrap: 'break-word' }} ref={contentRef}>
         <H2 style={{ fontWeight: 700 }}>{item.title || 'untitled'}</H2>
         <div style={{ opacity: 0.95 }}>{feedsById?.get(item.feed_id)?.title}</div>
         <div style={{ opacity: 0.95 }}>{new Date(item.date).toLocaleString()}</div>
-        <Divider compact style={{ marginBlock: length(3) }} />
+        <Divider compact style={{ marginBlock: 11 }} />
         <div
-          style={{ fontSize: '1rem', lineHeight: '1.5rem' }}
+          style={{ fontSize: 16 }}
           className={cn(Classes.RUNNING_TEXT, 'content')}
           dangerouslySetInnerHTML={{ __html: item.content }}
         />

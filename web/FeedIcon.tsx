@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 
 import { useMyContext } from './Context.tsx'
 import type { Feed } from './types.ts'
-import { length, xfetch } from './utils.ts'
+import { iconSize, xfetch } from './utils.ts'
 
 export default function FeedIcon({ feed }: { feed: Feed }) {
   const { setFeeds } = useMyContext()
@@ -20,13 +20,11 @@ export default function FeedIcon({ feed }: { feed: Feed }) {
 
   return feed.has_icon ? (
     <img
+      style={{ marginRight: 8, width: iconSize, aspectRatio: '1/1' }}
       alt="feed icon"
-      style={{ width: length(4), aspectRatio: '1/1', marginRight: '7px' }}
       src={src}
     />
   ) : (
-    <span style={{ display: 'flex' }}>
-      <Rss style={{ marginRight: '6px' }} />
-    </span>
+    <Rss style={{ marginRight: 8, display: 'flex' }} size={iconSize} />
   )
 }

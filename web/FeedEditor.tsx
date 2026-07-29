@@ -32,7 +32,7 @@ import {
 import { useMyContext } from './Context.tsx'
 import HttpRequestParams from './HttpRequestParams.tsx'
 import type { FeedType } from './types.ts'
-import { param, parseFeedLink } from './utils.ts'
+import { iconSize, param, parseFeedLink } from './utils.ts'
 
 type Param = {
   value: string
@@ -309,64 +309,62 @@ export default function FeedEditor({
   return (
     <Dialog title={title} isOpen={isOpen} onClose={close} onOpened={onSectionChange}>
       <DialogBody ref={dialogBodyRef}>
-        <FormGroup fill>
-          <div style={{ borderRadius: 'var(--border-radius)', boxShadow: 'var(--shadow)' }}>
-            <FeedSection
-              ref={feedRef}
-              sectionStyle={{
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-                boxShadow: 'none',
-              }}
-              formGroupStyle={{ marginBottom: 0 }}
-              type="feed"
-              title="Feed"
-              params={feedParams}
-              isOpen={sectionOpen}
-              setIsOpen={setSectionOpen}
-              curType={feedType}
-              setCurType={setFeedType}
-            />
-            <Divider compact />
-            <FeedSection
-              ref={htmlRef}
-              sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
-              type="html"
-              title="HTML Transformer"
-              params={transHtmlParams}
-              isOpen={sectionOpen}
-              setIsOpen={setSectionOpen}
-              curType={feedType}
-              setCurType={setFeedType}
-            />
-            <Divider compact />
-            <FeedSection
-              ref={jsonRef}
-              sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
-              type="json"
-              title="JSON Transformer"
-              params={transJsonParams}
-              isOpen={sectionOpen}
-              setIsOpen={setSectionOpen}
-              curType={feedType}
-              setCurType={setFeedType}
-            />
-            <Divider compact />
-            <FeedSection
-              ref={jsRef}
-              sectionStyle={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, boxShadow: 'none' }}
-              type="js"
-              title="JavaScript"
-              params={jsParams}
-              isOpen={sectionOpen}
-              setIsOpen={setSectionOpen}
-              curType={feedType}
-              setCurType={setFeedType}
-            />
-          </div>
+        <FormGroup style={{ borderRadius: 'var(--border-radius)', boxShadow: 'var(--shadow)' }}>
+          <FeedSection
+            ref={feedRef}
+            sectionStyle={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              boxShadow: 'none',
+            }}
+            formGroupStyle={{ marginBottom: 0 }}
+            type="feed"
+            title="Feed"
+            params={feedParams}
+            isOpen={sectionOpen}
+            setIsOpen={setSectionOpen}
+            curType={feedType}
+            setCurType={setFeedType}
+          />
+          <Divider compact />
+          <FeedSection
+            ref={htmlRef}
+            sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
+            type="html"
+            title="HTML Transformer"
+            params={transHtmlParams}
+            isOpen={sectionOpen}
+            setIsOpen={setSectionOpen}
+            curType={feedType}
+            setCurType={setFeedType}
+          />
+          <Divider compact />
+          <FeedSection
+            ref={jsonRef}
+            sectionStyle={{ borderRadius: 0, boxShadow: 'none' }}
+            type="json"
+            title="JSON Transformer"
+            params={transJsonParams}
+            isOpen={sectionOpen}
+            setIsOpen={setSectionOpen}
+            curType={feedType}
+            setCurType={setFeedType}
+          />
+          <Divider compact />
+          <FeedSection
+            ref={jsRef}
+            sectionStyle={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, boxShadow: 'none' }}
+            type="js"
+            title="JavaScript"
+            params={jsParams}
+            isOpen={sectionOpen}
+            setIsOpen={setSectionOpen}
+            curType={feedType}
+            setCurType={setFeedType}
+          />
         </FormGroup>
         {showFolderSelector && (
-          <FormGroup label="Folder" fill>
+          <FormGroup label="Folder">
             <HTMLSelect
               iconName="caret-down"
               options={[
@@ -447,7 +445,6 @@ function FeedSection({
             label={key && <Code>{key}</Code>}
             labelInfo={<span style={{ fontSize: '0.9em' }}>{desc}</span>}
             style={{ ...formGroupStyle, display: hide && 'none' }}
-            fill
           >
             {script ? (
               <TextArea
@@ -476,7 +473,7 @@ function FeedSection({
                     borderBottomLeftRadius: extra && 0,
                     borderBottomRightRadius: extra && 0,
                   }}
-                  onValueChange={value => setValue(value)}
+                  onValueChange={setValue}
                 />
                 {extra && <Divider compact />}
                 {extra}
@@ -490,7 +487,7 @@ function FeedSection({
             href={`api/transform/${type}${stringify(params)}`}
             target="_blank"
             intent={Intent.PRIMARY}
-            endIcon={<ExternalLink />}
+            endIcon={<ExternalLink size={iconSize} />}
             variant={ButtonVariant.OUTLINED}
             fill
           />

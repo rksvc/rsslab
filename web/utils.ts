@@ -1,13 +1,11 @@
 import type { Transformer } from './types.ts'
 
+export const iconSize = 16
+
 export const menuMiddleware = { offset: { mainAxis: 8, crossAxis: -70 } } as const
 
 export function cn(...classNames: (string | undefined | null | false)[]) {
   return classNames.filter(Boolean).join(' ')
-}
-
-export function length(n: number) {
-  return `${n * 0.25}rem`
 }
 
 export function fromNow(date: Date, suffix = ' ago') {

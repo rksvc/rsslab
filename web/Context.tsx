@@ -50,6 +50,7 @@ const Context = createContext<
       setFeedListRefreshed: Dispatch<SetStateAction<Record<never, never>>>
       itemsOutdated: boolean
       setItemsOutdated: Dispatch<SetStateAction<boolean>>
+      mobile: boolean
       contentRef: RefObject<HTMLDivElement | null>
 
       refreshFeeds: () => Promise<void>
@@ -69,6 +70,7 @@ export function useMyContext() {
   return value
 }
 
+const mediaQueryList = window.matchMedia('(max-width: 991.98px)')
 const darkTheme =
   (document.querySelector<HTMLMetaElement>('meta[name=dark-theme]')?.content.length ?? 0) > 0
 
@@ -85,6 +87,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
   const [selected, setSelected] = useState<Selected>(null)
   const [feedListRefreshed, setFeedListRefreshed] = useState<Record<never, never>>({})
   const [itemsOutdated, setItemsOutdated] = useState(false)
+  const [mobile, setMobile] = useState(mediaQueryList.matches)
   const contentRef = useRef<HTMLDivElement>(null)
 
   const refreshFeeds = async () => {
@@ -145,6 +148,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
       await Promise.all([refreshFeeds(), refreshStats()])
       setItemsOutdated(false)
     })()
+    mediaQueryList.addEventListener('change', evt => setMobile(evt.matches))
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run only at startup
   useEffect(() => {
@@ -191,6 +195,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
         setFeedListRefreshed,
         itemsOutdated,
         setItemsOutdated,
+        mobile,
         contentRef,
 
         refreshFeeds,

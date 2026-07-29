@@ -39,14 +39,15 @@ import FeedIcon from './FeedIcon.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, FeedState, Folder, Selected } from './types.ts'
-import { fromNow, length, menuMiddleware, xfetch } from './utils.ts'
+import { fromNow, iconSize, menuMiddleware, xfetch } from './utils.ts'
 
+const statusBarIconStyle = { marginLeft: 10, marginRight: 8 } as const satisfies CSSProperties
 const statusBarStyle = {
   display: 'flex',
   alignItems: 'center',
-  padding: length(1),
+  padding: '.4em',
   overflowWrap: 'break-word',
-} satisfies CSSProperties
+} as const satisfies CSSProperties
 
 export default function FeedList() {
   const {
@@ -78,7 +79,7 @@ export default function FeedList() {
     ) : filter === 'Starred' ? (
       state?.starred.toString()
     ) : state?.error ? (
-      <AlertCircle style={{ display: 'flex' }} />
+      <AlertCircle size={iconSize} style={{ display: 'flex' }} />
     ) : undefined
   const feed = (feed: Feed) =>
     ({
@@ -175,12 +176,14 @@ export default function FeedList() {
                 fill={Colors.ORANGE5}
                 stroke={Colors.ORANGE4}
                 filter={`drop-shadow(0 0 1px ${Colors.ORANGE5})`}
+                size={iconSize}
               />
             ) : (
               <Moon
                 stroke={Colors.DARK_GRAY3}
                 strokeWidth={1.5}
                 filter={`drop-shadow(0 0 0.5px ${Colors.DARK_GRAY3})`}
+                size={iconSize}
               />
             )
           }
@@ -196,9 +199,9 @@ export default function FeedList() {
         <ButtonGroup variant={ButtonVariant.OUTLINED}>
           {(
             [
-              { value: 'Unread', title: 'Unread', icon: <Circle /> },
-              { value: 'Feeds', title: 'All', icon: <MenuIcon /> },
-              { value: 'Starred', title: 'Starred', icon: <Star /> },
+              { value: 'Unread', title: 'Unread', icon: <Circle size={iconSize} /> },
+              { value: 'Feeds', title: 'All', icon: <MenuIcon size={iconSize} /> },
+              { value: 'Starred', title: 'Starred', icon: <Star size={iconSize} /> },
             ] as const
           ).map(({ value, title, icon }) => (
             <Button
@@ -218,12 +221,12 @@ export default function FeedList() {
             <Menu>
               <MenuItem
                 text="New Feed"
-                icon={<Plus />}
+                icon={<Plus size={iconSize} />}
                 onClick={() => setNewFeedDialogOpen(true)}
               />
               <TextEditor
                 menuText="New Folder"
-                menuIcon={<Plus />}
+                menuIcon={<Plus size={iconSize} />}
                 placeholder="Folder title"
                 onConfirm={async title => {
                   if (!title) throw new Error('Folder title is required')
@@ -251,7 +254,7 @@ export default function FeedList() {
               />
               <MenuItem
                 text="Refresh Feeds"
-                icon={<RotateCw />}
+                icon={<RotateCw size={iconSize} />}
                 disabled={!!status?.running}
                 onClick={async () => {
                   await xfetch('api/feeds/refresh', { method: 'POST' })
@@ -289,17 +292,21 @@ export default function FeedList() {
                 <label htmlFor="opml-import">
                   <MenuItem
                     text="Import OPML File"
-                    icon={<Download />}
+                    icon={<Download size={iconSize} />}
                     shouldDismissPopover={false}
                   />
                 </label>
-                <div className={Classes.POPOVER_DISMISS} ref={menuCloserRef} hidden />
+                <div className={Classes.POPOVER_DISMISS} ref={menuCloserRef} />
               </form>
-              <MenuItem text="Export OPML File" href="api/opml/export" icon={<Upload />} />
+              <MenuItem
+                text="Export OPML File"
+                href="api/opml/export"
+                icon={<Upload size={iconSize} />}
+              />
             </Menu>
           }
         >
-          <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} />
+          <Button icon={<MoreHorizontal size={iconSize} />} variant={ButtonVariant.MINIMAL} />
         </PopoverNext>
       </div>
       <Divider compact />
@@ -350,7 +357,7 @@ export default function FeedList() {
         <>
           <Divider compact />
           <div style={statusBarStyle}>
-            <Spinner style={{ marginLeft: length(3), marginRight: length(2) }} size={15} />
+            <Spinner style={statusBarIconStyle} size={iconSize} />
             Refreshing ({status.running} left)
           </div>
         </>
@@ -358,7 +365,7 @@ export default function FeedList() {
         <>
           <Divider compact />
           <div style={statusBarStyle}>
-            <AlertCircle style={{ marginLeft: length(3), marginRight: length(2) }} />
+            <AlertCircle style={statusBarIconStyle} size={iconSize} />
             {errorCount} feed{errorCount === 1 ? ' has an error' : 's have errors'}
           </div>
         </>
@@ -405,10 +412,10 @@ function RefreshRateEditor({
     <PopoverNext
       usePortal={false}
       placement="right"
-      middleware={{ offset: { mainAxis: 3 } }}
+      middleware={{ offset: { mainAxis: 4 } }}
       content={
         <>
-          <div style={{ display: 'flex', flexDirection: 'row' }}>
+          <div style={{ display: 'flex' }}>
             <NumericInput
               defaultValue={defaultValue}
               inputRef={inputRef}
@@ -418,23 +425,34 @@ function RefreshRateEditor({
               minorStepSize={1}
               majorStepSize={60}
               disabled={loading}
-              style={{ width: '80px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-              onKeyDown={evt => {
-                if (evt.key === 'Enter') {
-                  evt.preventDefault()
-                  confirm()
-                }
+              style={{
+                width: '6em',
+                borderBottomLeftRadius: 0,
+                borderTopRightRadius: 0,
+                borderBottomRightRadius: 0,
               }}
+              onKeyDown={evt => evt.key === 'Enter' && confirm()}
             />
             <span id="min">min</span>
           </div>
-          <Button loading={loading} intent={Intent.PRIMARY} text="OK" onClick={confirm} fill />
-          <div className={Classes.POPOVER_DISMISS} ref={closerRef} hidden />
+          <Button
+            loading={loading}
+            intent={Intent.PRIMARY}
+            text="OK"
+            onClick={confirm}
+            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+            fill
+          />
+          <div className={Classes.POPOVER_DISMISS} ref={closerRef} />
         </>
       }
       onOpening={node => node.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)?.focus()}
     >
-      <MenuItem text="Change Refresh Rate" icon={<Edit />} shouldDismissPopover={false} />
+      <MenuItem
+        text="Change Refresh Rate"
+        icon={<Edit size={iconSize} />}
+        shouldDismissPopover={false}
+      />
     </PopoverNext>
   )
 }

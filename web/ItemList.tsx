@@ -20,7 +20,7 @@ import {
   Circle,
   Edit,
   ExternalLink,
-  Folder as FolderIcon,
+  Folder,
   Link,
   MoreHorizontal,
   RotateCw,
@@ -36,7 +36,7 @@ import FeedEditor from './FeedEditor.tsx'
 import RelativeTime from './RelativeTime.tsx'
 import TextEditor from './TextEditor.tsx'
 import type { Feed, Item, Items } from './types.ts'
-import { fromNow, length, menuMiddleware, param, parseFeedLink, xfetch } from './utils.ts'
+import { fromNow, iconSize, menuMiddleware, param, parseFeedLink, xfetch } from './utils.ts'
 
 export default function ItemList() {
   const {
@@ -56,6 +56,7 @@ export default function ItemList() {
     setFeedListRefreshed,
     itemsOutdated,
     setItemsOutdated,
+    mobile,
 
     refreshStats,
     foldersById,
@@ -129,12 +130,12 @@ export default function ItemList() {
   const state = selected?.feed_id == null ? undefined : status?.state.get(selected.feed_id)
   return (
     <div id="item-list">
-      <div className="topbar" style={{ gap: length(1.5) }}>
+      <div className="topbar" style={{ gap: 4 }}>
         <Button
           id="show-feeds"
           style={{ display: 'none' }}
-          icon={<ChevronLeft />}
-          title={'Show Feeds'}
+          icon={<ChevronLeft size={iconSize} />}
+          title="Show Feeds"
           variant={ButtonVariant.MINIMAL}
           onClick={() => setSelected(undefined)}
         />
@@ -143,8 +144,10 @@ export default function ItemList() {
             <Search
               style={{ pointerEvents: 'none', alignSelf: 'anchor-center' }}
               className={Classes.ICON}
+              size={iconSize}
             />
           }
+          size={mobile ? 'large' : 'medium'}
           type="search"
           value={search}
           onValueChange={value => {
@@ -159,7 +162,13 @@ export default function ItemList() {
           fill
         />
         <Button
-          icon={itemsOutdated ? <RotateCw strokeWidth={1.7} /> : <Check />}
+          icon={
+            itemsOutdated ? (
+              <RotateCw strokeWidth={1.7} size={iconSize} />
+            ) : (
+              <Check size={iconSize} />
+            )
+          }
           title={itemsOutdated ? 'Refresh Outdated' : 'Mark All Read'}
           disabled={filter === 'Starred' && !itemsOutdated}
           variant={ButtonVariant.MINIMAL}
@@ -201,8 +210,10 @@ export default function ItemList() {
                         <MenuItem
                           text="Website"
                           intent={Intent.PRIMARY}
-                          labelElement={<ExternalLink />}
-                          icon={<Link />}
+                          labelElement={
+                            <ExternalLink size={iconSize} style={{ display: 'flex' }} />
+                          }
+                          icon={<Link size={iconSize} />}
                           target="_blank"
                           href={feed.link}
                           rel="noopener noreferrer"
@@ -212,8 +223,8 @@ export default function ItemList() {
                       <MenuItem
                         text="Feed Link"
                         intent={Intent.PRIMARY}
-                        labelElement={<ExternalLink />}
-                        icon={<Rss />}
+                        labelElement={<ExternalLink size={iconSize} style={{ display: 'flex' }} />}
+                        icon={<Rss size={iconSize} />}
                         target="_blank"
                         href={(() => {
                           const [scheme, url] = parseFeedLink(feed.feed_link)
@@ -225,7 +236,7 @@ export default function ItemList() {
                       <MenuDivider />
                       <TextEditor
                         menuText="Rename"
-                        menuIcon={<Edit />}
+                        menuIcon={<Edit size={iconSize} />}
                         defaultValue={feed.title}
                         onConfirm={async title => {
                           if (!title) throw new Error('Feed name is required')
@@ -234,12 +245,12 @@ export default function ItemList() {
                       />
                       <MenuItem
                         text="Change Link"
-                        icon={<Edit />}
+                        icon={<Edit size={iconSize} />}
                         onClick={() => setFeedLink(feed.feed_link)}
                       />
                       <MenuItem
                         text="Refresh"
-                        icon={<RotateCw />}
+                        icon={<RotateCw size={iconSize} />}
                         disabled={!!status?.running}
                         onClick={async () => {
                           await xfetch(`api/feeds/${feed.id}/refresh`, { method: 'POST' })
@@ -261,7 +272,7 @@ export default function ItemList() {
                               <MenuItem
                                 key={key}
                                 text={text}
-                                icon={<FolderIcon />}
+                                icon={<Folder size={iconSize} />}
                                 onClick={async () => {
                                   await updateFeedAttr(feed.id, 'folder_id', key)
                                   setFeedListRefreshed({})
@@ -294,12 +305,12 @@ export default function ItemList() {
               : selected?.folder_id != null
                 ? (() => {
                     const folder = foldersById?.get(selected.folder_id)
-                    if (!folder) return undefined
+                    if (!folder) return
                     return (
                       <Menu>
                         <TextEditor
                           menuText="Rename"
-                          menuIcon={<Edit />}
+                          menuIcon={<Edit size={iconSize} />}
                           defaultValue={folder.title}
                           onConfirm={async title => {
                             if (!title) throw new Error('Folder title is required')
@@ -314,13 +325,14 @@ export default function ItemList() {
                         />
                         <MenuItem
                           text="Refresh"
-                          icon={<RotateCw />}
+                          icon={<RotateCw size={iconSize} />}
                           disabled={!!status?.running}
                           onClick={async () => {
                             await xfetch(`api/folders/${folder.id}/refresh`, { method: 'POST' })
                             await refreshStats()
                           }}
                         />
+                        <MenuDivider />
                         <Deleter
                           isOpen={menuOpen}
                           onConfirm={async () => {
@@ -346,17 +358,21 @@ export default function ItemList() {
                 : undefined
           }
         >
-          <Button icon={<MoreHorizontal />} variant={ButtonVariant.MINIMAL} disabled={!selected} />
+          <Button
+            icon={<MoreHorizontal size={iconSize} />}
+            variant={ButtonVariant.MINIMAL}
+            disabled={!selected}
+          />
         </PopoverNext>
       </div>
       <Divider compact />
-      <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false} compact>
+      <CardList style={{ flexGrow: 1 }} ref={itemListRef} bordered={false}>
         {items?.list.map(item => (
           <CardItem key={item.id} item={item} isSelected={item.id === selectedItemId} />
         ))}
         {(loading || items?.has_more) && (
           <div
-            style={{ marginTop: length(3.5), marginBottom: length(3) }}
+            style={{ marginTop: '1em', marginBottom: '.5em' }}
             ref={node => {
               if (node) {
                 sentryNodeRef.current = node
@@ -366,7 +382,7 @@ export default function ItemList() {
               }
             }}
           >
-            <Spinner className="loading-items" size={18} />
+            <Spinner size={iconSize} />
           </div>
         )}
       </CardList>
@@ -375,7 +391,7 @@ export default function ItemList() {
           <Divider compact />
           {state.last_refreshed && (
             <>
-              <div style={{ padding: `${length(1)} ${length(3)}` }}>
+              <div style={{ padding: '.3em .8em' }}>
                 Last refreshed:{' '}
                 <RelativeTime
                   key={state.last_refreshed}
@@ -386,19 +402,13 @@ export default function ItemList() {
               <Divider compact />
             </>
           )}
-          <div
-            style={{
-              padding: `${length(2)} ${length(3)}`,
-              overflowWrap: 'break-word',
-              color: 'var(--danger)',
-            }}
-          >
+          <div style={{ padding: '.5em .8em', overflowWrap: 'break-word', color: 'var(--danger)' }}>
             {state.error}
           </div>
         </>
       )}
       <FeedEditor
-        key={feedLink || ''}
+        key={feedLink}
         title="Edit Feed"
         defaultFeedLink={feedLink || ''}
         isOpen={feedLink != null}
@@ -419,11 +429,10 @@ function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
   const prevStatus = usePrevious(item.status)
   return (
     <Card
+      style={{ lineHeight: '1.5em' }}
       selected={isSelected}
       interactive
-      onClick={async () => {
-        if (!isSelected) await selectItem(item)
-      }}
+      onClick={async () => !isSelected && (await selectItem(item))}
     >
       <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
@@ -432,13 +441,17 @@ function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
               transitionDuration: '150ms',
               ...(item.status === 'read'
                 ? { width: 0 }
-                : { width: '10px', marginRight: length(1), flexShrink: 0 }),
+                : { width: 10, marginRight: '.3em', flexShrink: 0 }),
             }}
           >
             {(item.status === 'read' ? prevStatus : item.status) === 'unread' ? (
-              <Circle style={{ transform: 'scale(0.8)' }} />
+              <Circle
+                width="100%"
+                fill="currentColor"
+                style={{ display: 'flex', transform: 'scale(0.8)' }}
+              />
             ) : (
-              <Star />
+              <Star width="100%" fill="currentColor" style={{ display: 'flex' }} />
             )}
           </span>
           <small
@@ -451,14 +464,14 @@ function CardItem({ item, isSelected }: { item: Item; isSelected: boolean }) {
           >
             {feedsById?.get(item.feed_id)?.title}
           </small>
-          <small style={{ whiteSpace: 'nowrap', marginLeft: length(2) }}>
+          <small style={{ whiteSpace: 'nowrap', marginLeft: '.6em' }}>
             <RelativeTime date={item.date} format={date => fromNow(new Date(date), '')} />
           </small>
         </div>
         <span
           // https://tailwindcss.com/docs/line-clamp
           style={{
-            marginBottom: length(0.5),
+            marginBottom: '.1em',
             overflowWrap: 'break-word',
             overflow: 'hidden',
             display: '-webkit-box',
@@ -484,7 +497,7 @@ function Deleter({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => Prom
         text={`Delete${state === false ? ' (confirm)' : ''}`}
         active={state != null}
         disabled={state}
-        icon={state ? <Spinner intent={Intent.DANGER} /> : <Trash2 />}
+        icon={state ? <Spinner size={iconSize} /> : <Trash2 size={iconSize} />}
         intent={Intent.DANGER}
         shouldDismissPopover={false}
         onClick={() => {
