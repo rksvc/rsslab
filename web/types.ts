@@ -41,7 +41,7 @@ export enum Theme {
   Dark,
 }
 
-export type Settings = { refresh_rate?: number; theme?: Theme }
+export type Settings = { refresh_rate?: number; theme: Theme }
 
 export type Filter = 'Unread' | 'Feeds' | 'Starred'
 

@@ -96,12 +96,12 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
     const [folders, feeds, settings] = await Promise.all([
       xfetch<Folder[]>('api/folders'),
       xfetch<Feed[]>('api/feeds'),
-      xfetch<Settings>('api/settings'),
+      xfetch<Omit<Settings, 'theme'> & { theme?: Theme }>('api/settings'),
     ])
     setFolders(folders)
     setFeeds(feeds.map(f => ({ ...f, has_icon: f.has_icon || null })))
     setFeedListRefreshed({})
-    setSettings(settings)
+    setSettings({ ...settings, theme: settings.theme ?? Theme.Auto })
   }
 
   const refreshStats = async (refreshFeedList = true) => {
