@@ -100,6 +100,7 @@ export default function FeedEditor({
         />
       ),
     },
+    { value: transHtmlHeaders, setValue: setTransHtmlHeaders, key: 'headers', hide: true },
     {
       value: transHtmlTitle,
       setValue: setTransHtmlTitle,
