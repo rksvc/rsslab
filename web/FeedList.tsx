@@ -225,6 +225,7 @@ export default function FeedList() {
           ))}
         </ButtonGroup>
         <PopoverNext
+          animation="minimal"
           middleware={menuMiddleware}
           content={
             <Menu>
@@ -419,6 +420,7 @@ function RefreshRateEditor({
 
   return (
     <PopoverNext
+      animation="minimal"
       usePortal={false}
       placement="right"
       middleware={{ offset: { mainAxis: 4 } }}

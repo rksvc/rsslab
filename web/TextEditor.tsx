@@ -30,6 +30,7 @@ export default function TextEditor({
 
   return (
     <PopoverNext
+      animation="minimal"
       usePortal={false}
       placement="right"
       middleware={{ offset: { mainAxis: 4 } }}

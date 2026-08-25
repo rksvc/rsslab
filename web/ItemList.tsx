@@ -196,6 +196,7 @@ export default function ItemList() {
           }}
         />
         <PopoverNext
+          animation="minimal"
           middleware={menuMiddleware}
           onOpening={() => setMenuOpen(true)}
           onClosed={() => setMenuOpen(false)}
