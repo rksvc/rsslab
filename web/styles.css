@@ -147,9 +147,6 @@ a.bp6-button {
 				transition: none;
 				.bp6-tree-node {
 					margin-left: 16px;
-					.bp6-tree-node-caret-none {
-						min-width: 10px;
-					}
 				}
 			}
 			.bp6-tree-node-content {
@@ -163,9 +160,12 @@ a.bp6-button {
 				.bp6-tree-node-caret {
 					transition: none;
 				}
-				.bp6-tree-node-caret-none {
-					min-width: 32px;
-				}
+			}
+			&:first-child .bp6-tree-node-caret-none {
+				min-width: 32px;
+			}
+			&:not(:first-child) .bp6-tree-node-caret-none {
+				min-width: 8px;
 			}
 			&.bp6-tree-node-selected > .bp6-tree-node-content {
 				&,
