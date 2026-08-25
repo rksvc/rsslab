@@ -323,15 +323,18 @@ func (s *Server) do(rawUrl string, state *storage.HTTPState) (*parser.Feed, erro
 		state.Etag = &etag
 	}
 
-	var b io.Reader = resp.Body
+	return parser.Parse(resp.Body, rawUrl, getCharset(resp))
+}
+
+func getCharset(resp *http.Response) string {
 	if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type")); err == nil {
 		if cs, ok := params["charset"]; ok {
 			if e, _ := charset.Lookup(cs); e != nil {
-				b = e.NewDecoder().Reader(b)
+				return cs
 			}
 		}
 	}
-	return parser.Parse(b, rawUrl)
+	return ""
 }
 
 func (s *Server) worker() {

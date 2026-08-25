@@ -1,6 +1,6 @@
 module rsslab
 
-go 1.26
+go 1.26.0
 
 require (
 	fyne.io/systray v1.12.2
@@ -8,6 +8,7 @@ require (
 	github.com/buke/quickjs-go v0.7.7
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mattn/go-sqlite3 v1.14.48
+	github.com/nkanaev/yarr v0.0.0-20260821135250-d1f33e219857
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/tidwall/gjson v1.19.0
 	golang.org/x/net v0.57.0
