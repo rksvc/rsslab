@@ -3,10 +3,8 @@ package utils
 import (
 	"encoding"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -16,7 +14,6 @@ import (
 	"unsafe"
 
 	"golang.org/x/net/html"
-	"golang.org/x/net/html/charset"
 )
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
@@ -71,18 +68,11 @@ func ExtractText(content string) string {
 }
 
 func ResponseError(resp *http.Response) error {
-	return fmt.Errorf(`%s "%s": %s`, resp.Request.Method, resp.Request.URL, resp.Status)
+	return fmt.Errorf(`%s %#v: %s`, resp.Request.Method, resp.Request.URL.String(), resp.Status)
 }
 
 func IsErrorResponse(statusCode int) bool {
 	return statusCode >= 400
-}
-
-func XMLDecoder(r io.Reader) *xml.Decoder {
-	d := xml.NewDecoder(r)
-	d.Strict = false
-	d.CharsetReader = charset.NewReaderLabel
-	return d
 }
 
 func ParseQuery(url *url.URL, v any) error {

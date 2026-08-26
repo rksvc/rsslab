@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html/charset"
 )
 
 type dict = map[string]any
@@ -356,8 +358,10 @@ func (s *Server) handleOPMLImport(c context) error {
 	if err != nil {
 		return &errBadRequest{err}
 	}
-	d := utils.XMLDecoder(file)
+	d := xml.NewDecoder(file)
 	d.Entity = xml.HTMLEntity
+	d.Strict = false
+	d.CharsetReader = charset.NewReaderLabel
 	var opml parser.OPML
 	err = d.Decode(&opml)
 	if err != nil {
