@@ -435,6 +435,7 @@ function FeedSection({
           }
         },
         keepChildrenMounted: true,
+        transitionDuration: 0,
       }}
       collapsible
       compact
@@ -444,7 +445,7 @@ function FeedSection({
           <FormGroup
             key={key}
             label={key && <Code>{key}</Code>}
-            labelInfo={<span style={{ fontSize: '0.9em' }}>{desc}</span>}
+            labelInfo={<small>{desc}</small>}
             style={{ ...formGroupStyle, display: hide && 'none' }}
           >
             {script ? (
