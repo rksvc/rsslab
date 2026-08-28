@@ -211,8 +211,18 @@ func (rule *JSONRule) Apply(client *http.Client) (*Feed, error) {
 }
 
 func (rule *LuaRule) Apply(client *http.Client) (*Feed, error) {
-	L := lua.NewState()
+	L := lua.NewState(lua.Options{SkipOpenLibs: true})
 	defer L.Close()
+	lua.OpenBase(L)
+	lua.OpenCoroutine(L)
+	lua.OpenMath(L)
+	lua.OpenString(L)
+	lua.OpenTable(L)
+	lua.OpenOs(L)
+	os := L.GetGlobal(lua.OsLibName).(*lua.LTable)
+	for _, key := range []string{"execute", "exit", "getenv", "remove", "rename", "setenv", "setlocale", "tmpname"} {
+		os.RawSetString(key, lua.LNil)
+	}
 
 	f, err := L.Load(strings.NewReader(rule.Script), "main")
 	if err != nil {
