@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -10,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/andybalholm/cascadia"
-	"github.com/buke/quickjs-go"
 	"github.com/tidwall/gjson"
+	lua "github.com/yuin/gopher-lua"
 	"golang.org/x/net/html"
 )
 
@@ -41,7 +40,7 @@ type JSONRule struct {
 	ItemDate      string            `json:"item_date_published"`
 }
 
-type JavaScriptRule struct {
+type LuaRule struct {
 	Script string `json:"script"`
 }
 
@@ -141,13 +140,13 @@ func (rule *HTMLRule) Apply(client *http.Client) (*Feed, error) {
 			if date != nil {
 				for _, attr := range date.Attr {
 					if attr.Key == rule.ItemDateAttr {
-						i.Date = parseDate(attr.Val)
+						i.Date = utils.ParseDate(attr.Val)
 						break
 					}
 				}
 			}
 		} else {
-			i.Date = parseDate(extractText(date))
+			i.Date = utils.ParseDate(extractText(date))
 		}
 
 		feed.Items = append(feed.Items, i)
@@ -201,7 +200,7 @@ func (rule *JSONRule) Apply(client *http.Client) (*Feed, error) {
 		}
 
 		if rule.ItemDate != "" {
-			i.Date = parseDate(item.Get(rule.ItemDate).String())
+			i.Date = utils.ParseDate(item.Get(rule.ItemDate).String())
 		}
 
 		feed.Items = append(feed.Items, i)
@@ -211,26 +210,22 @@ func (rule *JSONRule) Apply(client *http.Client) (*Feed, error) {
 	return &feed, nil
 }
 
-func (rule *JavaScriptRule) Apply(client *http.Client) (*Feed, error) {
-	rt := quickjs.NewRuntime()
-	defer rt.Close()
-	ctx := rt.NewContext()
-	defer ctx.Close()
+func (rule *LuaRule) Apply(client *http.Client) (*Feed, error) {
+	L := lua.NewState()
+	defer L.Close()
 
-	module := ctx.NewObject()
-	ctx.Globals().Set("module", module)
-	ret := ctx.Eval(rule.Script)
-	defer ret.Free()
-	if ret.IsException() {
-		return nil, ctx.Exception()
+	f, err := L.Load(strings.NewReader(rule.Script), "main")
+	if err != nil {
+		return nil, err
+	}
+	L.Push(f)
+	if err := L.PCall(0, 1, nil); err != nil {
+		return nil, err
 	}
 
 	var feed Feed
-	exports := module.Get("exports")
-	defer exports.Free()
-	if !exports.IsNull() && !exports.IsUndefined() {
-		err := json.Unmarshal(utils.StringToBytes(exports.JSONStringify()), &feed)
-		if err != nil {
+	if t, ok := L.Get(-1).(*lua.LTable); ok {
+		if err := utils.UnmarshalLTable(t, &feed); err != nil {
 			return nil, err
 		}
 	}

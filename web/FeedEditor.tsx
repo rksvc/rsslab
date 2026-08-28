@@ -255,9 +255,9 @@ export default function FeedEditor({
     },
   ]
 
-  const [js, setJs] = useState('')
-  const jsParams: Param[] = [
-    { value: js, setValue: setJs, key: 'script', desc: 'JavaScript', script: true },
+  const [lua, setLua] = useState('')
+  const luaParams: Param[] = [
+    { value: lua, setValue: setLua, key: 'script', desc: 'Lua', script: true },
   ]
 
   useEffect(() => {
@@ -265,7 +265,7 @@ export default function FeedEditor({
       for (const { key, setValue } of {
         html: transHtmlParams,
         json: transJsonParams,
-        js: jsParams,
+        lua: luaParams,
       }[scheme])
         setValue(url.searchParams.get(key) ?? '')
     // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -278,7 +278,7 @@ export default function FeedEditor({
       if (!feedUrl) throw new Error('Feed link is required')
     } else {
       feedLink = `rsslab://${feedType}${stringify(
-        { html: transHtmlParams, json: transJsonParams, js: jsParams }[feedType],
+        { html: transHtmlParams, json: transJsonParams, lua: luaParams }[feedType],
       )}`
     }
 
@@ -298,9 +298,9 @@ export default function FeedEditor({
   const feedRef = useRef<HTMLDivElement>(null)
   const htmlRef = useRef<HTMLDivElement>(null)
   const jsonRef = useRef<HTMLDivElement>(null)
-  const jsRef = useRef<HTMLDivElement>(null)
+  const luaRef = useRef<HTMLDivElement>(null)
   const onSectionChange = () => {
-    ;({ feed: feedRef, html: htmlRef, json: jsonRef, js: jsRef })[feedType].current
+    ;({ feed: feedRef, html: htmlRef, json: jsonRef, lua: luaRef })[feedType].current
       ?.querySelector<HTMLInputElement>(`.${Classes.INPUT}`)
       ?.focus()
     dialogBodyRef.current?.scrollTo(0, 0)
@@ -353,11 +353,11 @@ export default function FeedEditor({
           />
           <Divider compact />
           <FeedSection
-            ref={jsRef}
+            ref={luaRef}
             sectionStyle={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, boxShadow: 'none' }}
-            type="js"
-            title="JavaScript"
-            params={jsParams}
+            type="lua"
+            title="Lua"
+            params={luaParams}
             isOpen={sectionOpen}
             setIsOpen={setSectionOpen}
             curType={feedType}

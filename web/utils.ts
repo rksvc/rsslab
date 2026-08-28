@@ -28,7 +28,7 @@ export function parseFeedLink(link: string): [Transformer, URL] | [undefined, st
     switch (url.host) {
       case 'html':
       case 'json':
-      case 'js':
+      case 'lua':
         return [url.host, url]
     }
   }

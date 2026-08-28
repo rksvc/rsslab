@@ -277,8 +277,8 @@ func (s *Server) do(rawUrl string, state *storage.HTTPState) (*parser.Feed, erro
 			}
 			return rule.Apply(&s.client)
 
-		case "js":
-			rule := new(parser.JavaScriptRule)
+		case "lua":
+			rule := new(parser.LuaRule)
 			if err := utils.ParseQuery(url, rule); err != nil {
 				return nil, err
 			}

@@ -1,4 +1,4 @@
-package parser
+package utils
 
 import (
 	"strings"
@@ -428,7 +428,7 @@ func parseDateOtherString(s string) (date, bool) {
 	return d, d.month > 0 && d.day > 0
 }
 
-func parseDate(date string) *time.Time {
+func ParseDate(date string) *time.Time {
 	d, ok := parseDateISOString(date)
 	if !ok {
 		d, ok = parseDateOtherString(date)

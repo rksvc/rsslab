@@ -11,8 +11,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unsafe"
 
+	lua "github.com/yuin/gopher-lua"
 	"golang.org/x/net/html"
 )
 
@@ -131,6 +133,61 @@ func ParseQuery(url *url.URL, v any) error {
 						default:
 							panic(fmt.Errorf("unsupported type %T", f.Interface()))
 						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func UnmarshalLTable(t *lua.LTable, v any) error {
+	val := reflect.ValueOf(v).Elem()
+	typ := val.Type()
+	for i := range val.NumField() {
+		if f := val.Field(i); f.CanSet() {
+			if key, ok := typ.Field(i).Tag.Lookup("json"); ok && key != "-" {
+				key, _, _ = strings.Cut(key, ",")
+				v := t.RawGetString(key)
+				if v == lua.LNil {
+					continue
+				}
+				unmarshalErr := func() error {
+					return fmt.Errorf("cannot unmarshal %s into Go struct field .%s of type %T", v.Type(), key, f.Interface())
+				}
+				switch f.Kind() {
+				case reflect.String:
+					if s, ok := v.(lua.LString); ok {
+						f.Set(reflect.ValueOf(s.String()))
+					} else {
+						return unmarshalErr()
+					}
+				case reflect.Slice:
+					if t, ok := v.(*lua.LTable); ok {
+						for i := range t.MaxN() {
+							v := t.RawGetInt(i + 1)
+							elem := reflect.New(f.Type().Elem())
+							if t, ok := v.(*lua.LTable); ok {
+								if err := UnmarshalLTable(t, elem.Interface()); err != nil {
+									return err
+								}
+								f.Set(reflect.Append(f, elem.Elem()))
+							} else {
+								return fmt.Errorf("cannot unmarshal %s into .%s.%d of type %T", v.Type(), key, i, elem.Elem().Interface())
+							}
+						}
+					} else {
+						return unmarshalErr()
+					}
+				default:
+					if _, ok := f.Interface().(*time.Time); ok {
+						if s, ok := v.(lua.LString); ok {
+							f.Set(reflect.ValueOf(ParseDate(s.String())))
+						} else {
+							return unmarshalErr()
+						}
+					} else {
+						panic(fmt.Errorf("unsupported type %T", f.Interface()))
 					}
 				}
 			}
