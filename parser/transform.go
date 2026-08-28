@@ -2,7 +2,6 @@ package parser
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"rsslab/utils"
 	"slices"
@@ -247,17 +246,6 @@ func (rule *LuaRule) Apply(client *http.Client) (*Feed, error) {
 	return &feed, nil
 }
 
-var retryStatusCodes = map[int]struct{}{
-	http.StatusRequestTimeout:      {},
-	http.StatusConflict:            {},
-	http.StatusTooEarly:            {},
-	http.StatusTooManyRequests:     {},
-	http.StatusInternalServerError: {},
-	http.StatusBadGateway:          {},
-	http.StatusServiceUnavailable:  {},
-	http.StatusGatewayTimeout:      {},
-}
-
 func tryGet(url string, headers map[string]string, client *http.Client) (resp *http.Response, err error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -267,22 +255,10 @@ func tryGet(url string, headers map[string]string, client *http.Client) (resp *h
 	for key, val := range headers {
 		req.Header.Set(key, val)
 	}
-	const maxTry = 3
-	for attempt := 1; attempt <= maxTry; attempt++ {
-		resp, err = client.Do(req)
-		if err == nil {
-			if !utils.IsErrorResponse(resp.StatusCode) {
-				return
-			}
-			resp.Body.Close()
-			err = utils.ResponseError(resp)
-			if _, ok := retryStatusCodes[resp.StatusCode]; !ok {
-				return
-			}
-		}
-		if attempt < maxTry {
-			log.Printf("%s, retry attempt %d", err, attempt)
-		}
+	resp, err = client.Do(req)
+	if err == nil && utils.IsErrorResponse(resp.StatusCode) {
+		resp.Body.Close()
+		err = utils.ResponseError(resp)
 	}
 	return
 }
