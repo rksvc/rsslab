@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/andybalholm/cascadia"
+	"github.com/cjoudrey/gluahttp"
+	json "github.com/layeh/gopher-json"
 	"github.com/tidwall/gjson"
 	lua "github.com/yuin/gopher-lua"
 	"golang.org/x/net/html"
@@ -218,11 +220,14 @@ func (rule *LuaRule) Apply(client *http.Client) (*Feed, error) {
 	lua.OpenMath(L)
 	lua.OpenString(L)
 	lua.OpenTable(L)
+	lua.OpenPackage(L)
 	lua.OpenOs(L)
 	os := L.GetGlobal(lua.OsLibName).(*lua.LTable)
 	for _, key := range []string{"execute", "exit", "getenv", "remove", "rename", "setenv", "setlocale", "tmpname"} {
 		os.RawSetString(key, lua.LNil)
 	}
+	L.PreloadModule("http", gluahttp.NewHttpModule(client).Loader)
+	L.PreloadModule("json", json.Loader)
 
 	f, err := L.Load(strings.NewReader(rule.Script), "main")
 	if err != nil {

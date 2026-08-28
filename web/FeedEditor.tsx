@@ -177,17 +177,7 @@ export default function FeedEditor({
   const [transJsonItemUrlPrefix, setTransJsonItemUrlPrefix] = useState('')
   const [transJsonItemContent, setTransJsonItemContent] = useState('')
   const [transJsonItemDate, setTransJsonItemDate] = useState('')
-  const jsonPath = (
-    <a
-      style={{ color: 'inherit', textDecoration: 'underline' }}
-      href="https://github.com/tidwall/gjson"
-      target="_blank"
-      rel="noopener noreferrer"
-      referrerPolicy="no-referrer"
-    >
-      JSON path
-    </a>
-  )
+  const jsonPath = <A text="JSON path" href="https://github.com/tidwall/gjson" />
   const transJsonParams: Param[] = [
     {
       value: transJsonUrl,
@@ -257,7 +247,18 @@ export default function FeedEditor({
 
   const [lua, setLua] = useState('')
   const luaParams: Param[] = [
-    { value: lua, setValue: setLua, key: 'script', desc: 'Lua', script: true },
+    {
+      value: lua,
+      setValue: setLua,
+      key: 'script',
+      desc: (
+        <span>
+          Lua (docs: <A text="HTTP" href="https://github.com/cjoudrey/gluahttp" />,{' '}
+          <A text="JSON" href="https://github.com/layeh/gopher-json" />)
+        </span>
+      ),
+      script: true,
+    },
   ]
 
   useEffect(() => {
@@ -501,6 +502,20 @@ function FeedSection({
 
 function Span(props: HTMLAttributes<HTMLSpanElement>) {
   return <span {...props} />
+}
+
+function A({ text, href }: { text: string; href: string }) {
+  return (
+    <a
+      style={{ color: 'inherit', textDecoration: 'underline' }}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      referrerPolicy="no-referrer"
+    >
+      {text}
+    </a>
+  )
 }
 
 function stringify(params: Param[]) {
