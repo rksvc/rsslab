@@ -452,12 +452,11 @@ function FeedSection({
             {script ? (
               <TextArea
                 fill
-                autoResize
                 spellCheck="false"
                 size="small"
                 wrap="off"
                 value={value}
-                style={{ minHeight: '10em', fontFamily: 'var(--monospace)' }}
+                style={{ minHeight: '20em', fontFamily: 'var(--monospace)' }}
                 onChange={evt => setValue(evt.target.value)}
               />
             ) : (
