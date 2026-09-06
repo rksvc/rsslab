@@ -13,126 +13,138 @@ import (
 )
 
 func sanitize(baseURL string, input string) string {
-	var b strings.Builder
-	var tagStack []string
-	var parentTag atom.Atom
-	blacklistedTagDepth := 0
+	doc, err := html.Parse(io.MultiReader(
+		strings.NewReader("<body>"),
+		strings.NewReader(input),
+		strings.NewReader("</body>"),
+	))
+	if err != nil {
+		return ""
+	}
 
-	tokenizer := html.NewTokenizer(strings.NewReader(input))
-	for {
-		if tokenizer.Next() == html.ErrorToken {
-			if tokenizer.Err() == io.EOF {
-				return b.String()
+	var body *html.Node
+	for root := range doc.ChildNodes() {
+		if root.Type == html.ElementNode && root.DataAtom == atom.Html {
+			for node := range root.ChildNodes() {
+				if node.Type == html.ElementNode && node.DataAtom == atom.Body {
+					body = node
+				}
 			}
+		}
+	}
+	if body == nil {
+		return ""
+	}
+
+	sanitizeChildren(body, baseURL)
+
+	var b strings.Builder
+	for node := range body.ChildNodes() {
+		if err := html.Render(&b, node); err != nil {
 			return ""
 		}
+	}
+	return b.String()
+}
 
-		token := tokenizer.Token()
-		switch token.Type {
-		case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
-			if token.DataAtom == atom.Tt {
-				token.DataAtom = atom.Code
-				token.Data = token.DataAtom.String()
-			}
+func sanitizeChildren(parent *html.Node, baseURL string) {
+	for node := parent.FirstChild; node != nil; {
+		next := node.NextSibling
+		switch node.Type {
+		case html.ElementNode:
+			sanitizeElement(parent, node, baseURL)
+		case html.CommentNode, html.DoctypeNode:
+			parent.RemoveChild(node)
 		}
+		node = next
+	}
+}
 
-		switch token.Type {
-		case html.TextToken:
-			if blacklistedTagDepth > 0 {
-				continue
-			}
-			// An iframe element never has fallback content.
-			// See https://www.w3.org/TR/2010/WD-html5-20101019/the-iframe-element.html#the-iframe-element
-			if parentTag == atom.Iframe {
-				continue
-			}
-			b.WriteString(html.EscapeString(token.Data))
+func sanitizeElement(parent, node *html.Node, baseURL string) {
+	switch node.DataAtom {
+	case atom.Noscript, atom.Script, atom.Style:
+		parent.RemoveChild(node)
+		return
+	case atom.Tt:
+		node.DataAtom = atom.Code
+		node.Data = node.DataAtom.String()
+	}
 
-		case html.StartTagToken:
-			parentTag = token.DataAtom
-			if isValidTag(token.DataAtom, token.Data) {
-				attrs, ok := sanitizeAttrs(baseURL, token)
-				if ok {
-					wrap := isKnownVideoIframe(token)
-					if wrap {
-						b.WriteString(`<div class="video-wrapper">`)
-					}
+	// Children are sanitized first so that descendants of elements that end
+	// up being removed or promoted have already been cleaned up.
+	sanitizeChildren(node, baseURL)
 
-					b.WriteByte('<')
-					b.WriteString(token.Data)
-					b.WriteString(attrs)
-					b.WriteByte('>')
+	if !isValidTag(node.DataAtom, node.Data) {
+		promoteChildren(parent, node)
+		return
+	}
 
-					if token.DataAtom == atom.Iframe {
-						// autoclose iframes
-						b.WriteString("</iframe>")
-						if wrap {
-							b.WriteString("</div>")
-						}
-					} else {
-						tagStack = append(tagStack, token.Data)
-					}
-				}
-			} else if isBlockedTag(token.DataAtom) {
-				blacklistedTagDepth++
-			}
+	if !sanitizeAttrs(baseURL, node) {
+		if node.DataAtom == atom.Iframe {
+			// A blocked iframe should not have its inner content rendered.
+			parent.RemoveChild(node)
+			return
+		}
+		promoteChildren(parent, node)
+		return
+	}
 
-		case html.EndTagToken:
-			// iframes are autoclosed, see above
-			if token.DataAtom == atom.Iframe {
-				continue
-			}
-			if isValidTag(token.DataAtom, token.Data) && slices.Contains(tagStack, token.Data) {
-				b.WriteString("</")
-				b.WriteString(token.Data)
-				b.WriteByte('>')
-			} else if isBlockedTag(token.DataAtom) {
-				blacklistedTagDepth--
-			}
+	if isKnownVideoIframe(node) {
+		wrapper := &html.Node{
+			Type: html.ElementNode,
+			Data: "div",
+			Attr: []html.Attribute{{Key: "class", Val: "video-wrapper"}},
+		}
+		next := node.NextSibling
+		parent.RemoveChild(node)
+		parent.InsertBefore(wrapper, next)
+		wrapper.AppendChild(node)
+	}
 
-		case html.SelfClosingTagToken:
-			if isValidTag(token.DataAtom, token.Data) {
-				attrs, ok := sanitizeAttrs(baseURL, token)
-				if ok {
-					b.WriteByte('<')
-					b.WriteString(token.Data)
-					b.WriteString(attrs)
-					b.WriteString("/>")
-				}
-			}
+	if node.DataAtom == atom.Iframe {
+		// An iframe element never has fallback content.
+		for node.FirstChild != nil {
+			node.RemoveChild(node.FirstChild)
 		}
 	}
 }
 
-func sanitizeAttrs(baseURL string, token html.Token) (string, bool) {
-	var requiredAttrs []string
-	switch token.DataAtom {
-	case atom.A:
-		requiredAttrs = []string{"href"}
-	case atom.Iframe:
-		requiredAttrs = []string{"src"}
-	case atom.Img:
-		requiredAttrs = []string{"src"}
-	case atom.Source:
-		requiredAttrs = []string{"src", "srcset"}
+func promoteChildren(parent, node *html.Node) {
+	for node.FirstChild != nil {
+		child := node.FirstChild
+		node.RemoveChild(child)
+		parent.InsertBefore(child, node)
 	}
+	parent.RemoveChild(node)
+}
+
+var requiredAttrs = map[atom.Atom][]string{
+	atom.A:      {"href"},
+	atom.Iframe: {"src"},
+	atom.Img:    {"src"},
+	atom.Source: {"src", "srcset"},
+}
+
+func sanitizeAttrs(baseURL string, node *html.Node) bool {
+	requiredAttrs := requiredAttrs[node.DataAtom]
 	ok := requiredAttrs == nil
 
-	var b strings.Builder
-	for _, attr := range token.Attr {
-		if !isValidAttr(token.DataAtom, token.Data, attr.Key) {
+	var attrs []html.Attribute
+	for _, attr := range node.Attr {
+		key := strings.ToLower(attr.Key)
+		if !isValidAttr(node.DataAtom, node.Data, key) {
 			continue
 		}
 
 		val := attr.Val
-		if (token.DataAtom == atom.Img || token.DataAtom == atom.Source) && attr.Key == "srcset" {
+		if (node.DataAtom == atom.Img || node.DataAtom == atom.Source) && key == "srcset" {
 			val = sanitizeSrcsetAttr(baseURL, val)
-		} else if isExternalResourceAttr(attr.Key) {
-			if token.DataAtom == atom.Iframe {
-				if !isSafeIframeSource(baseURL, attr.Val) {
+		} else if isExternalResourceAttr(key) {
+			if node.DataAtom == atom.Iframe {
+				if !isSafeIframeSource(baseURL, val) {
 					continue
 				}
-			} else if !(token.DataAtom == atom.Img && attr.Key == "src" && isValidDataAttr(attr.Val)) {
+			} else if !(node.DataAtom == atom.Img && key == "src" && isValidDataAttr(val)) {
 				val = utils.AbsoluteUrl(val, baseURL)
 				if val == "" || !hasValidURIScheme(val) || isBlockedResource(val) {
 					continue
@@ -140,30 +152,36 @@ func sanitizeAttrs(baseURL string, token html.Token) (string, bool) {
 			}
 		}
 
-		b.WriteByte(' ')
-		b.WriteString(attr.Key)
-		b.WriteByte('=')
-		b.WriteByte('"')
-		b.WriteString(html.EscapeString(val))
-		b.WriteByte('"')
-		ok = ok || slices.Contains(requiredAttrs, attr.Key)
+		attrs = append(attrs, html.Attribute{Key: key, Val: val})
+		ok = ok || slices.Contains(requiredAttrs, key)
 	}
 	if !ok {
-		return "", false
+		return false
 	}
 
-	switch token.DataAtom {
+	switch node.DataAtom {
 	case atom.A:
-		b.WriteString(` rel="noopener noreferrer" target="_blank" referrerpolicy="no-referrer"`)
+		attrs = append(attrs,
+			html.Attribute{Key: "rel", Val: "noopener noreferrer"},
+			html.Attribute{Key: "target", Val: "_blank"},
+			html.Attribute{Key: "referrerpolicy", Val: "no-referrer"},
+		)
 	case atom.Video, atom.Audio:
-		b.WriteString(` controls`)
+		attrs = append(attrs, html.Attribute{Key: "controls"})
 	case atom.Iframe:
-		b.WriteString(` sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"`)
+		attrs = append(attrs,
+			html.Attribute{Key: "sandbox", Val: "allow-scripts allow-same-origin allow-popups"},
+			html.Attribute{Key: "loading", Val: "lazy"},
+		)
 	case atom.Img:
-		b.WriteString(` loading="lazy" referrerpolicy="no-referrer"`)
+		attrs = append(attrs,
+			html.Attribute{Key: "loading", Val: "lazy"},
+			html.Attribute{Key: "referrerpolicy", Val: "no-referrer"},
+		)
 	}
 
-	return b.String(), true
+	node.Attr = attrs
+	return true
 }
 
 // taken from: https://github.com/cure53/DOMPurify/blob/e1c19cf6/src/tags.js
@@ -661,12 +679,9 @@ var blockedResources = []string{
 }
 
 func isBlockedResource(src string) bool {
-	for _, resource := range blockedResources {
-		if strings.Contains(src, resource) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(blockedResources, func(resource string) bool {
+		return strings.Contains(src, resource)
+	})
 }
 
 var safeDomains = map[string]struct{}{
@@ -691,15 +706,6 @@ func isSafeIframeSource(baseURL, src string) bool {
 	}
 	_, ok := safeDomains[domain]
 	return ok
-}
-
-func isBlockedTag(tagAtom atom.Atom) bool {
-	switch tagAtom {
-	case atom.Noscript, atom.Script, atom.Style:
-		return true
-	default:
-		return false
-	}
 }
 
 // One or more strings separated by commas, indicating possible image sources for the user agent to use.
@@ -757,13 +763,10 @@ var dataAttrAllowList = []string{
 	"data:image/webp",
 }
 
-func isValidDataAttr(attr string) bool {
-	for _, prefix := range dataAttrAllowList {
-		if strings.HasPrefix(attr, prefix) {
-			return true
-		}
-	}
-	return false
+func isValidDataAttr(value string) bool {
+	return slices.ContainsFunc(dataAttrAllowList, func(prefix string) bool {
+		return strings.HasPrefix(value, prefix)
+	})
 }
 
 var videoWhitelist = map[string]struct{}{
@@ -774,9 +777,9 @@ var videoWhitelist = map[string]struct{}{
 	"www.youtube.com":          {},
 }
 
-func isKnownVideoIframe(token html.Token) bool {
-	if token.DataAtom == atom.Iframe {
-		for _, attr := range token.Attr {
+func isKnownVideoIframe(node *html.Node) bool {
+	if node.DataAtom == atom.Iframe {
+		for _, attr := range node.Attr {
 			if attr.Key == "src" {
 				_, ok := videoWhitelist[urlDomain(attr.Val)]
 				return ok
