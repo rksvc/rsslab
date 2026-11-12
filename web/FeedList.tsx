@@ -470,6 +470,6 @@ function RefreshRateEditor({
 
 function useRefEscaped<T>() {
   const ref = useRef<T>(undefined)
-  // oxlint-disable-next-line react/react-compiler
+  // oxlint-disable-next-line react/refs
   return [ref.current, (value: T) => (ref.current = value)] as const
 }

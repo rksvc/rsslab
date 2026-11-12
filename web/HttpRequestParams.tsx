@@ -44,6 +44,7 @@ export default function HttpRequestParams({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ userSelect: 'none' }}>Parameters</div>
           {[...url.searchParams].map(([param, value], i) => (
+            // oxlint-disable-next-line react/no-array-index-key
             <ControlGroup key={i} fill>
               <InputGroup
                 value={param}
@@ -97,7 +98,7 @@ export default function HttpRequestParams({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ userSelect: 'none' }}>Headers</div>
         {headers.map(([key, value], i) => (
-          <ControlGroup key={i} fill>
+          <ControlGroup key={key} fill>
             <InputGroup
               value={key}
               spellCheck="false"

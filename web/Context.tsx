@@ -176,6 +176,7 @@ export default function ContextProvider({ children }: { children: ReactNode }) {
 
   return (
     <Context
+      // oxlint-disable-next-line react/jsx-no-constructed-context-values
       value={{
         setFolders,
         feeds,

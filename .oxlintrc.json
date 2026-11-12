@@ -1,16 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "options": { "typeAware": true, "typeCheck": true },
-  "plugins": [
-    "eslint",
-    "typescript",
-    "unicorn",
-    "react",
-    "react-perf",
-    "oxc",
-    "import",
-    "jsx-a11y",
-    "promise"
-  ],
-  "rules": { "react/react-compiler": "error" }
+  "plugins": ["react", "import", "jsx-a11y", "promise"],
+  "categories": { "suspicious": "error", "perf": "error" },
+  "rules": {
+    "eslint/no-shadow": "allow",
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+    "promise/always-return": ["error", { "ignoreLastCallback": true }],
+    "react/no-unstable-nested-components": ["error", { "allowAsProps": true }],
+    "react/react-in-jsx-scope": "allow",
+    "react/unsupported-syntax": "error"
+  }
 }

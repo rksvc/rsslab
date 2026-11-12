@@ -403,7 +403,13 @@ export default function ItemList() {
               <Divider compact />
             </>
           )}
-          <div style={{ padding: '.5em .8em', overflowWrap: 'break-word', color: 'var(--danger)' }}>
+          <div
+            style={{
+              padding: '.5em .8em',
+              overflowWrap: 'break-word',
+              color: 'var(--bp-intent-danger-rest)',
+            }}
+          >
             {state.error}
           </div>
         </>

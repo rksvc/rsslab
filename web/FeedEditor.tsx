@@ -311,7 +311,9 @@ export default function FeedEditor({
   return (
     <Dialog title={title} isOpen={isOpen} onClose={close} onOpened={onSectionChange}>
       <DialogBody ref={dialogBodyRef}>
-        <FormGroup style={{ borderRadius: 'var(--border-radius)', boxShadow: 'var(--shadow)' }}>
+        <FormGroup
+          style={{ borderRadius: 'var(--bp-surface-border-radius)', boxShadow: 'var(--shadow)' }}
+        >
           <FeedSection
             ref={feedRef}
             sectionStyle={{
@@ -462,7 +464,7 @@ function FeedSection({
             ) : (
               <div
                 style={{
-                  borderRadius: 'var(--border-radius)',
+                  borderRadius: 'var(--bp-surface-border-radius)',
                   boxShadow: extra && 'var(--shadow)',
                 }}
               >

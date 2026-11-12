@@ -1,4 +1,4 @@
-import { Colors, FocusStyleManager, OverlaysProvider } from '@blueprintjs/core'
+import { FocusStyleManager, OverlaysProvider } from '@blueprintjs/core'
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 
@@ -7,12 +7,6 @@ import ContextProvider from './Context.tsx'
 
 import '@blueprintjs/core/lib/css/blueprint.css'
 import './styles.css'
-
-const style = document.querySelector<HTMLHtmlElement>(':root')!.style
-style.setProperty('--gray1', Colors.GRAY1)
-style.setProperty('--gray3', Colors.GRAY3)
-style.setProperty('--gray4', Colors.GRAY4)
-style.setProperty('--dark-gray2', Colors.DARK_GRAY2)
 
 FocusStyleManager.onlyShowFocusOnTabs()
 
