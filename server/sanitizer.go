@@ -699,12 +699,21 @@ var safeDomains = map[string]struct{}{
 }
 
 func isSafeIframeSource(baseURL, src string) bool {
-	domain := urlDomain(src)
+	u, err := url.Parse(src)
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "http", "https":
+	default:
+		return false
+	}
+
 	// allow iframe from same origin
-	if urlDomain(baseURL) == domain {
+	if urlDomain(baseURL) == u.Host {
 		return true
 	}
-	_, ok := safeDomains[domain]
+	_, ok := safeDomains[u.Host]
 	return ok
 }
 
